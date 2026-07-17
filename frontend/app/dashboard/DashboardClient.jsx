@@ -95,7 +95,7 @@ export default function DashboardClient({ firstName, initialLink, initialNote, i
         {/* SECTION 1: MY WORKSHOPS */}
         <div className="db-rise" style={css("animation-delay:.05s;display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px")}>
           <h2 style={css("margin:0;color:var(--faint);font-weight:600;font-size:12.5px;letter-spacing:0.2em;text-transform:uppercase")}>My workshops</h2>
-          <Link href="/" className="btn btn--tertiary btn--sm">Browse all</Link>
+          <Link href="/workshop" className="btn btn--tertiary btn--sm">Browse all</Link>
         </div>
         <div style={css("display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;max-width:800px;margin:0 auto clamp(40px,5vw,60px)")}>
           <Box className="db-rise wcard" style="animation-delay:.1s;background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:border-color .25s,transform .25s,box-shadow .25s" hover="border-color:rgba(255,255,255,0.18);transform:translateY(-4px);box-shadow:0 24px 60px -28px rgba(0,0,0,0.8)">

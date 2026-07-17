@@ -24,7 +24,7 @@ export function TopBar({ active = "dashboard" }) {
   return (
     <nav style={css("position:sticky;top:0;z-index:50;background:rgba(19,18,17,0.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)")}>
       <div style={css("max-width:1160px;margin:0 auto;padding:0 clamp(16px,3vw,24px);height:68px;display:flex;align-items:center;gap:clamp(16px,3vw,32px)")}>
-        <Link href="/" style={css("display:flex;align-items:center;gap:10px;color:var(--text);flex:none")}>
+        <Link href="/workshop" style={css("display:flex;align-items:center;gap:10px;color:var(--text);flex:none")}>
           <img src="/assets/academy-logo-full.png" alt="Academy" style={css("height:36px;width:auto;object-fit:contain;display:block")} />
           <span style={css("font-weight:700;font-size:18px;letter-spacing:-0.02em")}>Academy</span>
         </Link>
@@ -33,7 +33,7 @@ export function TopBar({ active = "dashboard" }) {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
             Dashboard
           </Link>
-          <Link href="/" className={active === "workshops" ? activeCls : inactiveCls}>
+          <Link href="/workshop" className={active === "workshops" ? activeCls : inactiveCls}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /></svg>
             Workshops
           </Link>

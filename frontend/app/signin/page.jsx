@@ -99,7 +99,7 @@ function SignInInner() {
         ></div>
 
         <Link
-          href="/"
+          href="/workshop"
           style={css(
             "position:relative;display:flex;align-items:center;gap:10px;color:var(--text)"
           )}
