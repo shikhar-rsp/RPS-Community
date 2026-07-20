@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box}
+  body{margin:0}
+  a{color:#F5330A;text-decoration:none}
+  input::placeholder{color:#6e6d6a}
+  input:focus{outline:none;border-color:rgba(255,120,60,0.55)!important;box-shadow:0 0 0 4px rgba(245,60,20,0.12)!important}
+  @keyframes ob-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes ob-pop{0%{opacity:0;transform:scale(0.5)}60%{transform:scale(1.12)}100%{opacity:1;transform:scale(1)}}
+  @keyframes ob-glow{0%,100%{box-shadow:0 0 0 1px rgba(255,120,60,0.4),0 18px 60px -18px rgba(245,60,20,0.55)}50%{box-shadow:0 0 0 1px rgba(255,120,60,0.6),0 22px 70px -14px rgba(245,60,20,0.75)}}
+  .ob-card{animation:ob-rise .5s cubic-bezier(.22,.9,.3,1) both}
+</style>
+<style id="oc-btn-system">
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;font-weight:700;letter-spacing:-0.01em;line-height:1;border:none;border-radius:12px;cursor:pointer;text-decoration:none;white-space:nowrap;position:relative;isolation:isolate;-webkit-tap-highlight-color:transparent;transition:transform .18s cubic-bezier(.2,.8,.3,1),box-shadow .2s ease,filter .2s ease,border-color .2s ease,background .2s ease,color .2s ease}
+.btn>svg{flex:none;transition:transform .18s cubic-bezier(.2,.8,.3,1)}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--bg,#141312),0 0 0 5px rgba(245,60,20,0.75)}
+.btn--lg{height:54px;padding:0 30px;font-size:16px}
+.btn--md{height:46px;padding:0 22px;font-size:15px}
+.btn--sm{height:38px;padding:0 16px;font-size:13.5px}
+.btn--block{width:100%}
+.btn--primary{background:linear-gradient(180deg,#FF7C48 0%,#F5330A 100%);color:#fff;text-shadow:0 1px 1px rgba(120,20,0,0.45);box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),inset 0 -1px 0 rgba(120,20,0,0.3),0 3px 0 #B4260B,0 12px 26px -10px rgba(245,60,20,0.7)}
+.btn--primary:hover{color:#fff;filter:brightness(1.05);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.55),inset 0 -1px 0 rgba(120,20,0,0.3),0 4px 0 #B4260B,0 16px 34px -10px rgba(245,60,20,0.82)}
+.btn--primary:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),0 1px 0 #B4260B,0 6px 14px -10px rgba(245,60,20,0.55)}
+.btn--primary:hover>svg{transform:translateX(3px)}
+.btn--secondary{background:var(--surface2,#242322);color:var(--text,#ECEBE9);border:1px solid var(--border,rgba(255,255,255,0.14));box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 2px 0 rgba(0,0,0,0.22),0 10px 22px -14px rgba(0,0,0,0.6)}
+.btn--secondary:hover{color:var(--text,#ECEBE9);transform:translateY(-1px);border-color:rgba(245,60,20,0.5);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 3px 0 rgba(0,0,0,0.22),0 14px 28px -14px rgba(0,0,0,0.72)}
+.btn--secondary:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 1px 0 rgba(0,0,0,0.22)}
+.btn--tertiary{background:transparent;color:var(--muted,#9a9993);box-shadow:none;padding-left:12px;padding-right:12px}
+.btn--tertiary:hover{color:var(--text,#ECEBE9)}
+.btn--tertiary:active{transform:translateY(1px)}
+.btn:disabled,.btn[aria-disabled="true"]{cursor:not-allowed;pointer-events:none;background:var(--surface2,#242322);color:var(--faint,#6e6d6a);border:1px solid var(--border,rgba(255,255,255,0.08));box-shadow:none;filter:none;transform:none}
+.btn--loading{color:transparent!important;pointer-events:none}
+.btn--loading>svg{opacity:0}
+.btn--loading::after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;animation:btn-spin .6s linear infinite}
+.btn--secondary.btn--loading::after,.btn--tertiary.btn--loading::after{border-color:rgba(236,235,233,0.25);border-top-color:var(--text,#ECEBE9)}
+@keyframes btn-spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div data-screen-label="Onboarding" style="--bg:#131211;--surface:#1c1b1a;--surface2:#232220;--border:rgba(255,255,255,0.09);--text:#ECEBE9;--muted:#9a9993;--faint:#6e6d6a;--accent:#F5330A;font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;padding:clamp(28px,5vh,64px) 20px 64px">
+
+  <div aria-hidden="true" style="position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:900px;height:600px;background:radial-gradient(circle,rgba(245,60,20,0.18),transparent 62%);pointer-events:none;filter:blur(8px)"></div>
+  <div aria-hidden="true" style="position:absolute;bottom:-25%;right:-10%;width:600px;height:600px;background:radial-gradient(circle,rgba(245,60,20,0.10),transparent 65%);pointer-events:none"></div>
+
+  <!-- brand + progress -->
+  <div style="position:relative;width:100%;max-width:600px;margin-bottom:clamp(24px,4vh,40px)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:26px">
+      <img src="assets/academy-logo-full.png" alt="Academy" style="height:38px;width:auto;object-fit:contain;display:block" />
+      <span style="font-weight:700;font-size:18px;letter-spacing:-0.02em">Academy</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div style="flex:1;height:4px;border-radius:999px;background:var(--surface2);overflow:hidden"><div style="height:100%;border-radius:999px;background:linear-gradient(90deg,#FF6A38,#F5330A);width:{{ seg1 }};transition:width .5s cubic-bezier(.22,.9,.3,1)"></div></div>
+      <div style="flex:1;height:4px;border-radius:999px;background:var(--surface2);overflow:hidden"><div style="height:100%;border-radius:999px;background:linear-gradient(90deg,#FF6A38,#F5330A);width:{{ seg2 }};transition:width .5s cubic-bezier(.22,.9,.3,1)"></div></div>
+      <div style="flex:1;height:4px;border-radius:999px;background:var(--surface2);overflow:hidden"><div style="height:100%;border-radius:999px;background:linear-gradient(90deg,#FF6A38,#F5330A);width:{{ seg3 }};transition:width .5s cubic-bezier(.22,.9,.3,1)"></div></div>
+      <div style="flex:1;height:4px;border-radius:999px;background:var(--surface2);overflow:hidden"><div style="height:100%;border-radius:999px;background:linear-gradient(90deg,#FF6A38,#F5330A);width:{{ seg4 }};transition:width .5s cubic-bezier(.22,.9,.3,1)"></div></div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <sc-if value="{{ isStep1 }}" hint-placeholder-val="{{ true }}">
+    <div class="ob-card" style="position:relative;width:100%;max-width:600px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:clamp(28px,3.5vw,40px);box-shadow:0 30px 80px -30px rgba(0,0,0,0.7)">
+      <h1 style="margin:0 0 8px;font-weight:800;font-size:clamp(26px,3vw,34px);letter-spacing:-0.03em">Welcome 👋</h1>
+      <p style="margin:0 0 26px;font-size:16px;color:var(--muted)">First, tell us where you are in your design journey.</p>
+
+      <div style="color:var(--faint);font-weight:600;font-size:11.5px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px">Your name</div>
+      <input type="text" value="{{ name }}" onInput="{{ onName }}" placeholder="What should we call you?" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:16px;font-family:inherit;padding:15px 16px;border-radius:14px;transition:border-color .2s,box-shadow .2s;margin-bottom:28px" />
+
+      <div style="color:var(--faint);font-weight:600;font-size:11.5px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:12px">I am a…</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+        <button type="button" onClick="{{ selStudent }}" style="{{ rStudent }}">
+          <span style="display:flex;align-items:flex-start;gap:14px">
+            <span style="{{ iStudent }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg></span>
+            <span><span style="display:block;font-weight:700;font-size:16.5px;color:var(--text);margin-bottom:4px">Design student</span><span style="display:block;font-size:13.5px;line-height:1.45;color:var(--muted)">Learning the craft.</span></span>
+          </span>
+        </button>
+        <button type="button" onClick="{{ selSwitcher }}" style="{{ rSwitcher }}">
+          <span style="display:flex;align-items:flex-start;gap:14px">
+            <span style="{{ iSwitcher }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
+            <span><span style="display:block;font-weight:700;font-size:16.5px;color:var(--text);margin-bottom:4px">Career switcher</span><span style="display:block;font-size:13.5px;line-height:1.45;color:var(--muted)">Coming from graphic, web, or another field.</span></span>
+          </span>
+        </button>
+        <button type="button" onClick="{{ selJunior }}" style="{{ rJunior }}">
+          <span style="display:flex;align-items:flex-start;gap:14px">
+            <span style="{{ iJunior }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M12 12C12 8 9 5 5 5c0 4 3 7 7 7z"/><path d="M12 10c0-3.3 2.7-6 6-6 0 3.3-2.7 6-6 6z"/></svg></span>
+            <span><span style="display:block;font-weight:700;font-size:16.5px;color:var(--text);margin-bottom:4px">Junior designer</span><span style="display:block;font-size:13.5px;line-height:1.45;color:var(--muted)">0–2 years in product design.</span></span>
+          </span>
+        </button>
+        <button type="button" onClick="{{ selSenior }}" style="{{ rSenior }}">
+          <span style="display:flex;align-items:flex-start;gap:14px">
+            <span style="{{ iSenior }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
+            <span><span style="display:block;font-weight:700;font-size:16.5px;color:var(--text);margin-bottom:4px">Mid-level / senior</span><span style="display:block;font-size:13.5px;line-height:1.45;color:var(--muted)">3+ years, leveling up.</span></span>
+          </span>
+        </button>
+        <button type="button" onClick="{{ selLead }}" style="{{ rLead }}">
+          <span style="display:flex;align-items:flex-start;gap:14px">
+            <span style="{{ iLead }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+            <span><span style="display:block;font-weight:700;font-size:16.5px;color:var(--text);margin-bottom:4px">Lead / mentor</span><span style="display:block;font-size:13.5px;line-height:1.45;color:var(--muted)">Want to teach and contribute.</span></span>
+          </span>
+        </button>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:28px 0 22px"></div>
+      <div style="display:flex;justify-content:flex-end">
+        <button type="button" onClick="{{ onNext }}" class="btn btn--primary btn--md" disabled="{{ continueDisabled }}">Continue
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="12 6 18 12 12 18"/></svg>
+        </button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- STEP 2 -->
+  <sc-if value="{{ isStep2 }}" hint-placeholder-val="{{ false }}">
+    <div class="ob-card" style="position:relative;width:100%;max-width:600px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:clamp(28px,3.5vw,40px);box-shadow:0 30px 80px -30px rgba(0,0,0,0.7)">
+      <h1 style="margin:0 0 8px;font-weight:800;font-size:clamp(26px,3vw,34px);letter-spacing:-0.03em">What are you here for?</h1>
+      <p style="margin:0 0 26px;font-size:16px;color:var(--muted)">Pick all that apply — we'll personalize your home.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:12px">
+        <sc-for list="{{ goalChips }}" as="g" hint-placeholder-count="8">
+          <button type="button" onClick="{{ g.onSelect }}" style="{{ g.style }}">{{ g.label }}</button>
+        </sc-for>
+      </div>
+      <div style="height:1px;background:var(--border);margin:28px 0 22px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button type="button" onClick="{{ onBack }}" class="btn btn--tertiary btn--md"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg>Back</button>
+        <button type="button" onClick="{{ onNext }}" class="btn btn--primary btn--md" disabled="{{ continueDisabled }}">Continue
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="12 6 18 12 12 18"/></svg>
+        </button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- STEP 3 -->
+  <sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+    <div class="ob-card" style="position:relative;width:100%;max-width:600px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:clamp(28px,3.5vw,40px);box-shadow:0 30px 80px -30px rgba(0,0,0,0.7)">
+      <h1 style="margin:0 0 8px;font-weight:800;font-size:clamp(26px,3vw,34px);letter-spacing:-0.03em">Which tools do you use?</h1>
+      <p style="margin:0 0 26px;font-size:16px;color:var(--muted)">We'll surface guides and posts for these first.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+        <sc-for list="{{ toolCards }}" as="t" hint-placeholder-count="8">
+          <button type="button" onClick="{{ t.onSelect }}" style="{{ t.style }}">{{ t.label }}</button>
+        </sc-for>
+      </div>
+      <div style="height:1px;background:var(--border);margin:28px 0 22px"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <button type="button" onClick="{{ onBack }}" class="btn btn--tertiary btn--md"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg>Back</button>
+        <button type="button" onClick="{{ onNext }}" class="btn btn--primary btn--md" disabled="{{ continueDisabled }}">Continue
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="12 6 18 12 12 18"/></svg>
+        </button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- STEP 4 -->
+  <sc-if value="{{ isStep4 }}" hint-placeholder-val="{{ false }}">
+    <div class="ob-card" style="position:relative;width:100%;max-width:600px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:clamp(36px,4vw,52px);text-align:center;box-shadow:0 30px 80px -30px rgba(0,0,0,0.7)">
+      <div style="width:68px;height:68px;margin:0 auto 24px;border-radius:999px;background:rgba(31,138,91,0.18);border:1px solid rgba(31,138,91,0.4);display:flex;align-items:center;justify-content:center;animation:ob-pop .5s cubic-bezier(.22,.9,.3,1) both">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h1 style="margin:0 0 10px;font-weight:800;font-size:clamp(28px,3.2vw,36px);letter-spacing:-0.03em">You're in{{ nameSuffix }}.</h1>
+      <p style="margin:0 0 30px;font-size:16px;color:var(--muted)">{{ summary }}</p>
+      <a href="Dashboard.dc.html" class="btn btn--primary btn--lg btn--block">Go to my dashboard
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="12 6 18 12 12 18"/></svg>
+      </a>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { step: 1, name: '', role: null, goals: [], tools: [] };
+
+  roles = [
+    { id: 'student', title: 'Design student', desc: 'Learning the craft.' },
+    { id: 'switcher', title: 'Career switcher', desc: 'Coming from graphic, web, or another field.' },
+    { id: 'junior', title: 'Junior designer', desc: '0–2 years in product design.' },
+    { id: 'senior', title: 'Mid-level / senior', desc: '3+ years, leveling up.' },
+    { id: 'lead', title: 'Lead / mentor', desc: 'Want to teach and contribute.' },
+  ];
+  goalsList = ['Become industry-ready','Ship faster with AI','Get better at Figma','Learn design systems','Switch from graphic design','Sharpen design critique','Build a stronger portfolio','Teach what I know'];
+  toolsList = ['Figma','Framer','Webflow','Notion','Midjourney','ChatGPT','Maze','Zeplin'];
+
+  onName = (e) => this.setState({ name: e.target.value });
+  selectRole = (id) => this.setState({ role: id });
+  toggle = (key, val) => this.setState(s => {
+    const arr = s[key];
+    return { [key]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] };
+  });
+  next = () => { if (this.canNext()) this.setState(s => ({ step: Math.min(4, s.step + 1) })); };
+  back = () => this.setState(s => ({ step: Math.max(1, s.step - 1) }));
+
+  canNext() {
+    const s = this.state;
+    if (s.step === 1) return s.name.trim().length > 0 && !!s.role;
+    if (s.step === 2) return s.goals.length > 0;
+    if (s.step === 3) return s.tools.length > 0;
+    return true;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const seg = (n) => (s.step >= n ? '100%' : '0%');
+    const cardBase = 'text-align:left;font-family:inherit;cursor:pointer;border-radius:16px;padding:18px 20px;transition:border-color .22s,background .22s,transform .18s,box-shadow .22s';
+    const chipBase = 'font-family:inherit;cursor:pointer;font-weight:600;font-size:14.5px;padding:11px 18px;border-radius:999px;transition:border-color .2s,background .2s,color .2s,transform .18s';
+    const toolBase = 'font-family:inherit;cursor:pointer;font-weight:600;font-size:15px;padding:16px;border-radius:14px;text-align:center;transition:border-color .2s,background .2s,color .2s,transform .18s';
+
+    const roleStyle = (id) => cardBase + ';' + (s.role === id
+      ? 'background:rgba(245,60,20,0.10);border:1px solid rgba(255,120,60,0.6);box-shadow:0 0 0 1px rgba(255,120,60,0.35),0 16px 44px -16px rgba(245,60,20,0.6);transform:translateY(-3px)'
+      : 'background:var(--surface2);border:1px solid var(--border)');
+    const iconWrap = (id) => 'width:40px;height:40px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;transition:background .22s,color .22s;' + (s.role === id
+      ? 'background:rgba(245,60,20,0.16);color:#ff8a5f'
+      : 'background:var(--bg);border:1px solid var(--border);color:var(--muted)');
+    const goalChips = this.goalsList.map(g => {
+      const sel = s.goals.includes(g);
+      const style = chipBase + ';' + (sel
+        ? 'background:rgba(245,60,20,0.14);border:1px solid rgba(255,120,60,0.6);color:#ff8a5f'
+        : 'background:var(--surface2);border:1px solid var(--border);color:var(--text)');
+      return { label: g, style, onSelect: () => this.toggle('goals', g) };
+    });
+    const toolCards = this.toolsList.map(t => {
+      const sel = s.tools.includes(t);
+      const style = toolBase + ';' + (sel
+        ? 'background:rgba(245,60,20,0.12);border:1px solid rgba(255,120,60,0.6);color:#ff8a5f;transform:translateY(-2px)'
+        : 'background:var(--surface2);border:1px solid var(--border);color:var(--text)');
+      return { label: t, style, onSelect: () => this.toggle('tools', t) };
+    });
+
+    const enabled = this.canNext();
+    const continueStyle = 'display:inline-flex;align-items:center;gap:9px;font-family:inherit;font-weight:700;font-size:15.5px;padding:13px 26px;border-radius:999px;border:none;transition:transform .2s,filter .2s,opacity .2s;' + (enabled
+      ? 'background:linear-gradient(180deg,#FF6A38,#F5330A);color:#1c0a03;cursor:pointer;box-shadow:0 12px 34px -12px rgba(245,60,20,0.7)'
+      : 'background:var(--surface2);color:var(--faint);cursor:not-allowed;opacity:0.7');
+
+    const roleLabel = (this.roles.find(r => r.id === s.role) || {}).title || 'your path';
+    const summary = "We'll set up your home around " + roleLabel.toLowerCase() + ' · ' + s.goals.length + ' goal' + (s.goals.length === 1 ? '' : 's') + ' · ' + s.tools.length + ' tool' + (s.tools.length === 1 ? '' : 's') + '.';
+
+    return {
+      isStep1: s.step === 1, isStep2: s.step === 2, isStep3: s.step === 3, isStep4: s.step === 4,
+      seg1: seg(1), seg2: seg(2), seg3: seg(3), seg4: seg(4),
+      name: s.name, onName: this.onName,
+      goalChips, toolCards,
+      rStudent: roleStyle('student'), rSwitcher: roleStyle('switcher'), rJunior: roleStyle('junior'), rSenior: roleStyle('senior'), rLead: roleStyle('lead'),
+      iStudent: iconWrap('student'), iSwitcher: iconWrap('switcher'), iJunior: iconWrap('junior'), iSenior: iconWrap('senior'), iLead: iconWrap('lead'),
+      selStudent: () => this.selectRole('student'), selSwitcher: () => this.selectRole('switcher'), selJunior: () => this.selectRole('junior'), selSenior: () => this.selectRole('senior'), selLead: () => this.selectRole('lead'),
+      continueDisabled: !enabled, onNext: this.next, onBack: this.back,
+      summary, nameSuffix: s.name.trim() ? ', ' + s.name.trim() : '',
+    };
+  }
+}
+</script>
+</body>
+</html>
