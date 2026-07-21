@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 
 // Routes that require an authenticated user.
-const PROTECTED = ["/dashboard"];
+const PROTECTED = ["/dashboard", "/workshop"];
 // Auth routes an already-signed-in user shouldn't see.
 const AUTH_ROUTES = ["/signin"];
 

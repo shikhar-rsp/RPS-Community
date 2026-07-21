@@ -5,5 +5,9 @@
 .DS_Store
 *.pem
 npm-debug.log*
-.env*.local
+# Ignore every .env variant (incl. .env.local, .env.local.bak, .env.production…)
+# but keep the committed template.
+.env*
+!.env.example
+*.bak
 next-env.d.ts

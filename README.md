@@ -6,24 +6,17 @@ Academy — live design workshops, a community, and assessments from senior desi
 
 ```
 .
-├── frontend/                       # Next.js app — the live product (see frontend/README.md)
-│   ├── app/                        # Routes: /, /signin, /onboarding, /dashboard, /reset-password
-│   ├── components/ · lib/ · public/
-│   ├── supabase/                   # DB schema.sql + security.sql (run in Supabase)
-│   ├── BACKEND_SETUP.md · SECURITY.md
-│   └── package.json
-│
-└── design-mockups/                 # Original static design mockups (reference only)
-    ├── Opencanvas Workshop.dc.html
-    ├── Sign In.dc.html · Onboarding.dc.html · Dashboard.dc.html
-    ├── support.js                  # The "DC" runtime the mockups ran on
-    ├── image-slot.js               # Fillable image-slot web component
-    └── assets/                     # Source images
+└── frontend/                       # Next.js app — the live product (see frontend/README.md)
+    ├── app/                        # Routes: /, /signin, /onboarding, /dashboard, /workshop, /reset-password
+    ├── lib/                        # dc.js runtime + lib/logic/* page logic + supabase clients
+    ├── public/                     # Static assets
+    ├── supabase/                   # DB schema.sql + security.sql (run in Supabase)
+    ├── BACKEND_SETUP.md · SECURITY.md
+    └── package.json
 ```
 
-`frontend/` is the active project. `design-mockups/` holds the original static
-`.dc.html` designs the app was ported from — kept for visual reference, not part
-of the build.
+`frontend/` is the whole project. (The original static `.dc.html` design mockups
+the app was ported from live in git history if you ever need them back.)
 
 ## Run the frontend
 

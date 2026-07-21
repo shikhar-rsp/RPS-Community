@@ -1,44 +1,75 @@
 'use client';
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { useDcLogic, css } from '@/lib/dc';
-import Logic from '@/lib/logic/home';
-import Link from 'next/link';
+import Logic from '@/lib/logic/workshop';
+import { createClient } from '@/lib/supabase/client';
 
-export default function Page() {
-  const v = useDcLogic(Logic);
+export default function WorkshopClient({ name, email, avatarUrl, initials }) {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const onSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/signin');
+    router.refresh();
+  };
+
+  const v = useDcLogic(Logic, { name, email, avatarUrl, initials, onSignOut });
   return (
 <div ref={v.setRoot} data-screen-label="Opencanvas — Ship with Claude" style={css(`--bg:#141312;--surface:#1d1c1b;--surface2:#242322;--border:rgba(255,255,255,0.09);--text:#ECEBE9;--muted:#9a9993;--faint:#6e6d6a;--accent:#F5330A;--glow:rgba(150,55,25,0.26);--navbg:rgba(20,19,18,0.82);--footerbg:#0a0a0a;background:var(--bg);color:var(--text);font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh`)}>
 
-  
-  <nav style={css(`position:sticky;top:0;z-index:50;background:var(--navbg);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)`)}>
-    <div style={css(`max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,24px);height:68px;display:flex;align-items:center;justify-content:space-between`)}>
-      <a href="#" style={css(`display:flex;align-items:center;gap:12px`)}>
-        <img src="/assets/academy-logo-full.png" alt="Academy" style={css(`height:40px;width:auto;object-fit:contain;display:block`)} />
-        <span style={css(`font-weight:700;font-size:20px;letter-spacing:-0.02em;color:var(--text)`)}>Academy</span>
+
+  <nav style={css(`position:sticky;top:0;z-index:50;background:rgba(19,18,17,0.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)`)}>
+    <div style={css(`max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,24px);height:68px;display:flex;align-items:center;gap:clamp(16px,3vw,32px)`)}>
+      <a href="/dashboard" style={css(`display:flex;align-items:center;gap:10px;color:var(--text);flex:none`)}>
+        <img src="/assets/academy-logo-full.png" alt="Academy" style={css(`height:36px;width:auto;object-fit:contain;display:block`)} />
+        <span style={css(`font-weight:700;font-size:18px;letter-spacing:-0.02em`)}>Academy</span>
       </a>
-      <div style={css(`display:flex;align-items:center;gap:16px`)}>
-        <button onClick={v.toggle} aria-label="Toggle theme" style={css(`display:none;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);align-items:center;justify-content:center;cursor:pointer;transition:color .2s,border-color .2s`)} data-h="home-0">
-          {v.dark && (<>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.6" y2="6.6"/><line x1="17.4" y1="17.4" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.6" y2="17.4"/><line x1="17.4" y1="6.6" x2="19.1" y2="4.9"/></svg>
-          </>)}
-          {v.light && (<>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-          </>)}
+      <div className="db-search" style={css(`flex:1 1 auto;min-width:0`)}></div>
+      <div style={css(`display:flex;align-items:center;gap:14px;flex:none`)}>
+      <div ref={v.setMenuWrap} style={css(`position:relative;flex:none`)}>
+        <button type="button" onClick={v.toggleMenu} aria-haspopup="true" aria-label="Open profile menu" style={css(`display:block;width:34px;height:34px;border-radius:999px;overflow:hidden;padding:0;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:box-shadow .2s,border-color .2s`)} data-h="workshop-0">
+          {v.navAvatar}
         </button>
-        <Link href="/signin" className="btn btn--primary btn--sm">Log in</Link>
+
+        {v.menuOpen && (<>
+          <div className="pf-menu" style={css(`position:absolute;top:calc(100% + 12px);right:0;width:292px;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:0 30px 70px -24px rgba(0,0,0,0.85),0 2px 0 rgba(255,255,255,0.04),inset 0 1px 0 rgba(255,255,255,0.06)`)}>
+            <div style={css(`position:relative;height:72px;border-radius:20px 20px 0 0;overflow:hidden;background:linear-gradient(120deg,#2a1308 0%,#180c06 62%)`)}>
+              <div aria-hidden="true" style={css(`position:absolute;inset:0;background:radial-gradient(130% 160% at 80% -35%,rgba(245,60,20,0.6),transparent 58%)`)}></div>
+              <div aria-hidden="true" style={css(`position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.06) 1px,transparent 1px);background-size:22px 22px;mask-image:linear-gradient(180deg,#000,transparent);-webkit-mask-image:linear-gradient(180deg,#000,transparent)`)}></div>
+            </div>
+            <div style={css(`position:relative;margin-top:-44px;padding:0 24px 24px;text-align:center`)}>
+              <div className="pf-pic" style={css(`position:relative;width:86px;height:86px;margin:0 auto 15px;border-radius:999px;overflow:hidden;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--border),0 14px 30px -10px rgba(0,0,0,0.75);background:var(--surface2)`)}>
+                {v.cardAvatar}
+                <div className="pf-overlay" style={css(`position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:11px;background:rgba(10,7,5,0.58);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)`)}>
+                  <button type="button" onClick={v.onEdit} aria-label="Change photo" title="Change photo" style={css(`width:32px;height:32px;border-radius:999px;border:1px solid rgba(255,255,255,0.28);background:rgba(255,255,255,0.14);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s`)} data-h="workshop-1"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+                  <button type="button" onClick={v.onDelete} aria-label="Remove photo" title="Remove photo" style={css(`width:32px;height:32px;border-radius:999px;border:1px solid rgba(255,255,255,0.28);background:rgba(255,255,255,0.14);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s`)} data-h="workshop-2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+                </div>
+              </div>
+              <div style={css(`font-weight:700;font-size:17px;letter-spacing:-0.015em;color:var(--text)`)}>{v.name}</div>
+              <div style={css(`font-size:13px;color:var(--muted);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px`)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={css(`opacity:.75`)}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>{v.email}</div>
+              <div style={css(`height:1px;background:var(--border);margin:16px -24px 16px`)}></div>
+              <span style={css(`display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;letter-spacing:0.02em;color:var(--accent);background:rgba(245,60,20,0.12);border:1px solid rgba(245,60,20,0.24);padding:5px 12px;border-radius:999px`)}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>Design Beginner</span>
+            </div>
+          </div>
+        </>)}
+        <input ref={v.setFileInput} type="file" accept="image/*" onChange={v.onFile} style={css(`display:none`)} />
+      </div>
+        <button type="button" onClick={v.onSignOut} className="btn btn--tertiary btn--sm">Sign out</button>
       </div>
     </div>
   </nav>
 
-  
+
   <section style={css(`padding:clamp(28px,4vw,44px) 0 clamp(56px,7vw,88px)`)}>
     <div style={css(`max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,24px)`)}>
-      <a href="#" data-reveal style={css(`display:none;align-items:center;gap:9px;color:var(--muted);font-size:15px;margin-bottom:28px;transition:color .2s`)} data-h="home-1">
+      <a href="#" data-reveal style={css(`display:none;align-items:center;gap:9px;color:var(--muted);font-size:15px;margin-bottom:28px;transition:color .2s`)} data-h="workshop-3">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg>
         All workshops
       </a>
       <div className="oc-hero" style={css(`display:grid;grid-template-columns:1.2fr 1fr;gap:clamp(32px,5vw,64px);align-items:start`)}>
-        
+
         <div className="oc-hero-text" style={css(`min-width:0`)}>
           <div data-reveal style={css(`display:flex;align-items:center;gap:14px;margin-bottom:22px`)}>
               <span style={css(`background:var(--accent);color:#1a0803;font-weight:700;font-size:11px;letter-spacing:0.08em;padding:5px 11px;border-radius:999px`)}>LIVE</span>
@@ -47,7 +78,7 @@ export default function Page() {
             <h1 data-reveal data-reveal-delay="60" style={css(`margin:0 0 22px;font-weight:600;font-size:clamp(32px,3.6vw,48px);line-height:1.05;letter-spacing:-0.03em;color:var(--text)`)}>The method behind building stunning landing pages in short time</h1>
             <p data-reveal data-reveal-delay="120" style={css(`margin:0;font-size:clamp(16px,1.3vw,18px);line-height:1.62;color:var(--muted)`)}>netpulse-sol.com is live. It was designed, built and shipped in a single working day, and not because anyone prompted harder. There is a method, worked in a fixed order, and it front-loads the parts most people skip. In 90 minutes we take you through it and build a B2B SaaS landing page with you.</p>
           </div>
-        
+
         <div data-reveal data-reveal-delay="120" className="oc-hero-card" style={css(`grid-column:1;grid-row:2;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:clamp(26px,2.4vw,32px)`)}>
           <div style={css(`color:var(--faint);font-weight:600;font-size:11.5px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:12px`)}>When</div>
           <div style={css(`display:flex;align-items:center;gap:11px;color:var(--text);font-weight:600;font-size:16px;margin-bottom:9px`)}>
@@ -73,13 +104,25 @@ export default function Page() {
           <p style={css(`margin:0;font-size:14.5px;line-height:1.6;color:var(--muted)`)}>A method you can run on any landing page, and a PDF guide to run it again next week.</p>
 
           <div style={css(`height:1px;background:var(--border);margin:26px 0`)}></div>
-          <Link href="/signin" className="btn btn--primary btn--lg btn--block">
-            Attend this workshop
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="12 6 18 12 12 18"/></svg>
-          </Link>
-          <p style={css(`margin:14px 0 0;text-align:center;font-size:13.5px;color:var(--muted)`)}>Already a member? <Link href="/signin" style={css(`color:var(--accent);font-weight:500`)}>Log in to register</Link></p>
+          <div style={css(`background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:18px 18px 20px`)}>
+            <div style={css(`display:flex;align-items:center;gap:11px;margin-bottom:10px`)}>
+              <img src="/assets/google-meet-logo.png" alt="Google Meet" style={css(`width:26px;height:26px;object-fit:contain;flex:none`)} />
+              <span style={css(`font-weight:700;font-size:14.5px;color:var(--text)`)}>Google Meet</span>
+            </div>
+            <p style={css(`margin:0 0 16px;font-size:13.5px;line-height:1.55;color:var(--muted)`)}>Joining opens when the workshop starts, Jul 31.</p>
+            <div style={css(`display:flex;align-items:stretch;gap:10px`)}>
+              <a href="https://meet.google.com/landing" target="_blank" rel="noopener" className="btn btn--secondary btn--lg" style={css(`flex:1;min-width:0`)}>
+                <img src="/assets/google-meet-logo.png" alt="" style={css(`width:18px;height:18px;object-fit:contain;flex:none`)} />
+                Join Meet
+              </a>
+              <span title="Time until the workshop starts" style={css(`flex:none;display:inline-flex;align-items:center;gap:7px;padding:0 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap`)}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 14.5"/><line x1="9" y1="1.5" x2="15" y2="1.5"/><line x1="12" y1="1.5" x2="12" y2="4"/></svg>
+                {v.countdown}
+              </span>
+            </div>
+          </div>
         </div>
-        
+
         <div data-reveal data-reveal-delay="80" className="oc-hero-img" style={css(`grid-column:2;grid-row:1 / span 2;align-self:stretch;position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--border);min-height:440px`)}>
                     <picture>
             <source media="(max-width:820px)" srcSet="/assets/hero-16x9.png" />
@@ -90,18 +133,18 @@ export default function Page() {
     </div>
   </section>
 
-  
-  <div className="oc-rail" style={css(`max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,24px);display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:clamp(36px,4vw,64px);align-items:start`)}>
+
+  <div className="oc-rail" style={css(`max-width:960px;margin:0 auto;padding:0 clamp(16px,3vw,24px)`)}>
     <div style={css(`min-width:0`)}>
-  
+
   <section style={css(`padding:clamp(52px,7vw,84px) 0 0`)}>
-      
+
       <div style={css(`min-width:0`)}>
         <div data-reveal style={css(`color:var(--faint);font-weight:600;font-size:12.5px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:18px`)}>What you'll do</div>
         <h2 data-reveal data-reveal-delay="60" style={css(`margin:0 0 22px;font-weight:800;font-size:clamp(30px,3.6vw,46px);line-height:1.04;letter-spacing:-0.025em`)}>One brief, one method, 90 minutes.</h2>
         <p data-reveal data-reveal-delay="120" style={css(`margin:0 0 clamp(32px,4vw,44px);font-size:clamp(16px,1.25vw,18px);line-height:1.65;color:var(--muted);max-width:600px`)}>Everyone gets the same brief, a B2B SaaS product landing page, the same kind of job NetPulse was. We run the method end to end in front of you, in the order it has to happen, and you build alongside us. Most people open a tool and start prompting. We start somewhere else, and that is most of the reason the page ships in a day instead of a fortnight.</p>
 
-        
+
         <div style={css(`display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:22px;margin-bottom:clamp(36px,4vw,48px)`)}>
           <div data-reveal style={css(`display:flex;flex-direction:column;gap:10px`)}>
             <span style={css(`width:38px;height:38px;border-radius:11px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center`)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>
@@ -120,7 +163,7 @@ export default function Page() {
           </div>
         </div>
 
-        
+
         <div data-reveal style={css(`display:flex;gap:16px;padding:20px 0;border-top:1px solid var(--border)`)}><span style={css(`width:26px;height:26px;flex:none;border-radius:999px;background:var(--accent);display:flex;align-items:center;justify-content:center`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="5 13 10 18 19 6"/></svg></span><span style={css(`font-size:clamp(15px,1.2vw,17px);color:var(--text);line-height:1.45`)}>The method, in the order that makes it work.</span></div>
         <div data-reveal data-reveal-delay="70" style={css(`display:flex;gap:16px;padding:20px 0;border-top:1px solid var(--border)`)}><span style={css(`width:26px;height:26px;flex:none;border-radius:999px;background:var(--accent);display:flex;align-items:center;justify-content:center`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="5 13 10 18 19 6"/></svg></span><span style={css(`font-size:clamp(15px,1.2vw,17px);color:var(--text);line-height:1.45`)}>Where the tools earn their keep, and where they get in the way.</span></div>
         <div data-reveal data-reveal-delay="140" style={css(`display:flex;gap:16px;padding:20px 0;border-top:1px solid var(--border)`)}><span style={css(`width:26px;height:26px;flex:none;border-radius:999px;background:var(--accent);display:flex;align-items:center;justify-content:center`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="5 13 10 18 19 6"/></svg></span><span style={css(`font-size:clamp(15px,1.2vw,17px);color:var(--text);line-height:1.45`)}>Prompts that hold up, and the moments you take the keyboard back.</span></div>
@@ -135,7 +178,7 @@ export default function Page() {
       </div>
   </section>
 
-  
+
   <section style={css(`position:relative;border-top:1px solid var(--border);padding:clamp(64px,9vw,104px) 0;overflow:hidden`)}>
     <div style={css(`position:relative;display:flex;flex-direction:column;gap:clamp(32px,4vw,48px)`)}>
       <div data-reveal style={css(`max-width:640px`)}>
@@ -143,28 +186,28 @@ export default function Page() {
         <h2 style={css(`margin:0;font-weight:800;font-size:clamp(30px,3.6vw,46px);line-height:1.04;letter-spacing:-0.025em`)}>Built for designers who want to ship, not just spec.</h2>
       </div>
       <div className="oc-whogrid" style={css(`display:grid;grid-template-columns:repeat(2,1fr);gap:18px`)}>
-        <div data-reveal style={css(`display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(22px,2vw,28px);transition:border-color .25s,transform .25s`)} data-h="home-2">
+        <div data-reveal style={css(`display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(22px,2vw,28px);transition:border-color .25s,transform .25s`)} data-h="workshop-4">
           <span style={css(`width:44px;height:44px;flex:none;border-radius:12px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center`)}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h7l-1 8 11-13h-7z"/></svg></span>
           <div>
             <h3 style={css(`margin:0 0 6px;font-weight:700;font-size:17px;color:var(--text)`)}>Product Designers</h3>
             <p style={css(`margin:0;font-size:14.5px;line-height:1.55;color:var(--muted)`)}>Stop handing the landing page off and waiting a sprint for it.</p>
           </div>
         </div>
-        <div data-reveal data-reveal-delay="80" style={css(`display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(22px,2vw,28px);transition:border-color .25s,transform .25s`)} data-h="home-3">
+        <div data-reveal data-reveal-delay="80" style={css(`display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(22px,2vw,28px);transition:border-color .25s,transform .25s`)} data-h="workshop-5">
           <span style={css(`width:44px;height:44px;flex:none;border-radius:12px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center`)}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span>
           <div>
             <h3 style={css(`margin:0 0 6px;font-weight:700;font-size:17px;color:var(--text)`)}>UI &amp; Visual Designers</h3>
             <p style={css(`margin:0;font-size:14.5px;line-height:1.55;color:var(--muted)`)}>Take the layout in your head to a live, responsive page without a front-end dev in the loop.</p>
           </div>
         </div>
-        <div data-reveal data-reveal-delay="160" style={css(`display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(22px,2vw,28px);transition:border-color .25s,transform .25s`)} data-h="home-4">
+        <div data-reveal data-reveal-delay="160" style={css(`display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(22px,2vw,28px);transition:border-color .25s,transform .25s`)} data-h="workshop-6">
           <span style={css(`width:44px;height:44px;flex:none;border-radius:12px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center`)}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg></span>
           <div>
             <h3 style={css(`margin:0 0 6px;font-weight:700;font-size:17px;color:var(--text)`)}>Founders &amp; solo builders</h3>
             <p style={css(`margin:0;font-size:14.5px;line-height:1.55;color:var(--muted)`)}>You need a marketing site, you do not have a team, and you do not have a month.</p>
           </div>
         </div>
-        <div data-reveal data-reveal-delay="240" style={css(`display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(22px,2vw,28px);transition:border-color .25s,transform .25s`)} data-h="home-5">
+        <div data-reveal data-reveal-delay="240" style={css(`display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:clamp(22px,2vw,28px);transition:border-color .25s,transform .25s`)} data-h="workshop-7">
           <span style={css(`width:44px;height:44px;flex:none;border-radius:12px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center`)}><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg></span>
           <div>
             <h3 style={css(`margin:0 0 6px;font-weight:700;font-size:17px;color:var(--text)`)}>AI-curious designers</h3>
@@ -175,7 +218,7 @@ export default function Page() {
     </div>
   </section>
 
-  
+
   <section style={css(`border-top:1px solid var(--border);padding:clamp(64px,9vw,104px) 0`)}>
     <div data-reveal style={css(`max-width:640px;margin-bottom:clamp(32px,4vw,44px)`)}>
       <div style={css(`color:var(--faint);font-weight:600;font-size:12.5px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:18px`)}>Agenda</div>
@@ -196,34 +239,34 @@ export default function Page() {
         <div style={css(`color:var(--faint);font-weight:600;font-size:12.5px;letter-spacing:0.14em;text-transform:uppercase`)}>90 min</div>
       </div>
       <div style={css(`display:flex;flex-direction:column;gap:12px`)}>
-        <div data-reveal className="oc-arow" style={css(`display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s`)} data-h="home-6">
+        <div data-reveal className="oc-arow" style={css(`display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s`)} data-h="workshop-8">
           <span style={css(`width:34px;height:34px;flex:none;border-radius:9px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--muted)`)}>01</span>
           <span style={css(`flex:none;color:var(--accent)`)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
           <span className="oc-atitle" style={css(`flex:1 1 auto;min-width:0;font-weight:600;font-size:16px;color:var(--text)`)}>9 hours: where they actually went</span>
           <span className="oc-ameta" style={css(`display:inline-flex;align-items:center;gap:12px;flex:none`)}><span className="oc-atime" style={css(`flex:none;color:var(--faint);font-size:13.5px`)}>0–10 min</span>
           <span style={css(`flex:none;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--faint);background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:999px`)}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg>Segment</span></span>
         </div>
-        <div data-reveal data-reveal-delay="60" className="oc-arow" style={css(`display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s`)} data-h="home-7">
+        <div data-reveal data-reveal-delay="60" className="oc-arow" style={css(`display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s`)} data-h="workshop-9">
           <span style={css(`width:34px;height:34px;flex:none;border-radius:9px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--muted)`)}>02</span>
           <span style={css(`flex:none;color:var(--accent)`)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
           <span className="oc-atitle" style={css(`flex:1 1 auto;min-width:0;font-weight:600;font-size:16px;color:var(--text)`)}>Groundwork, before anything gets built</span>
           <span className="oc-ameta" style={css(`display:inline-flex;align-items:center;gap:12px;flex:none`)}><span className="oc-atime" style={css(`flex:none;color:var(--faint);font-size:13.5px`)}>10–25 min</span>
           <span style={css(`flex:none;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--faint);background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:999px`)}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg>Segment</span></span>
         </div>
-        <div data-reveal data-reveal-delay="120" className="oc-arow" style={css(`display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s`)} data-h="home-8">
+        <div data-reveal data-reveal-delay="120" className="oc-arow" style={css(`display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s`)} data-h="workshop-10">
           <span style={css(`width:34px;height:34px;flex:none;border-radius:9px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--muted)`)}>03</span>
           <span style={css(`flex:none;color:var(--accent)`)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></span>
           <span className="oc-atitle" style={css(`flex:1 1 auto;min-width:0;font-weight:600;font-size:16px;color:var(--text)`)}>The blueprint</span>
           <span className="oc-ameta" style={css(`display:inline-flex;align-items:center;gap:12px;flex:none`)}><span className="oc-atime" style={css(`flex:none;color:var(--faint);font-size:13.5px`)}>25–45 min</span>
           <span style={css(`flex:none;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--faint);background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:999px`)}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg>Segment</span></span>
         </div>
-        <div data-reveal data-reveal-delay="180" className="oc-arow" style={css(`display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s`)} data-h="home-9">
+        <div data-reveal data-reveal-delay="180" className="oc-arow" style={css(`display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s`)} data-h="workshop-11">
           <span style={css(`width:34px;height:34px;flex:none;border-radius:9px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--muted)`)}>04</span>
           <span style={css(`flex:none;color:var(--accent)`)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 17l6-6-6-6"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
           <span className="oc-atitle" style={css(`flex:1 1 auto;min-width:0;font-weight:600;font-size:16px;color:var(--text)`)}>Execute: Claude Code, shadcn, 21st.dev</span>
           <span className="oc-ameta" style={css(`display:inline-flex;align-items:center;gap:12px;flex:none`)}><span className="oc-atime" style={css(`flex:none;color:var(--faint);font-size:13.5px`)}>45–75 min</span><span style={css(`flex:none;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--faint);background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:999px`)}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></svg>Segment</span></span>
         </div>
-        <div data-reveal data-reveal-delay="240" className="oc-arow" style={css(`display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s`)} data-h="home-10">
+        <div data-reveal data-reveal-delay="240" className="oc-arow" style={css(`display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s`)} data-h="workshop-12">
           <span style={css(`width:34px;height:34px;flex:none;border-radius:9px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--muted)`)}>05</span>
           <span style={css(`flex:none;color:var(--accent)`)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
           <span className="oc-atitle" style={css(`flex:1 1 auto;min-width:0;font-weight:600;font-size:16px;color:var(--text)`)}>Ship on Vercel, the guide, and Q&amp;A</span>
@@ -235,40 +278,9 @@ export default function Page() {
   </section>
     </div>
 
-    
-    <aside data-reveal data-reveal-delay="120" className="oc-aside" style={css(`position:sticky;top:88px;margin-top:clamp(52px,7vw,84px);margin-bottom:clamp(72px,9vw,112px)`)}>
-      <div style={css(`background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:clamp(24px,2.2vw,30px)`)}>
-        <div style={css(`display:flex;align-items:center;gap:12px;margin-bottom:20px`)}>
-          <span style={css(`background:var(--accent);color:#1a0803;font-weight:700;font-size:11px;letter-spacing:0.08em;padding:5px 11px;border-radius:999px`)}>LIVE</span>
-          <span style={css(`color:var(--faint);font-weight:600;font-size:12px;letter-spacing:0.16em;text-transform:uppercase`)}>Limited seats</span>
-        </div>
-        <h3 style={css(`margin:0 0 6px;font-weight:700;font-size:22px;letter-spacing:-0.02em;color:var(--text)`)}>Reserve your seat</h3>
-        <p style={css(`margin:0 0 22px;font-size:14.5px;line-height:1.55;color:var(--muted)`)}>Free for members · one live session, fully recorded.</p>
-        <div style={css(`display:flex;align-items:center;gap:11px;color:var(--text);font-weight:600;font-size:15px;margin-bottom:10px`)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.8"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg>
-          Saturday, July 25, 2026
-        </div>
-        <div style={css(`display:flex;align-items:center;gap:11px;color:var(--text);font-weight:600;font-size:15px;margin-bottom:22px`)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
-          3:00 PM · 90 min
-        </div>
-        <div style={css(`color:var(--faint);font-weight:600;font-size:11.5px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:14px`)}>Includes</div>
-        <div style={css(`display:flex;flex-direction:column;gap:12px;margin-bottom:24px`)}>
-          <div style={css(`display:flex;align-items:flex-start;gap:11px;font-size:14.5px;line-height:1.4;color:var(--text)`)}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={css(`flex:none;margin-top:2px`)}><polyline points="4 12 9.5 17.5 20 5"/></svg>Live class, recorded</div>
-          <div style={css(`display:flex;align-items:flex-start;gap:11px;font-size:14.5px;line-height:1.4;color:var(--text)`)}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={css(`flex:none;margin-top:2px`)}><polyline points="4 12 9.5 17.5 20 5"/></svg>PDF guide: build a landing page end to end, at your own pace</div>
-          <div style={css(`display:flex;align-items:flex-start;gap:11px;font-size:14.5px;line-height:1.4;color:var(--text)`)}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={css(`flex:none;margin-top:2px`)}><polyline points="4 12 9.5 17.5 20 5"/></svg>The brief, plus the templates we use on the day</div>
-          <div style={css(`display:flex;align-items:flex-start;gap:11px;font-size:14.5px;line-height:1.4;color:var(--text)`)}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={css(`flex:none;margin-top:2px`)}><polyline points="4 12 9.5 17.5 20 5"/></svg>Prompt library and ship checklist</div>
-        </div>
-        <Link href="/signin" className="btn btn--primary btn--lg btn--block">
-          Reserve seat
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="12 6 18 12 12 18"/></svg>
-        </Link>
-        <p style={css(`margin:13px 0 0;text-align:center;font-size:13px;color:var(--muted)`)}>Already a member? <Link href="/signin" style={css(`color:var(--accent);font-weight:500`)}>Log in to register</Link></p>
-      </div>
-    </aside>
   </div>
 
-  
+
   <section style={css(`position:relative;border-top:1px solid var(--border);padding:clamp(64px,9vw,104px) 0;overflow:hidden`)}>
     {v.warmGlow && (<><div style={css(`position:absolute;inset:0;background:radial-gradient(85% 130% at 10% -5%,var(--glow),transparent 52%);pointer-events:none`)}></div></>)}
     <div style={css(`position:relative;max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,24px)`)}>
@@ -291,20 +303,27 @@ export default function Page() {
     </div>
   </section>
 
-  
-  <section style={css(`border-top:1px solid var(--border);padding:clamp(48px,6vw,80px) 0`)}>
-    <div style={css(`max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,24px)`)}>
-      <div data-reveal style={css(`background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:clamp(36px,4vw,60px);display:flex;gap:32px;flex-wrap:wrap;align-items:center;justify-content:space-between`)}>
-        <div style={css(`flex:1 1 420px`)}>
-          <h2 style={css(`margin:0 0 16px;font-weight:800;font-size:clamp(30px,4vw,52px);line-height:1.02;letter-spacing:-0.03em`)}>Start growing with Academy.</h2>
-          <p style={css(`margin:0;font-size:16.5px;line-height:1.55;color:var(--muted);max-width:440px`)}>Free to join. Workshops, an honest community, and assessments from senior designers.</p>
+  {v.pdfOpen && (<>
+    <div className="asg-modal" onClick={v.closePdf} style={css(`position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:clamp(16px,3vw,40px);background:rgba(8,6,5,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)`)}>
+      <div className="asg-panel" onClick={v.stop} style={css(`position:relative;width:100%;max-width:860px;height:min(88vh,1000px);display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 44px 110px -30px rgba(0,0,0,0.88)`)}>
+        <div style={css(`display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid var(--border)`)}>
+          <div style={css(`display:flex;align-items:center;gap:12px;min-width:0`)}>
+            <span style={css(`flex:none;width:38px;height:38px;border-radius:10px;background:rgba(245,60,20,0.12);border:1px solid rgba(245,60,20,0.24);display:flex;align-items:center;justify-content:center`)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15h6M9 18h4"/></svg></span>
+            <div style={css(`min-width:0`)}><div style={css(`font-weight:700;font-size:15px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis`)}>Design handoff that sticks</div><div style={css(`font-size:12.5px;color:var(--faint)`)}>Assignment brief · PDF</div></div>
+          </div>
+          <div style={css(`display:flex;align-items:center;gap:10px;flex:none`)}>
+            <button type="button" onClick={v.onDownload} className="btn btn--primary btn--sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12"/><polyline points="7 11 12 16 17 11"/><path d="M4 20h16"/></svg>Download</button>
+            <button type="button" onClick={v.closePdf} aria-label="Close" style={css(`width:38px;height:38px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .2s,border-color .2s`)} data-h="workshop-13"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+          </div>
         </div>
-        <Link href="/signin" className="btn btn--primary btn--md">Sign up for free</Link>
+        <div style={css(`flex:1;min-height:0;background:var(--surface2);display:flex;align-items:center;justify-content:center;padding:24px`)}>
+          <div style={css(`text-align:center;color:var(--faint)`)}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={css(`opacity:.6`)}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div style={css(`margin-top:14px;font-size:13.5px`)}>PDF preview loads here</div></div>
+        </div>
       </div>
     </div>
-  </section>
+  </>)}
 
-  
+
   <footer style={css(`background:var(--footerbg);border-top:1px solid var(--border);padding:clamp(56px,7vw,88px) 0 40px`)}>
     <div style={css(`max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,24px)`)}>
       <div className="oc-footgrid" style={css(`display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:40px;margin-bottom:clamp(48px,6vw,72px)`)} data-reveal>
@@ -315,12 +334,12 @@ export default function Page() {
         </div>
         <div>
           <div style={css(`color:#6e6d6a;font-weight:600;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:20px`)}>Community</div>
-          <a href="#" style={css(`display:block;color:#dcdbd8;font-size:15.5px`)} data-h="home-11">Workshops</a>
+          <a href="#" style={css(`display:block;color:#dcdbd8;font-size:15.5px`)} data-h="workshop-14">Workshops</a>
         </div>
         <div>
           <div style={css(`color:#6e6d6a;font-weight:600;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:20px`)}>Account</div>
-          <Link href="/signin" style={css(`display:block;color:#dcdbd8;font-size:15.5px;margin-bottom:14px`)} data-h="home-12">Sign in</Link>
-          <Link href="/onboarding" style={css(`display:block;color:#dcdbd8;font-size:15.5px`)} data-h="home-13">Sign up</Link>
+          <a href="/dashboard" style={css(`display:block;color:#dcdbd8;font-size:15.5px;margin-bottom:14px`)} data-h="workshop-15">Dashboard</a>
+          <button type="button" onClick={v.onSignOut} style={css(`display:block;color:#dcdbd8;font-size:15.5px;background:none;border:none;padding:0;cursor:pointer;font-family:inherit`)} data-h="workshop-16">Sign out</button>
         </div>
       </div>
       <div style={css(`border-top:1px solid var(--border);padding-top:28px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;color:#6e6d6a;font-size:14px`)}>
