@@ -1,12 +1,15 @@
 'use client';
 import React from 'react';
 import { DCLogic } from '@/lib/dc';
+import { SESSION } from '@/lib/workshop-content';
 
 class Component extends DCLogic {
   // avatar: null = show the session avatar (props.avatarUrl); '' = show initials; a
   // string = a locally-uploaded preview (cosmetic, not persisted).
   state = { link: '', note: '', submitted: false, submitting: false, menuOpen: false, avatar: null, pdfOpen: false, now: Date.now() };
-  _target = new Date('2026-07-31T15:00:00').getTime();
+  // Session start. Sourced from SESSION.startsAt in lib/workshop-content so the
+  // countdown cannot drift from the date shown in the copy.
+  _target = new Date(SESSION.startsAt).getTime();
   fmtCountdown() {
     let d = Math.max(0, Math.floor((this._target - this.state.now) / 1000));
     const days = Math.floor(d / 86400); d -= days * 86400;
