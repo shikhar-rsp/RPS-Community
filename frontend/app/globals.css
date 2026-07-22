@@ -10,6 +10,23 @@
   ::selection{background:var(--accent);color:#fff}
 
 @media(max-width:920px){.oc-rail{grid-template-columns:1fr!important}.oc-aside{display:none!important}}@media(max-width:820px){.oc-hero{grid-template-columns:1fr!important}.oc-hero-text{grid-column:1!important;grid-row:1!important}.oc-hero-img{grid-column:1!important;grid-row:2!important;min-height:0!important;aspect-ratio:16/9}.oc-hero-card{grid-column:1!important;grid-row:3!important}}@media(max-width:680px){.oc-footgrid{grid-template-columns:1fr 1fr!important;gap:32px!important}.oc-footgrid>*:first-child{grid-column:1 / -1}}@media(max-width:560px){.oc-arow{flex-wrap:wrap!important;align-items:flex-start!important;row-gap:12px!important}.oc-atitle{flex:1 1 0!important;font-size:15.5px!important}.oc-ameta{flex-basis:100%!important;margin-left:50px!important;justify-content:flex-start!important}.oc-whogrid{grid-template-columns:1fr!important}.oc-takegrid{grid-template-columns:1fr!important}}
+@media(max-width:1080px){.oc-grid4{grid-template-columns:repeat(2,1fr)!important}}@media(max-width:560px){.oc-grid4{grid-template-columns:1fr!important}}
+
+/* Fanned outcome cards: overlapped + tilted at rest, spread apart on hover. */
+.oc-fan{display:flex;gap:18px;align-items:stretch}
+.oc-fancard{flex:1 1 0;min-width:0;transition:transform .5s cubic-bezier(.2,.8,.3,1),border-color .25s ease}
+.oc-fancard:nth-child(1){transform:translateX(46px) rotate(-2.5deg);z-index:1}
+.oc-fancard:nth-child(2){transform:translateX(15px) rotate(-1deg);z-index:2}
+.oc-fancard:nth-child(3){transform:translateX(-15px) rotate(1.5deg);z-index:3}
+.oc-fancard:nth-child(4){transform:translateX(-46px) rotate(3deg);z-index:4}
+.oc-fan:hover .oc-fancard:nth-child(1){transform:translate(0,-8px) rotate(-1.2deg)}
+.oc-fan:hover .oc-fancard:nth-child(2){transform:translate(0,6px) rotate(-2.2deg)}
+.oc-fan:hover .oc-fancard:nth-child(3){transform:translate(0,-12px) rotate(2.2deg)}
+.oc-fan:hover .oc-fancard:nth-child(4){transform:translate(0,4px) rotate(-1deg)}
+.oc-fancard:hover{border-color:rgba(255,120,60,0.35)}
+@media(max-width:1080px){.oc-fan{display:grid;grid-template-columns:repeat(2,1fr)}.oc-fancard,.oc-fan:hover .oc-fancard{transform:none!important;z-index:auto!important}}
+@media(max-width:560px){.oc-fan{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.oc-fancard{transition:none}}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;font-weight:700;letter-spacing:-0.01em;line-height:1;border:none;border-radius:12px;cursor:pointer;text-decoration:none;white-space:nowrap;position:relative;isolation:isolate;-webkit-tap-highlight-color:transparent;transition:transform .18s cubic-bezier(.2,.8,.3,1),box-shadow .2s ease,filter .2s ease,border-color .2s ease,background .2s ease,color .2s ease}
 .btn>svg{flex:none;transition:transform .18s cubic-bezier(.2,.8,.3,1)}
@@ -113,6 +130,9 @@
 [data-h="home-11"]:hover{color:var(--accent) !important}
 [data-h="home-12"]:hover{color:var(--accent) !important}
 [data-h="home-13"]:hover{color:var(--accent) !important}
+[data-h="home-14"]:hover{color:var(--text) !important}
+[data-h="home-15"]:hover{border-color:rgba(255,120,60,0.35) !important; color:var(--accent) !important}
+[data-h="home-16"]:hover{border-color:rgba(255,120,60,0.35) !important}
 [data-h="workshop-0"]:hover{border-color:rgba(255,120,60,0.55) !important}
 [data-h="workshop-1"]:hover{background:rgba(255,255,255,0.26) !important}
 [data-h="workshop-2"]:hover{background:rgba(245,60,20,0.55) !important}

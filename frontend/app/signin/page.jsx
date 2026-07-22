@@ -102,7 +102,6 @@ function SignInInner() {
 
   <div className="si-right" style={css(`display:flex;align-items:center;justify-content:center;padding:clamp(28px,4vw,56px);min-height:100vh`)}>
     <div style={css(`width:100%;max-width:400px`)}>
-      <span style={css(`display:inline-flex;align-items:center;gap:8px;background:rgba(245,60,20,0.12);color:var(--accent);font-weight:600;font-size:11.5px;letter-spacing:0.08em;padding:5px 11px;border-radius:999px;margin-bottom:22px`)}><span style={css(`width:7px;height:7px;border-radius:999px;background:var(--accent)`)}></span>LIVE WORKSHOPS · ENROLLING NOW</span>
       <h1 style={css(`margin:0 0 8px;font-weight:800;font-size:clamp(30px,3.4vw,38px);line-height:1.05;letter-spacing:-0.03em`)}>Welcome back</h1>
       <p style={css(`margin:0 0 30px;font-size:16px;color:var(--muted)`)}>Sign in to keep building.</p>
 
