@@ -3,155 +3,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDcLogic, css } from '@/lib/dc';
 import Logic from '@/lib/logic/home';
 import Link from 'next/link';
-
-// ---------------------------------------------------------------------------
-// Type scale. Every heading, paragraph and label on this page pulls from here —
-// interpolate the token into a css() string rather than restating sizes inline,
-// so the scale stays changeable in one place.
-// ---------------------------------------------------------------------------
-const TYPE = {
-  displayXL: `font-weight:800;font-size:clamp(36px,4.4vw,56px);line-height:1.02;letter-spacing:-0.03em`,
-  displayL: `font-weight:800;font-size:clamp(30px,3.4vw,44px);line-height:1.05;letter-spacing:-0.025em`,
-  displayM: `font-weight:800;font-size:clamp(22px,2vw,26px);line-height:1.15;letter-spacing:-0.02em`,
-  headingS: `font-weight:700;font-size:clamp(19px,1.6vw,22px);line-height:1.3;letter-spacing:-0.02em`,
-  headingXS: `font-weight:700;font-size:17px;line-height:1.35;letter-spacing:-0.01em`,
-  bodyL: `font-size:clamp(16px,1.15vw,18px);line-height:1.6`,
-  bodyM: `font-size:15px;line-height:1.6`,
-  bodyS: `font-size:13.5px;line-height:1.5`,
-  label: `font-weight:600;font-size:12.5px;letter-spacing:0.18em;text-transform:uppercase`,
-  badge: `font-weight:700;font-size:11px;letter-spacing:0.08em;text-transform:uppercase`,
-};
-
-// The one emphasis treatment for headings. Keep the wrapped phrase short — a
-// gradient that breaks across two lines restarts per line and reads as a bug.
-function Accent({ children }) {
-  return (
-    <span style={css(`background:linear-gradient(115deg,#FF6A3D,#F5330A);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent`)}>{children}</span>
-  );
-}
-
-// Short index-style labels, listed in the order the sections appear on the page.
-// Deliberately terser than the section eyebrows they point at
-// ("Who this is for", "What you'll walk away with", "How the session works",
-// "Your trainers") — keep the order in sync when sections move.
-const SUBNAV = [
-  ["Who it's for", '#who'],
-  ['Takeaways', '#outcomes'],
-  ['The session', '#how-it-works'],
-  ['Trainers', '#trainers'],
-  ['FAQ', '#faq'],
-];
-
-const PERSONAS = [
-  {
-    title: 'Product Designers',
-    body: 'Stop handing the landing page off and waiting a sprint for it.',
-  },
-  {
-    title: 'UI & Visual Designers',
-    body: 'Take the layout in your head to a live, responsive page without a front-end dev in the loop.',
-  },
-  {
-    title: 'Founders & solo builders',
-    body: 'You need a marketing site, you do not have a team, and you do not have a month.',
-  },
-  {
-    title: 'AI-curious designers',
-    body: 'You have opened an AI agent, prompted a bit, and drifted. Leave with a method that holds.',
-  },
-];
-
-const OUTCOMES = [
-  {
-    title: "A page that's actually live",
-    body: 'Not a mockup, not a Figma file. Everyone builds the same B2B SaaS landing page brief NetPulse was, and it ships to a real URL before the session ends.',
-    icon: <><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></>,
-  },
-  {
-    title: 'The toolkit, and when to stop using it',
-    body: 'Claude Code, shadcn, 21st.dev, and Vercel — what each is for, what you can skip, and the exact moments you take the keyboard back instead of prompting again.',
-    icon: <><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></>,
-  },
-  {
-    title: 'Unstuck in real time',
-    body: 'Live Q&A while you build, not feedback a week later.',
-    icon: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></>,
-  },
-  {
-    title: 'A method you can run again solo',
-    body: 'A PDF guide that walks the same method step by step, so you can rebuild it — or run it on your next client brief — on your own time.',
-    icon: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></>,
-  },
-];
-
-// Descriptions and "what you need" lines are derived strictly from facts already
-// stated elsewhere on this page (the brief, the named toolkit, the deploy target).
-// TODO — the definitive per-step setup list (CLI versions, accounts to create
-// beforehand) still needs trainer confirmation; same open item as the FAQ
-// pre-requisites question, which is intentionally unpublished until then.
-const SESSION_STEPS = [
-  {
-    time: '0–10 min',
-    title: '9 hours: where they actually went',
-    body: 'The NetPulse build, opened up hour by hour — which parts took the time, and which parts most people skip entirely.',
-    need: null,
-  },
-  {
-    time: '10–25 min',
-    title: 'Groundwork, before anything gets built',
-    body: 'Most people open a tool and start prompting. We start somewhere else, and that is most of the reason the page ships in a day instead of a fortnight.',
-    need: 'The brief — the same B2B SaaS landing page for everyone, handed out on the day.',
-  },
-  {
-    time: '25–45 min',
-    title: 'The blueprint',
-    body: 'The page gets structured before a single prompt is written — the method, in the order that makes it work.',
-    need: 'The brief, plus the templates used on the day.',
-  },
-  {
-    time: '45–75 min',
-    title: 'Execute: your coding agent, shadcn, 21st.dev',
-    body: 'You build alongside the host — where each tool earns its keep, where it gets in the way, and the moments you take the keyboard back instead of prompting again. Bring whichever agent you already use; the method does not change.',
-    need: 'Your own machine and an AI coding agent — Claude Code, Codex, Google Antigravity and Cursor all work. Plus shadcn and 21st.dev.',
-  },
-  {
-    time: '75–90 min',
-    title: 'Ship on Vercel, the guide, and Q&A',
-    body: 'Deploy, so the page ends at a URL and not on localhost. Then the guide, and live Q&A while everything is still fresh.',
-    need: 'Vercel, where the page goes live. The PDF guide and prompt library are yours to keep.',
-  },
-];
-
-const FAQS = [
-  {
-    q: 'Do I need to know how to code?',
-    a: "No. If you can read a Figma file, you can follow this session. We pace for people who've never opened a terminal.",
-  },
-  {
-    q: 'What if my machine or AI usage limits run out mid-session?',
-    a: 'Totally normal — some attendees finish live, some finish afterward using the recording and guide. Everyone leaves with what they need to complete it solo.',
-  },
-  {
-    q: "Is this recorded if I can't attend live?",
-    a: 'Yes. The full 90-minute session is recorded, plus you get the PDF guide, the brief, templates, and the prompt library regardless of whether you attend live.',
-  },
-  {
-    q: 'Is it really free?',
-    a: 'Yes, free for Academy members. Membership itself is free to join.',
-  },
-  {
-    q: 'What happens after the workshop?',
-    a: 'You keep the recording, the PDF guide, the brief, the templates, and the prompt library in your Academy account, and you can revisit or rebuild the method anytime.',
-  },
-];
-
-function Chevron({ open }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={css(`flex:none;transition:transform .25s ease;transform:${open ? 'rotate(180deg)' : 'none'};color:var(--muted)`)}>
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
+import {
+  SESSION, TYPE, Accent, Chevron, SUBNAV, PERSONAS, OUTCOMES, SESSION_STEPS, TRAINERS, FAQS,
+} from '@/lib/workshop-content';
 
 export default function Page() {
   const v = useDcLogic(Logic);
@@ -216,7 +70,7 @@ export default function Page() {
 
         <div data-reveal style={css(`display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:22px`)}>
           <span style={css(`background:var(--accent);color:#1a0803;${TYPE.badge};padding:5px 11px;border-radius:999px`)}>LIVE</span>
-          <span style={css(`color:var(--faint);${TYPE.label}`)}>1 August, 2026</span>
+          <span style={css(`color:var(--faint);${TYPE.label}`)}>{SESSION.dateBadge}</span>
         </div>
 
         <h1 data-reveal data-reveal-delay="60" style={css(`margin:0 0 22px;max-width:900px;${TYPE.displayXL};color:var(--text)`)}>Ship client-ready websites in <Accent>hours, not months</Accent>.</h1>
@@ -319,7 +173,7 @@ export default function Page() {
           Enroll now
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="12 6 18 12 12 18"/></svg>
         </Link>
-        <span style={css(`color:var(--faint);${TYPE.bodyS}`)}>Saturday, August 1 · 3:00 PM</span>
+        <span style={css(`color:var(--faint);${TYPE.bodyS}`)}>{SESSION.dateShort} · {SESSION.time}</span>
       </div>
     </div>
   </section>
@@ -384,20 +238,14 @@ export default function Page() {
       <div data-reveal style={css(`text-align:center;color:var(--faint);${TYPE.label};margin-bottom:18px`)}>Your trainers</div>
       <h2 data-reveal data-reveal-delay="60" style={css(`margin:0 auto clamp(40px,5vw,56px);text-align:center;${TYPE.displayL};max-width:720px`)}>Learn from the people who <Accent>do this daily</Accent>.</h2>
       <div style={css(`display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:clamp(24px,3vw,40px);max-width:820px;margin:0 auto`)}>
-        <div data-reveal style={css(`text-align:center`)}>
-          <div style={css(`aspect-ratio:4/5;border-radius:18px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px`)}><img src="/assets/vineet.png" alt="Vineet Chopdekar" style={css(`width:100%;height:100%;object-fit:cover;display:block`)} /></div>
-          <div style={css(`color:var(--faint);${TYPE.label};margin-bottom:10px`)}>Principal Designer</div>
-          <h3 style={css(`margin:0 0 10px;${TYPE.headingS};color:var(--text)`)}>Vineet Chopdekar</h3>
-          <p style={css(`margin:0 auto;${TYPE.bodyM};color:var(--muted);max-width:420px`)}>14+ years designing fintech, Enterprise SaaS products people actually trust. Leads design at RPS.</p>
-          {/* TODO: confirm with Vineet before publishing — "in this session" line: runs the live build and the blueprint step, the part where most builds go wrong before a single prompt is typed. */}
-        </div>
-        <div data-reveal data-reveal-delay="100" style={css(`text-align:center`)}>
-          <div style={css(`aspect-ratio:4/5;border-radius:18px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px`)}><img src="/assets/vivin.png" alt="Vivin Richard" style={css(`width:100%;height:100%;object-fit:cover;display:block`)} /></div>
-          <div style={css(`color:var(--faint);${TYPE.label};margin-bottom:10px`)}>Design Manager</div>
-          <h3 style={css(`margin:0 0 10px;${TYPE.headingS};color:var(--text)`)}>Vivin Richard</h3>
-          <p style={css(`margin:0 auto;${TYPE.bodyM};color:var(--muted);max-width:420px`)}>Principal Designer at RPS Studio, building AI-native design workflows for enterprise fintech. Believes designers who learn to direct AI will outrun the ones who fear it.</p>
-          {/* TODO: confirm with Vivin before publishing — "in this session" line: runs Q&A and the ship-checklist close, the part where you turn a working build into something you can hand to a client. */}
-        </div>
+        {TRAINERS.map((t, i) => (
+          <div key={t.name} data-reveal data-reveal-delay={i * 100} style={css(`text-align:center`)}>
+            <div style={css(`aspect-ratio:4/5;border-radius:18px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px`)}><img src={t.photo} alt={t.name} style={css(`width:100%;height:100%;object-fit:cover;display:block`)} /></div>
+            <div style={css(`color:var(--faint);${TYPE.label};margin-bottom:10px`)}>{t.role}</div>
+            <h3 style={css(`margin:0 0 10px;${TYPE.headingS};color:var(--text)`)}>{t.name}</h3>
+            <p style={css(`margin:0 auto;${TYPE.bodyM};color:var(--muted);max-width:420px`)}>{t.bio}</p>
+          </div>
+        ))}
       </div>
     </div>
   </section>
