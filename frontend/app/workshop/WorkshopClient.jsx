@@ -5,7 +5,7 @@ import { useDcLogic, css } from '@/lib/dc';
 import Logic from '@/lib/logic/workshop';
 import { createClient } from '@/lib/supabase/client';
 import {
-  SESSION, TYPE, Accent, Chevron, SUBNAV, PERSONAS, OUTCOMES, SESSION_STEPS, TRAINERS, FAQS,
+  SESSION, TYPE, Accent, Chevron, HeroBlurb, SUBNAV, PERSONAS, OUTCOMES, SESSION_STEPS, TRAINERS, FAQS,
 } from '@/lib/workshop-content';
 
 // The enrolled-member view of the workshop. Structurally identical to the public
@@ -63,14 +63,14 @@ export default function WorkshopClient({ name, email, avatarUrl, initials }) {
   );
 
   return (
-<div ref={v.setRoot} data-screen-label="Academy — Workshop" style={css(`--bg:#141312;--surface:#1d1c1b;--surface2:#242322;--border:rgba(255,255,255,0.09);--text:#ECEBE9;--muted:#9a9993;--faint:#6e6d6a;--accent:#F5330A;--glow:rgba(150,55,25,0.26);--navbg:rgba(20,19,18,0.82);--footerbg:#0a0a0a;background:var(--bg);color:var(--text);font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh`)}>
+<div ref={v.setRoot} data-screen-label="Cohorts — Workshop" style={css(`--bg:#141312;--surface:#1d1c1b;--surface2:#242322;--border:rgba(255,255,255,0.09);--text:#ECEBE9;--muted:#9a9993;--faint:#6e6d6a;--accent:#F5330A;--glow:rgba(150,55,25,0.26);--navbg:rgba(20,19,18,0.82);--footerbg:#0a0a0a;background:var(--bg);color:var(--text);font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh`)}>
 
 
   <nav style={css(`position:sticky;top:0;z-index:50;background:var(--navbg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border)`)}>
     <div style={css(`max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,24px);height:68px;display:flex;align-items:center;gap:clamp(16px,3vw,32px)`)}>
       <a href="/dashboard" style={css(`display:flex;align-items:center;gap:10px;color:var(--text);flex:none`)}>
-        <img src="/assets/academy-logo-full.png" alt="Academy" style={css(`height:36px;width:auto;object-fit:contain;display:block`)} />
-        <span style={css(`font-weight:700;font-size:18px;letter-spacing:-0.02em`)}>Academy</span>
+        <img src="/assets/academy-logo-full.png" alt="Cohorts" style={css(`height:36px;width:auto;object-fit:contain;display:block`)} />
+        <span style={css(`font-weight:700;font-size:18px;letter-spacing:-0.02em`)}>Cohorts</span>
       </a>
       <div className="db-search" style={css(`flex:1 1 auto;min-width:0`)}></div>
       <div style={css(`display:flex;align-items:center;gap:14px;flex:none`)}>
@@ -124,7 +124,7 @@ export default function WorkshopClient({ name, email, avatarUrl, initials }) {
 
         <h1 data-reveal data-reveal-delay="60" style={css(`margin:0 0 22px;max-width:900px;${TYPE.displayXL};color:var(--text)`)}>Ship client-ready websites in <Accent>hours, not months</Accent>.</h1>
 
-        <p data-reveal data-reveal-delay="120" style={css(`margin:0 0 30px;max-width:760px;${TYPE.bodyL};color:var(--muted)`)}>A 90-minute live workshop on how to build interactive, client-ready websites with AI. netpulse-sol.com is proof — it was built this way in 9 hours flat, not because anyone prompted harder, but because there's a method. In this session, we build a B2B SaaS landing page the same way, live, with you.</p>
+        <p data-reveal data-reveal-delay="120" style={css(`margin:0 0 30px;max-width:760px;${TYPE.bodyL};color:var(--muted)`)}><HeroBlurb /></p>
 
         <div data-reveal data-reveal-delay="160" style={css(`display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:34px`)}>
           <span style={css(`background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:8px 14px;font-weight:600;${TYPE.bodyS};color:var(--text)`)}>90 minutes</span>
@@ -367,8 +367,8 @@ export default function WorkshopClient({ name, email, avatarUrl, initials }) {
         </div>
       </div>
       <div style={css(`border-top:1px solid var(--border);padding-top:28px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;color:#6e6d6a;${TYPE.bodyS}`)}>
-        <span>© 2026 RPS Academy · Made with love and a lot of procrastination</span>
-        <span>@rps.academy</span>
+        <span>© 2026 RPS Cohorts · Made with love and a lot of procrastination</span>
+        <span>@rps.cohorts</span>
       </div>
     </div>
   </footer>

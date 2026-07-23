@@ -4,7 +4,7 @@ import { useDcLogic, css } from '@/lib/dc';
 import Logic from '@/lib/logic/home';
 import Link from 'next/link';
 import {
-  SESSION, TYPE, Accent, Chevron, SUBNAV, PERSONAS, OUTCOMES, SESSION_STEPS, TRAINERS, FAQS,
+  SESSION, TYPE, Accent, Chevron, HeroBlurb, SUBNAV, PERSONAS, OUTCOMES, SESSION_STEPS, TRAINERS, FAQS,
 } from '@/lib/workshop-content';
 
 export default function Page() {
@@ -29,6 +29,19 @@ export default function Page() {
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, []);
+
+  // TEMPORARY (launch): fire a confetti burst when a visitor arrives from the
+  // /launch gate (/?launched=1), then strip the param so a refresh won't re-fire.
+  // Remove this effect, lib/confetti.js and app/launch after launch.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('launched') !== '1') return;
+    import('@/lib/confetti').then((m) => m.fireConfetti());
+    const url = new URL(window.location.href);
+    url.searchParams.delete('launched');
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+  }, []);
   return (
 <div ref={v.setRoot} data-screen-label="Opencanvas — Ship with Claude" style={css(`--bg:#141312;--surface:#1d1c1b;--surface2:#242322;--border:rgba(255,255,255,0.09);--text:#ECEBE9;--muted:#9a9993;--faint:#6e6d6a;--accent:#F5330A;--glow:rgba(150,55,25,0.26);--navbg:rgba(20,19,18,0.82);--footerbg:#0a0a0a;background:var(--bg);color:var(--text);font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh`)}>
 
@@ -36,8 +49,8 @@ export default function Page() {
   <nav style={css(`position:sticky;top:0;z-index:50;background:var(--navbg);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)`)}>
     <div style={css(`max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,24px);height:68px;display:flex;align-items:center;justify-content:space-between`)}>
       <a href="#" style={css(`display:flex;align-items:center;gap:12px`)}>
-        <img src="/assets/academy-logo-full.png" alt="Academy" style={css(`height:40px;width:auto;object-fit:contain;display:block`)} />
-        <span style={css(`font-weight:700;font-size:20px;letter-spacing:-0.02em;color:var(--text)`)}>Academy</span>
+        <img src="/assets/academy-logo-full.png" alt="Cohorts" style={css(`height:40px;width:auto;object-fit:contain;display:block`)} />
+        <span style={css(`font-weight:700;font-size:20px;letter-spacing:-0.02em;color:var(--text)`)}>Cohorts</span>
       </a>
       <div style={css(`display:flex;align-items:center;gap:16px`)}>
         <button onClick={v.toggle} aria-label="Toggle theme" style={css(`display:none;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);align-items:center;justify-content:center;cursor:pointer;transition:color .2s,border-color .2s`)} data-h="home-0">
@@ -75,7 +88,7 @@ export default function Page() {
 
         <h1 data-reveal data-reveal-delay="60" style={css(`margin:0 0 22px;max-width:900px;${TYPE.displayXL};color:var(--text)`)}>Ship client-ready websites in <Accent>hours, not months</Accent>.</h1>
 
-        <p data-reveal data-reveal-delay="120" style={css(`margin:0 0 30px;max-width:760px;${TYPE.bodyL};color:var(--muted)`)}>A 90-minute live workshop on how to build interactive, client-ready websites with AI. netpulse-sol.com is proof — it was built this way in 9 hours flat, not because anyone prompted harder, but because there's a method. In this session, we build a B2B SaaS landing page the same way, live, with you.</p>
+        <p data-reveal data-reveal-delay="120" style={css(`margin:0 0 30px;max-width:760px;${TYPE.bodyL};color:var(--muted)`)}><HeroBlurb /></p>
 
         <div data-reveal data-reveal-delay="160" style={css(`display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:34px`)}>
           <span style={css(`background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:8px 14px;font-weight:600;${TYPE.bodyS};color:var(--text)`)}>90 minutes</span>
@@ -306,8 +319,8 @@ export default function Page() {
         </div>
       </div>
       <div style={css(`border-top:1px solid var(--border);padding-top:28px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;color:#6e6d6a;${TYPE.bodyS}`)}>
-        <span>© 2026 RPS Academy · Made with love and a lot of procrastination</span>
-        <span>@rps.academy</span>
+        <span>© 2026 RPS Cohorts · Made with love and a lot of procrastination</span>
+        <span>@rps.cohorts</span>
       </div>
     </div>
   </footer>

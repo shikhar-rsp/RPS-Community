@@ -85,8 +85,8 @@ function SignInInner() {
     <div aria-hidden="true" style={css(`position:absolute;bottom:-24%;right:-14%;width:56%;height:56%;background:radial-gradient(circle,rgba(245,60,20,0.10),transparent 66%);pointer-events:none`)}></div>
 
     <Link href="/" style={css(`position:relative;display:flex;align-items:center;gap:10px;color:var(--text)`)}>
-      <img src="/assets/academy-logo-full.png" alt="Academy" style={css(`height:44px;width:auto;object-fit:contain;display:block`)} />
-      <span style={css(`font-weight:700;font-size:20px;letter-spacing:-0.02em`)}>Academy</span>
+      <img src="/assets/academy-logo-full.png" alt="Cohorts" style={css(`height:44px;width:auto;object-fit:contain;display:block`)} />
+      <span style={css(`font-weight:700;font-size:20px;letter-spacing:-0.02em`)}>Cohorts</span>
     </Link>
 
     <div style={css(`position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:34px;padding:clamp(24px,3vw,44px) 0`)}>

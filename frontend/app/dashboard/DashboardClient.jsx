@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useDcLogic, css } from '@/lib/dc';
 import Logic from '@/lib/logic/dashboard';
 import { createClient } from '@/lib/supabase/client';
+import { TYPE, SESSION, WORKSHOP } from '@/lib/workshop-content';
 
 export default function DashboardClient({ name, email, avatarUrl, initials, firstName }) {
   const router = useRouter();
@@ -23,8 +24,8 @@ export default function DashboardClient({ name, email, avatarUrl, initials, firs
   <nav style={css(`position:sticky;top:0;z-index:50;background:rgba(19,18,17,0.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)`)}>
     <div style={css(`max-width:1160px;margin:0 auto;padding:0 clamp(16px,3vw,24px);height:68px;display:flex;align-items:center;gap:clamp(16px,3vw,32px)`)}>
       <a href="/" style={css(`display:flex;align-items:center;gap:10px;color:var(--text);flex:none`)}>
-        <img src="/assets/academy-logo-full.png" alt="Academy" style={css(`height:36px;width:auto;object-fit:contain;display:block`)} />
-        <span style={css(`font-weight:700;font-size:18px;letter-spacing:-0.02em`)}>Academy</span>
+        <img src="/assets/academy-logo-full.png" alt="Cohorts" style={css(`height:36px;width:auto;object-fit:contain;display:block`)} />
+        <span style={css(`font-weight:700;font-size:18px;letter-spacing:-0.02em`)}>Cohorts</span>
       </a>
       <div style={css(`flex:1 1 auto`)}></div>
       <div style={css(`display:flex;align-items:center;gap:12px;flex:none`)}>
@@ -72,35 +73,62 @@ export default function DashboardClient({ name, email, avatarUrl, initials, firs
     </div>
 
 
-    <div className="db-rise" style={css(`animation-delay:.05s;display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px`)}>
-      <h2 style={css(`margin:0;color:var(--faint);font-weight:600;font-size:12.5px;letter-spacing:0.2em;text-transform:uppercase`)}>My workshops</h2>
-      <a href="/workshop" className="btn btn--tertiary btn--sm" style={css(`display:none`)}>Browse all</a>
+    {/* Tabs: Upcoming | Past. Past is empty until a session wraps and its
+        recording is added — see the empty state below. */}
+    <div className="db-rise" style={css(`animation-delay:.05s;display:flex;align-items:center;gap:8px;margin-bottom:24px`)}>
+      {[['upcoming', 'Upcoming'], ['past', 'Past']].map(([key, label]) => {
+        const active = v.tab === key;
+        return (
+          <button
+            key={key}
+            type="button"
+            onClick={() => v.setTab(key)}
+            style={css(`display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:999px;font-weight:600;${TYPE.bodyS};cursor:pointer;font-family:inherit;transition:color .2s,background .2s,border-color .2s;border:1px solid ${active ? 'var(--border)' : 'transparent'};background:${active ? 'var(--surface2)' : 'transparent'};color:${active ? 'var(--text)' : 'var(--muted)'}`)}
+            data-h="dashboard-8"
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
-    <div style={css(`display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;max-width:800px;margin:0 auto clamp(40px,5vw,60px)`)}>
-      <a href="/workshop" className="db-rise wcard" style={css(`display:block;color:inherit;text-decoration:none;animation-delay:.1s;background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:border-color .25s,transform .25s,box-shadow .25s`)} data-h="dashboard-4">
-        <div className="wcover" style={css(`position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#2a1109,#140b07);border-bottom:1px solid var(--border)`)}><img src="/assets/hero-16x9.png" alt="" style={css(`position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.9`)} />
-          <span style={css(`position:absolute;top:14px;right:14px;z-index:2;display:inline-flex;align-items:center;gap:6px;background:rgba(10,6,4,0.62);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.14);color:#fff;font-size:12.5px;font-weight:600;letter-spacing:0.01em;padding:6px 12px;border-radius:999px`)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 14.5"/><line x1="9" y1="1.5" x2="15" y2="1.5"/><line x1="12" y1="1.5" x2="12" y2="4"/></svg>5d 14h left</span>
+
+    {v.tab === 'upcoming' && (
+    <div style={css(`display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:clamp(40px,5vw,60px)`)}>
+      <a href={WORKSHOP.href} className="db-rise wcard" style={css(`display:block;color:inherit;text-decoration:none;animation-delay:.1s;background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:border-color .25s,transform .25s,box-shadow .25s`)} data-h="dashboard-4">
+        <div className="wcover" style={css(`position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#2a1109,#140b07);border-bottom:1px solid var(--border)`)}><img src={WORKSHOP.cover} alt="" style={css(`position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.9`)} />
+          <span style={css(`position:absolute;top:14px;right:14px;z-index:2;display:inline-flex;align-items:center;gap:6px;background:rgba(10,6,4,0.62);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.14);color:#fff;${TYPE.bodyS};font-weight:600;padding:6px 12px;border-radius:999px`)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 14.5"/><line x1="9" y1="1.5" x2="15" y2="1.5"/><line x1="12" y1="1.5" x2="12" y2="4"/></svg>{v.countdown}</span>
         </div>
         <div style={css(`padding:24px`)}>
           <div style={css(`display:flex;align-items:center;gap:14px;margin-bottom:14px`)}>
             <span style={css(`background:var(--accent);color:#1a0803;font-weight:700;font-size:10.5px;letter-spacing:0.08em;padding:4px 10px;border-radius:999px`)}>UPCOMING</span>
-            <span style={css(`display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;font-weight:500`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/></svg>Jul 25</span>
-            <span style={css(`display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;font-weight:500`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>3:00 PM</span>
+            <span style={css(`display:inline-flex;align-items:center;gap:6px;color:var(--muted);${TYPE.bodyS};font-weight:500`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/></svg>{SESSION.dateCompact}</span>
+            <span style={css(`display:inline-flex;align-items:center;gap:6px;color:var(--muted);${TYPE.bodyS};font-weight:500`)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>{SESSION.time}</span>
           </div>
-          <h3 style={css(`margin:0 0 10px;font-weight:700;font-size:19px;letter-spacing:-0.015em`)}>The method behind building stunning landing pages in short time</h3>
-          <p style={css(`margin:0;font-size:14.5px;line-height:1.55;color:var(--muted)`)}>netpulse-sol.com was designed, built and shipped in a single working day. In 90 minutes we walk you through the method and build a B2B SaaS landing page with you.</p>
+          <h3 style={css(`margin:0 0 10px;${TYPE.headingXS};color:var(--text)`)}>{WORKSHOP.title}</h3>
+          <p style={css(`margin:0;${TYPE.bodyM};color:var(--muted)`)}>{WORKSHOP.blurb}</p>
         </div>
       </a>
-      <div className="db-rise wcard" style={css(`animation-delay:.16s;position:relative;overflow:hidden;background:linear-gradient(150deg,rgba(245,60,20,0.10),var(--surface) 55%);border:1px solid rgba(255,120,60,0.22);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 28px;min-height:100%`)}>
+      <div className="db-rise wcard" style={css(`animation-delay:.16s;position:relative;overflow:hidden;background:linear-gradient(150deg,rgba(245,60,20,0.10),var(--surface) 55%);border:1px solid rgba(255,120,60,0.22);border-radius:20px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;justify-content:center;padding:36px 28px;min-height:100%`)}>
         <div aria-hidden="true" style={css(`position:absolute;top:-30%;right:-20%;width:70%;height:70%;background:radial-gradient(circle,rgba(245,60,20,0.20),transparent 65%);pointer-events:none`)}></div>
         <div aria-hidden="true" style={css(`position:absolute;bottom:-25%;left:-15%;width:55%;height:55%;background:radial-gradient(circle,rgba(245,60,20,0.10),transparent 65%);pointer-events:none`)}></div>
         <span style={css(`position:relative;width:56px;height:56px;border-radius:16px;background:rgba(245,60,20,0.14);border:1px solid rgba(255,120,60,0.32);display:flex;align-items:center;justify-content:center;margin-bottom:20px`)}><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l2.2 4.9 5.3.5-4 3.6 1.2 5.2L12 15l-4.7 2.7 1.2-5.2-4-3.6 5.3-.5z"/></svg></span>
-        <span style={css(`position:relative;display:inline-block;color:var(--accent);font-weight:600;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;margin-bottom:12px`)}>Coming soon</span>
-        <h3 style={css(`position:relative;margin:0 0 10px;font-weight:800;font-size:21px;letter-spacing:-0.02em`)}>More workshops on the way</h3>
-        <p style={css(`position:relative;margin:0 0 20px;font-size:14.5px;line-height:1.55;color:var(--muted);max-width:280px`)}>New live sessions with industry experts are being lined up. Check back soon — or get notified when the next one drops.</p>
-        <span style={css(`position:relative;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--border);padding:9px 16px;border-radius:999px`)}><span style={css(`width:7px;height:7px;border-radius:999px;background:var(--accent)`)}></span>Notify me</span>
+        <span style={css(`position:relative;display:inline-block;color:var(--accent);${TYPE.label};font-size:11px;letter-spacing:0.16em;margin-bottom:12px`)}>Coming soon</span>
+        <h3 style={css(`position:relative;margin:0 0 10px;${TYPE.headingS};color:var(--text)`)}>More workshops on the way</h3>
+        <p style={css(`position:relative;margin:0 0 20px;${TYPE.bodyM};color:var(--muted);max-width:320px`)}>New live sessions with industry experts are being lined up. Check back soon — or get notified when the next one drops.</p>
+        <span style={css(`position:relative;display:inline-flex;align-items:center;gap:7px;${TYPE.bodyS};font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--border);padding:9px 16px;border-radius:999px`)}><span style={css(`width:7px;height:7px;border-radius:999px;background:var(--accent)`)}></span>Notify me</span>
       </div>
     </div>
+    )}
+
+    {v.tab === 'past' && (
+    <div className="db-rise" style={css(`margin-bottom:clamp(40px,5vw,60px)`)}>
+      <div style={css(`display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:clamp(32px,4vw,48px)`)}>
+        <span style={css(`width:52px;height:52px;border-radius:14px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin-bottom:20px`)}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2.5"/><polygon points="10 9 15 12 10 15 10 9" fill="var(--muted)" stroke="none"/></svg></span>
+        <h3 style={css(`margin:0 0 10px;${TYPE.headingS};color:var(--text)`)}>No past workshops yet</h3>
+        <p style={css(`margin:0;${TYPE.bodyM};color:var(--muted);max-width:440px`)}>Once a session wraps, its recording lands here so you can rewatch any step, anytime.</p>
+      </div>
+    </div>
+    )}
 
     {/*
       NOTE: The assignment submit-link form is intentionally not rendered in this
@@ -117,23 +145,22 @@ export default function DashboardClient({ name, email, avatarUrl, initials, firs
     <div style={css(`max-width:1160px;margin:0 auto;padding:0 clamp(16px,3vw,24px)`)}>
       <div className="db-footgrid" style={css(`display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:40px;margin-bottom:clamp(48px,6vw,72px)`)}>
         <div style={css(`min-width:240px`)}>
-          <h3 style={css(`margin:0 0 14px;font-weight:800;font-size:clamp(22px,2vw,26px);letter-spacing:-0.02em;color:#f2f1ef`)}>Follow what we're building.</h3>
-          <p style={css(`margin:0 0 26px;font-size:15px;line-height:1.55;color:#8f8e8a;max-width:340px`)}>Quiet weekly notes — new workshops, assignments, and what the community shipped.</p>
-          <a href="#" className="btn btn--secondary btn--md">Become a member</a>
+          <h3 style={css(`margin:0 0 14px;${TYPE.displayM};color:#f2f1ef`)}>Where designers learn to ship.</h3>
+          <p style={css(`margin:0;${TYPE.bodyM};color:#8f8e8a;max-width:340px`)}>We teach design in the open. The goal is a next generation of designers who ship real work with AI.</p>
         </div>
         <div>
-          <div style={css(`color:#6e6d6a;font-weight:600;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:20px`)}>Community</div>
-          <a href="/workshop" style={css(`display:block;color:#dcdbd8;font-size:15.5px`)} data-h="dashboard-5">Workshops</a>
+          <div style={css(`color:#6e6d6a;${TYPE.label};margin-bottom:20px`)}>Cohorts</div>
+          <a href="/workshop" style={css(`display:block;color:#dcdbd8;${TYPE.bodyM}`)} data-h="dashboard-5">Workshops</a>
         </div>
         <div>
-          <div style={css(`color:#6e6d6a;font-weight:600;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:20px`)}>Account</div>
-          <a href="/dashboard" style={css(`display:block;color:#dcdbd8;font-size:15.5px;margin-bottom:14px`)} data-h="dashboard-6">Dashboard</a>
-          <button type="button" onClick={v.onSignOut} style={css(`display:block;color:#dcdbd8;font-size:15.5px;background:none;border:none;padding:0;cursor:pointer;font-family:inherit`)} data-h="dashboard-7">Sign out</button>
+          <div style={css(`color:#6e6d6a;${TYPE.label};margin-bottom:20px`)}>Account</div>
+          <a href="/dashboard" style={css(`display:block;color:#dcdbd8;${TYPE.bodyM};margin-bottom:14px`)} data-h="dashboard-6">Dashboard</a>
+          <button type="button" onClick={v.onSignOut} style={css(`display:block;color:#dcdbd8;${TYPE.bodyM};background:none;border:none;padding:0;cursor:pointer;font-family:inherit`)} data-h="dashboard-7">Sign out</button>
         </div>
       </div>
-      <div style={css(`border-top:1px solid var(--border);padding-top:28px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;color:#6e6d6a;font-size:14px`)}>
-        <span>© 2026 Academy · Made with care, in public.</span>
-        <span>@academy.community</span>
+      <div style={css(`border-top:1px solid var(--border);padding-top:28px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;color:#6e6d6a;${TYPE.bodyS}`)}>
+        <span>© 2026 RPS Cohorts · Made with love and a lot of procrastination</span>
+        <span>@rps.cohorts</span>
       </div>
     </div>
   </footer>
