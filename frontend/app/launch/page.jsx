@@ -1,14 +1,14 @@
 'use client';
-// TEMPORARY launch gate. Big red button -> 15s countdown -> opens the landing
-// page (/) with a confetti burst. Not linked from anywhere; reach it at /launch.
-// To remove after launch: delete this folder (app/launch), lib/confetti.js, and
-// the fenced "launch confetti" effect in app/page.jsx.
+// TEMPORARY launch gate. Big red button -> 5s countdown -> opens the landing
+// page (/) with a warp burst. Not linked from anywhere; reach it at /launch.
+// To remove after launch: delete this folder (app/launch), lib/warp.js, and
+// the fenced "launch warp" effect in app/page.jsx.
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { css } from '@/lib/dc';
 import { TYPE, Accent } from '@/lib/workshop-content';
 
-const SECONDS = 10;
+const SECONDS = 5;
 const RING = 2 * Math.PI * 92; // circumference of the r=92 progress ring
 
 export default function LaunchPage() {
