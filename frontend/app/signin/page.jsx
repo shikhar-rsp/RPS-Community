@@ -56,7 +56,7 @@ function SignInInner() {
     if (error) setError(error.message);
   };
   const onGoogle = () => onOAuth('google');
-  const onLinkedIn = () => onOAuth('linkedin_oidc');
+  //const onLinkedIn = () => onOAuth('linkedin_oidc');
 
   const onForgot = async (e) => {
     e.preventDefault();
@@ -110,10 +110,10 @@ function SignInInner() {
           <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-2 3.2-4.9 3.2-7.8z"/><path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.7l-3.6-2.7c-1 .7-2.3 1.1-3.6 1.1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.9L6 14.3z"/><path fill="#EA4335" d="M12 5.5c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3L6 10.1c.9-2.6 3.2-4.6 6-4.6z"/></svg>
           Continue with Google
         </button>
-        <button type="button" onClick={onLinkedIn} className="btn btn--secondary btn--lg btn--block">
+        {/* <button type="button" onClick={onLinkedIn} className="btn btn--secondary btn--lg btn--block">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.5 2h-17A1.5 1.5 0 0 0 2 3.5v17A1.5 1.5 0 0 0 3.5 22h17a1.5 1.5 0 0 0 1.5-1.5v-17A1.5 1.5 0 0 0 20.5 2zM8 19H5V9h3v10zM6.5 7.7a1.8 1.8 0 1 1 0-3.5 1.8 1.8 0 0 1 0 3.5zM19 19h-3v-5c0-1.2-.5-2-1.6-2-.9 0-1.4.6-1.6 1.2-.1.2-.1.5-.1.8V19h-3V9h3v1.3c.4-.7 1.2-1.6 3-1.6 2.2 0 3.9 1.4 3.9 4.5V19z"/></svg>
           Continue with LinkedIn
-        </button>
+        </button> */}
       </div>
 
       <div style={css(`display:flex;align-items:center;gap:14px;margin-bottom:22px`)}>
