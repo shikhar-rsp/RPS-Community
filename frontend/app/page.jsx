@@ -1,11 +1,14 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useDcLogic, css } from '@/lib/dc';
 import Logic from '@/lib/logic/home';
 import Link from 'next/link';
 import {
   SESSION, TYPE, Accent, Chevron, HeroBlurb, SUBNAV, PERSONAS, OUTCOMES, SESSION_STEPS, TRAINERS, FAQS,
 } from '@/lib/workshop-content';
+// TEMPORARY (launch): static import so the warp burst has zero chunk-fetch lag —
+// see the effect below for why that lag caused a flash of bare content.
+import { fireWarp } from '@/lib/warp';
 
 export default function Page() {
   const v = useDcLogic(Logic);
@@ -30,14 +33,19 @@ export default function Page() {
     return () => io.disconnect();
   }, []);
 
-  // TEMPORARY (launch): fire a confetti burst when a visitor arrives from the
+  // TEMPORARY (launch): fire a warp burst when a visitor arrives from the
   // /launch gate (/?launched=1), then strip the param so a refresh won't re-fire.
-  // Remove this effect, lib/confetti.js and app/launch after launch.
-  useEffect(() => {
+  // useLayoutEffect (not useEffect) so the canvas mounts and paints before the
+  // browser's first paint of this page — otherwise the bare page is visible for
+  // a frame before the burst covers it. Combined with the static import above
+  // (no chunk-fetch lag) and warp.js's own opaque first-frame fill, this closes
+  // every gap that could let the page flash through.
+  // Remove this effect, lib/warp.js and app/launch after launch.
+  useLayoutEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     if (params.get('launched') !== '1') return;
-    import('@/lib/confetti').then((m) => m.fireConfetti());
+    fireWarp();
     const url = new URL(window.location.href);
     url.searchParams.delete('launched');
     window.history.replaceState({}, '', url.pathname + url.search + url.hash);
