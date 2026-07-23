@@ -19,10 +19,20 @@ export const SESSION = {
   dateLong: 'Saturday, August 1, 2026',
   dateShort: 'Saturday, August 1',
   dateBadge: '1 August, 2026',
+  dateCompact: 'Aug 1',
   time: '3:00 PM',
   duration: '90 min',
-  // ISO local time; lib/logic/workshop.js counts down to this.
+  // ISO local time; the workshop and dashboard countdowns both count down to this.
   startsAt: '2026-08-01T15:00:00',
+};
+
+// The workshop as it appears on the dashboard card. Plain title (no accent split)
+// so it can be used as a string. The dashboard reads date/time from SESSION.
+export const WORKSHOP = {
+  title: 'Ship client-ready websites in hours, not months',
+  blurb: 'netpulse-sol.com is proof — it was built this way in 9 hours flat. In 90 minutes we run the method live and build a B2B SaaS landing page with you.',
+  cover: '/assets/hero-16x9.png',
+  href: '/workshop',
 };
 
 export const TYPE = {
@@ -43,6 +53,18 @@ export const TYPE = {
 export function Accent({ children }) {
   return (
     <span style={css(`background:linear-gradient(115deg,#FF6A3D,#F5330A);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent`)}>{children}</span>
+  );
+}
+
+// Hero subhead, shared so the netpulse-sol.com link can't fall out of sync
+// between the public and authenticated pages the way the plain-text copy did.
+export function HeroBlurb() {
+  return (
+    <>
+      A 90-minute live workshop on how to build interactive, client-ready websites with AI.{' '}
+      <a href="https://netpulse-sol.com" target="_blank" rel="noopener" style={css(`color:var(--text);font-weight:600;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--border)`)}>netpulse-sol.com</a>
+      {' '}is proof — it was built this way in 9 hours flat, not because anyone prompted harder, but because there's a method. In this session, we build a B2B SaaS landing page the same way, live, with you.
+    </>
   );
 }
 
@@ -182,10 +204,10 @@ export const FAQS = [
   },
   {
     q: 'Is it really free?',
-    a: 'Yes, free for Academy members. Membership itself is free to join.',
+    a: 'Yes, free for Cohorts members. Membership itself is free to join.',
   },
   {
     q: 'What happens after the workshop?',
-    a: 'You keep the recording, the PDF guide, the brief, the templates, and the prompt library in your Academy account, and you can revisit or rebuild the method anytime.',
+    a: 'You keep the recording, the PDF guide, the brief, the templates, and the prompt library in your Cohorts account, and you can revisit or rebuild the method anytime.',
   },
 ];

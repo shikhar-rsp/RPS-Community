@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Academy",
+  title: "Cohorts",
   description: "Live workshops, an honest community, and assessments from senior designers.",
 };
 

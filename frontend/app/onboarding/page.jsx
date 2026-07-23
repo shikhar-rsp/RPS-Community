@@ -46,8 +46,8 @@ export default function Page() {
 
   <div style={css(`position:relative;width:100%;max-width:600px;margin-bottom:clamp(24px,4vh,40px)`)}>
     <div style={css(`display:flex;align-items:center;gap:10px;margin-bottom:26px`)}>
-      <img src="/assets/academy-logo-full.png" alt="Academy" style={css(`height:38px;width:auto;object-fit:contain;display:block`)} />
-      <span style={css(`font-weight:700;font-size:18px;letter-spacing:-0.02em`)}>Academy</span>
+      <img src="/assets/academy-logo-full.png" alt="Cohorts" style={css(`height:38px;width:auto;object-fit:contain;display:block`)} />
+      <span style={css(`font-weight:700;font-size:18px;letter-spacing:-0.02em`)}>Cohorts</span>
     </div>
     <div style={css(`display:flex;gap:8px`)}>
       <div style={css(`flex:1;height:4px;border-radius:999px;background:var(--surface2);overflow:hidden`)}><div style={css(`height:100%;border-radius:999px;background:linear-gradient(90deg,#FF6A38,#F5330A);width:${v.seg1};transition:width .5s cubic-bezier(.22,.9,.3,1)`)}></div></div>
