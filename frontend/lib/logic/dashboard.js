@@ -32,6 +32,15 @@ class Component extends DCLogic {
     if (av) return React.createElement('img', { src: av, alt: name, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } });
     return React.createElement('span', { style: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize, fontWeight: 700, color: 'var(--text)' } }, initials);
   }
+  // A generic default user silhouette — used for the nav avatar next to Sign out
+  // so it never shows the account photo or initials.
+  defaultAvatarEl(iconSize) {
+    return React.createElement('span', { style: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface2)', color: 'var(--muted)' } },
+      React.createElement('svg', { width: iconSize, height: iconSize, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }, [
+        React.createElement('path', { key: 'b', d: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' }),
+        React.createElement('circle', { key: 'h', cx: 12, cy: 7, r: 4 }),
+      ]));
+  }
   _onDocClick = (e) => { if (this.state.menuOpen && this._menuWrap && !this._menuWrap.contains(e.target)) this.setState({ menuOpen: false }); };
   _onKey = (e) => { if (e.key === 'Escape' && this.state.menuOpen) this.setState({ menuOpen: false }); };
   componentDidMount() { document.addEventListener('mousedown', this._onDocClick); document.addEventListener('keydown', this._onKey); this._tick = setInterval(() => this.setState({ now: Date.now() }), 60000); }
@@ -51,7 +60,7 @@ class Component extends DCLogic {
       notSubmitted: !s.submitted, submitted: s.submitted,
       menuOpen: s.menuOpen, toggleMenu: this.toggleMenu, setMenuWrap: this.setMenuWrap,
       setFileInput: this.setFileInput, onEdit: this.onEdit, onDelete: this.onDelete, onFile: this.onFile,
-      navAvatar: this.avatarEl('13px'), cardAvatar: this.avatarEl('27px'),
+      navAvatar: this.defaultAvatarEl(18), cardAvatar: this.avatarEl('27px'),
       name: this.props.name || 'Your profile', email: this.props.email || '',
       firstName: this.props.firstName || 'there', onSignOut: this.props.onSignOut,
       tab: s.tab, setTab: this.setTab, countdown: this.fmtCountdown(),

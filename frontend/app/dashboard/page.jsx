@@ -26,9 +26,13 @@ export default async function DashboardPage() {
   // NOT user_metadata (which the user can edit).
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, avatar_url")
+    .select("name, avatar_url, role")
     .eq("id", user.id)
     .single();
+
+  // Users who signed in (e.g. via Google) but never completed onboarding have
+  // no role yet — send them to finish it before seeing the dashboard.
+  if (!profile?.role) redirect("/onboarding?mode=complete");
 
   const fullName = profile?.name || user.user_metadata?.name || "";
   const firstName = fullName ? fullName.split(" ")[0] : "there";

@@ -1,18 +1,42 @@
 'use client';
-import React from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useDcLogic, css } from '@/lib/dc';
 import Logic from '@/lib/logic/onboarding';
 import { createClient } from '@/lib/supabase/client';
 
 export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingInner />
+    </Suspense>
+  );
+}
+
+function OnboardingInner() {
   const router = useRouter();
   const supabase = createClient();
+  const searchParams = useSearchParams();
 
-  // Create the Supabase account from the wizard's collected data. Returns
-  // { ok, needsConfirm?, error? } for the logic class to render the final step.
-  const onFinish = async ({ email, password, name, role, goals, tools }) => {
+  // 'complete' = already-authenticated user (e.g. Google) filling in their
+  // profile. Default = full email/password signup wizard.
+  const mode = searchParams.get('mode') === 'complete' ? 'complete' : 'signup';
+  const next = searchParams.get('next') || '/dashboard';
+  const [initialName, setInitialName] = useState('');
+
+  // In complete mode, pre-fill the name from the signed-in identity.
+  useEffect(() => {
+    if (mode !== 'complete') return;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const n = user?.user_metadata?.name || user?.user_metadata?.full_name || '';
+      if (n) setInitialName(n);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // Signup mode: create the Supabase account from the wizard's collected data.
+  const onSignup = async ({ email, password, name, role, goals, tools }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -30,12 +54,28 @@ export default function Page() {
     return { ok: true, needsConfirm: true };
   };
 
+  // Complete mode: the user is already signed in — just save their answers to
+  // the profile (and keep user_metadata in sync).
+  const onComplete = async ({ name, role, goals, tools }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: 'Your session expired. Please sign in again.' };
+    await supabase.auth.updateUser({ data: { name, role, goals, tools } });
+    const { error } = await supabase
+      .from('profiles')
+      .update({ name, role, goals, tools })
+      .eq('id', user.id);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, needsConfirm: false };
+  };
+
+  const onFinish = mode === 'complete' ? onComplete : onSignup;
+
   const goDashboard = () => {
-    router.push('/dashboard');
+    router.push(next);
     router.refresh();
   };
 
-  const v = useDcLogic(Logic, { onFinish, goDashboard });
+  const v = useDcLogic(Logic, { onFinish, goDashboard, mode, initialName });
 
   return (
 <div data-screen-label="Onboarding" style={css(`--bg:#131211;--surface:#1c1b1a;--surface2:#232220;--border:rgba(255,255,255,0.09);--text:#ECEBE9;--muted:#9a9993;--faint:#6e6d6a;--accent:#F5330A;font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;padding:clamp(28px,5vh,64px) 20px 64px`)}>
@@ -66,6 +106,7 @@ export default function Page() {
       <div style={css(`color:var(--faint);font-weight:600;font-size:11.5px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px`)}>Your name</div>
       <input type="text" value={v.name} onChange={v.onName} placeholder="What should we call you?" style={css(`width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:16px;font-family:inherit;padding:15px 16px;border-radius:14px;transition:border-color .2s,box-shadow .2s;margin-bottom:20px`)} />
 
+      {!v.isComplete && (
       <div style={css(`display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:28px`)}>
         <div>
           <div style={css(`color:var(--faint);font-weight:600;font-size:11.5px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:10px`)}>Email</div>
@@ -76,6 +117,8 @@ export default function Page() {
           <input type="password" value={v.password} onChange={v.onPassword} placeholder="At least 8 characters" style={css(`width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:16px;font-family:inherit;padding:15px 16px;border-radius:14px;transition:border-color .2s,box-shadow .2s`)} />
         </div>
       </div>
+      )}
+      {v.isComplete && <div style={css(`margin-bottom:28px`)}></div>}
 
       <div style={css(`color:var(--faint);font-weight:600;font-size:11.5px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:12px`)}>I am a…</div>
       <div style={css(`display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px`)}>
@@ -155,7 +198,7 @@ export default function Page() {
       <div style={css(`height:1px;background:var(--border);margin:28px 0 22px`)}></div>
       <div style={css(`display:flex;justify-content:space-between;align-items:center`)}>
         <button type="button" onClick={v.onBack} className="btn btn--tertiary btn--md"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="6" y2="12"/><polyline points="11 6 5 12 11 18"/></svg>Back</button>
-        <button type="button" onClick={v.onNext} className={"btn btn--primary btn--md" + (v.submitting ? " btn--loading" : "")} disabled={v.continueDisabled}>Create account
+        <button type="button" onClick={v.onNext} className={"btn btn--primary btn--md" + (v.submitting ? " btn--loading" : "")} disabled={v.continueDisabled}>{v.submitLabel}
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="12 6 18 12 12 18"/></svg>
         </button>
       </div>

@@ -14,7 +14,22 @@ class Component extends DCLogic {
   goalsList = ['Become industry-ready','Ship faster with AI','Get better at Figma','Learn design systems','Switch from graphic design','Sharpen design critique','Build a stronger portfolio','Teach what I know'];
   toolsList = ['Figma','Framer','Webflow','Notion','Midjourney','ChatGPT','Maze','Zeplin'];
 
-  onName = (e) => this.setState({ name: e.target.value });
+  // 'signup' (default) collects email + password and creates the account.
+  // 'complete' is for users already authenticated (e.g. Google) who only need
+  // to fill in role/goals/tools — no credentials, name pre-filled.
+  get isComplete() { return this.props.mode === 'complete'; }
+
+  // The OAuth name arrives asynchronously (fetched by the page), so seed it the
+  // first time it's available rather than only at mount. Guarded so it runs once
+  // and never clobbers what the user has typed.
+  maybeSeedName() {
+    if (this.isComplete && !this._nameSeeded && this.props.initialName && !this.state.name) {
+      this._nameSeeded = true;
+      queueMicrotask(() => this.setState({ name: this.props.initialName }));
+    }
+  }
+
+  onName = (e) => { this._nameSeeded = true; this.setState({ name: e.target.value }); };
   onEmail = (e) => this.setState({ email: e.target.value });
   onPassword = (e) => this.setState({ password: e.target.value });
   selectRole = (id) => this.setState({ role: id });
@@ -27,7 +42,11 @@ class Component extends DCLogic {
 
   canNext() {
     const s = this.state;
-    if (s.step === 1) return s.name.trim().length > 0 && !!s.role && this.emailValid() && s.password.length >= 8;
+    if (s.step === 1) {
+      // Complete mode: the user is already authenticated — only role is needed.
+      if (this.isComplete) return s.name.trim().length > 0 && !!s.role;
+      return s.name.trim().length > 0 && !!s.role && this.emailValid() && s.password.length >= 8;
+    }
     if (s.step === 2) return s.goals.length > 0;
     if (s.step === 3) return s.tools.length > 0;
     return true;
@@ -58,6 +77,7 @@ class Component extends DCLogic {
   }
 
   renderVals() {
+    this.maybeSeedName();
     const s = this.state;
     const seg = (n) => (s.step >= n ? '100%' : '0%');
     const cardBase = 'text-align:left;font-family:inherit;cursor:pointer;border-radius:16px;padding:18px 20px;transition:border-color .22s,background .22s,transform .18s,box-shadow .22s';
@@ -101,6 +121,8 @@ class Component extends DCLogic {
       continueDisabled: !enabled || s.submitting, submitting: s.submitting, onNext: this.next, onBack: this.back,
       error: s.error, needsEmailConfirm: s.needsEmailConfirm, goDashboard: this.props.goDashboard,
       summary, nameSuffix: s.name.trim() ? ', ' + s.name.trim() : '',
+      isComplete: this.isComplete,
+      submitLabel: this.isComplete ? 'Finish' : 'Create account',
     };
   }
 }
