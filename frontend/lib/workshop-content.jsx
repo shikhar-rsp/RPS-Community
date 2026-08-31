@@ -16,14 +16,14 @@ import { css } from '@/lib/dc';
 // Session facts. Referenced by copy below and by the countdown target in
 // lib/logic/workshop.js — update all of them together when the date moves.
 export const SESSION = {
-  dateLong: 'Saturday, August 1, 2026',
-  dateShort: 'Saturday, August 1',
-  dateBadge: '1 August, 2026',
-  dateCompact: 'Aug 1',
+  dateLong: 'Saturday, August 8, 2026',
+  dateShort: 'Saturday, August 8',
+  dateBadge: '8 August, 2026',
+  dateCompact: 'Aug 8',
   time: '3:00 PM',
   duration: '90 min',
   // ISO local time; the workshop and dashboard countdowns both count down to this.
-  startsAt: '2026-08-01T15:00:00',
+  startsAt: '2026-08-08T15:00:00',
 };
 
 // The workshop as it appears on the dashboard card. Plain title (no accent split)

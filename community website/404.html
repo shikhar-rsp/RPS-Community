@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>/* Dark only — set before first paint so there is no flash. */document.documentElement.setAttribute('data-theme','dark');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Not here — RPS Cohorts</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FCFBFA">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23FF630B'/><path d='M9 22V10h7a4 4 0 0 1 0 8h-3l5 4' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<div data-nav></div>
+
+<main id="main">
+  <div class="wrap" style="display:grid;place-items:center;min-height:66vh;padding-block:64px;text-align:center">
+    <div style="max-width:44ch">
+      <span class="pill plain" style="display:inline-block;margin-bottom:18px">404</span>
+      <h1 style="font-size:clamp(2.2rem,5vw,3.4rem)">This one’s not here.</h1>
+      <p class="lede" style="margin-inline:auto">Try the workshops page.</p>
+      <div class="cta-row" style="justify-content:center">
+        <a class="btn" href="workshops.html">See workshops</a>
+        <a class="btn ghost" href="index.html">Back home</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div data-footer></div>
+
+<script src="assets/js/seed.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/ui.js"></script>
+<script>RPS.boot('404'); RPS.track('page_viewed', { page: '404' });</script>
+</body>
+</html>

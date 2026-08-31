@@ -1,12 +1,13 @@
 'use client';
-// TEMPORARY launch gate. Big red button -> 5s countdown -> opens the landing
-// page (/) with a warp burst. Not linked from anywhere; reach it at /launch.
-// To remove after launch: delete this folder (app/launch), lib/warp.js, and
-// the fenced "launch warp" effect in app/page.jsx.
+// TEMPORARY launch gate. Big button -> 5s countdown -> opens the landing page.
+// Not linked from anywhere; reach it at /launch.
+// To remove after launch: delete this folder (app/launch).
+//
+// Re-skinned onto the community design tokens so it doesn't read as a different
+// product than the site it opens. The old warp burst went with the old homepage
+// hero it was written against — the new hero has the Meet mock instead.
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { css } from '@/lib/dc';
-import { TYPE, Accent } from '@/lib/workshop-content';
 
 const SECONDS = 5;
 const RING = 2 * Math.PI * 92; // circumference of the r=92 progress ring
@@ -20,7 +21,7 @@ export default function LaunchPage() {
   useEffect(() => {
     if (count === null) return;
     if (count <= 0) {
-      router.push('/?launched=1');
+      router.push('/');
       return;
     }
     timer.current = setTimeout(() => setCount((c) => c - 1), 1000);
@@ -30,36 +31,67 @@ export default function LaunchPage() {
   const counting = count !== null;
 
   return (
-    <div style={css(`--bg:#141312;--surface:#1d1c1b;--surface2:#242322;--border:rgba(255,255,255,0.09);--text:#ECEBE9;--muted:#9a9993;--faint:#6e6d6a;--accent:#F5330A;font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;background:linear-gradient(160deg,#1b1a18 0%,#141312 60%);color:var(--text);min-height:100vh;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:clamp(24px,5vw,48px)`)}>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes lp-pulse { 0%{transform:scale(1);opacity:.55} 70%{transform:scale(1.55);opacity:0} 100%{opacity:0} }
-        @keyframes lp-rise { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:none} }
-        @keyframes lp-pop { 0%{transform:scale(.6);opacity:0} 45%{transform:scale(1.12);opacity:1} 100%{transform:scale(1);opacity:1} }
-        .lp-btn{transition:transform .16s cubic-bezier(.2,.8,.3,1),box-shadow .2s ease,filter .2s ease}
-        .lp-btn:hover{transform:translateY(-2px) scale(1.02);filter:brightness(1.05)}
-        .lp-btn:active{transform:translateY(1px) scale(.99)}
-        .lp-btn:focus-visible{outline:none;box-shadow:0 0 0 4px var(--bg),0 0 0 8px rgba(245,60,20,0.7)}
-        @media(prefers-reduced-motion:reduce){.lp-ring2,.lp-pulse-ring{animation:none!important}}
-      ` }} />
-
-      {/* Grid + glow backdrop, matching the hero. */}
-      <div aria-hidden="true" style={css(`position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(120% 90% at 50% 40%,#000 30%,transparent 80%);-webkit-mask-image:radial-gradient(120% 90% at 50% 40%,#000 30%,transparent 80%);pointer-events:none`)}></div>
-      <div aria-hidden="true" style={css(`position:absolute;top:-25%;left:50%;transform:translateX(-50%);width:70%;height:60%;background:radial-gradient(circle,rgba(245,60,20,0.18),transparent 66%);pointer-events:none`)}></div>
+    <div className="launch">
+      <style>{`
+        .launch{
+          position:relative; overflow:hidden; min-height:100vh;
+          display:flex; align-items:center; justify-content:center;
+          padding:clamp(24px,5vw,48px); text-align:center;
+          background:var(--paper); color:var(--ink);
+          font-family:var(--font-body);
+        }
+        .launch::before{
+          content:""; position:absolute; inset:0; pointer-events:none;
+          background:
+            radial-gradient(60% 50% at 50% 0%, var(--glow-a), transparent 70%),
+            radial-gradient(50% 40% at 80% 10%, var(--glow-b), transparent 70%);
+        }
+        .launch__in{ position:relative; max-width:640px; }
+        .launch__btn{
+          position:relative; width:clamp(180px,42vw,232px); height:clamp(180px,42vw,232px);
+          border-radius:999px; border:none; cursor:pointer; color:var(--btn-ink);
+          font-family:var(--font-display); font-weight:800;
+          font-size:clamp(22px,3vw,28px); letter-spacing:.02em;
+          background:radial-gradient(120% 120% at 50% 30%, var(--brand-2) 0%, var(--brand) 45%, var(--btn-fill-2) 100%);
+          box-shadow:
+            inset 0 2px 0 rgba(255,255,255,.35),
+            inset 0 -4px 10px rgba(90,34,4,.45),
+            0 20px 50px -12px rgba(255,99,11,.55),
+            0 0 0 10px rgba(255,99,11,.10);
+          transition:transform .16s var(--ease), filter .2s var(--ease);
+        }
+        .launch__btn:hover{ transform:translateY(-2px) scale(1.02); filter:brightness(1.05); }
+        .launch__btn:active{ transform:translateY(1px) scale(.99); }
+        .launch__btn:focus-visible{ outline:none; box-shadow:0 0 0 4px var(--paper), 0 0 0 8px var(--brand); }
+        .launch__pulse{
+          position:absolute; inset:0; border-radius:999px; pointer-events:none;
+          background:radial-gradient(circle, rgba(255,99,11,.8), rgba(255,99,11,.25) 70%);
+          animation:launchPulse 2.4s ease-out infinite;
+        }
+        @keyframes launchPulse{ 0%{transform:scale(1);opacity:.55} 70%{transform:scale(1.55);opacity:0} 100%{opacity:0} }
+        .launch__dial{
+          position:relative; width:clamp(200px,52vw,240px); height:clamp(200px,52vw,240px);
+          display:flex; align-items:center; justify-content:center; margin:0 auto;
+        }
+        .launch__n{
+          font-family:var(--font-display); font-weight:800;
+          font-size:clamp(72px,16vw,108px); line-height:1; letter-spacing:-.04em;
+          font-variant-numeric:tabular-nums; color:var(--heading);
+        }
+        @media(prefers-reduced-motion:reduce){ .launch__pulse{ animation:none } }
+      `}</style>
 
       {!counting && (
-        <div style={css(`position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;max-width:640px`)}>
-          <h1 style={css(`margin:0 0 16px;${TYPE.displayXL};color:var(--text);animation:lp-rise .6s .06s both`)}>The doors are <Accent>open</Accent>.</h1>
-          <p style={css(`margin:0 0 clamp(40px,6vw,60px);max-width:460px;${TYPE.bodyL};color:var(--muted);animation:lp-rise .6s .12s both`)}>Press the button to step inside and open your first workshop.</p>
-
-          <div style={css(`position:relative;animation:lp-pop .5s .2s both`)}>
-            <span className="lp-pulse-ring" aria-hidden="true" style={css(`position:absolute;inset:0;border-radius:999px;background:radial-gradient(circle,rgba(245,60,20,0.9),rgba(245,60,20,0.3) 70%);animation:lp-pulse 2.4s ease-out infinite`)}></span>
-            <button
-              type="button"
-              onClick={() => setCount(SECONDS)}
-              className="lp-btn"
-              style={css(`position:relative;width:clamp(180px,42vw,232px);height:clamp(180px,42vw,232px);border-radius:999px;border:none;cursor:pointer;color:#fff;font-family:inherit;font-weight:800;font-size:clamp(22px,3vw,28px);letter-spacing:0.02em;background:radial-gradient(120% 120% at 50% 30%,#FF5A3C 0%,#F5330A 45%,#C81E0A 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,0.45),inset 0 -4px 10px rgba(120,20,0,0.5),0 20px 50px -12px rgba(245,60,20,0.7),0 0 0 10px rgba(245,60,20,0.08)`)}
-            >
+        <div className="launch__in">
+          <h1 style={{ margin: '0 0 16px' }}>
+            The doors are <span className="soft">open</span>.
+          </h1>
+          <p className="lede" style={{ marginInline: 'auto', marginBottom: 'clamp(40px,6vw,60px)' }}>
+            Press the button to step inside and open your first workshop.
+          </p>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <span className="launch__pulse" aria-hidden="true" />
+            <button className="launch__btn" type="button" onClick={() => setCount(SECONDS)}>
               LAUNCH
             </button>
           </div>
@@ -67,22 +99,39 @@ export default function LaunchPage() {
       )}
 
       {counting && (
-        <div style={css(`position:relative;display:flex;flex-direction:column;align-items:center;text-align:center`)}>
-          <div style={css(`${TYPE.label};color:var(--faint);margin-bottom:clamp(28px,4vw,40px)`)}>Opening in</div>
-          <div style={css(`position:relative;width:clamp(200px,52vw,240px);height:clamp(200px,52vw,240px);display:flex;align-items:center;justify-content:center`)}>
-            <svg width="100%" height="100%" viewBox="0 0 200 200" style={css(`position:absolute;inset:0;transform:rotate(-90deg)`)}>
-              <circle cx="100" cy="100" r="92" fill="none" stroke="var(--border)" strokeWidth="6" />
+        <div className="launch__in">
+          <div className="eyebrow bare" style={{ marginBottom: 'clamp(28px,4vw,40px)' }}>
+            Opening in
+          </div>
+          <div className="launch__dial">
+            <svg
+              width="100%"
+              height="100%"
+              viewBox="0 0 200 200"
+              style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}
+              aria-hidden="true"
+            >
+              <circle cx="100" cy="100" r="92" fill="none" stroke="var(--line)" strokeWidth="6" />
               <circle
-                className="lp-ring2"
-                cx="100" cy="100" r="92" fill="none" stroke="var(--accent)" strokeWidth="6" strokeLinecap="round"
+                cx="100"
+                cy="100"
+                r="92"
+                fill="none"
+                stroke="var(--brand)"
+                strokeWidth="6"
+                strokeLinecap="round"
                 strokeDasharray={RING}
                 strokeDashoffset={RING * (1 - count / SECONDS)}
-                style={css(`transition:stroke-dashoffset 1s linear`)}
+                style={{ transition: 'stroke-dashoffset 1s linear' }}
               />
             </svg>
-            <div key={count} aria-live="assertive" style={css(`font-weight:800;font-size:clamp(72px,16vw,108px);line-height:1;letter-spacing:-0.04em;font-variant-numeric:tabular-nums;color:var(--text);animation:lp-pop .5s both`)}>{count}</div>
+            <div key={count} aria-live="assertive" className="launch__n">
+              {count}
+            </div>
           </div>
-          <p style={css(`margin:clamp(28px,4vw,40px) 0 0;${TYPE.bodyM};color:var(--muted)`)}>Hold tight — we're opening the doors.</p>
+          <p className="micro" style={{ marginTop: 'clamp(28px,4vw,40px)' }}>
+            Hold tight — we&rsquo;re opening the doors.
+          </p>
         </div>
       )}
     </div>

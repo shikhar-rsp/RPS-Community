@@ -2,9 +2,15 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useDcLogic, css } from '@/lib/dc';
-import Logic from '@/lib/logic/signin';
+import SiteShell from '@/components/community/SiteShell';
 import { createClient } from '@/lib/supabase/client';
+
+/* Log in is a page of its own, not a modal. Every gated action leaves for here
+   carrying where to come back to, and comes back to finish the job.
+
+   The three ways in — Google, email + password, and a one-time code over
+   WhatsApp or SMS — are the SAME Supabase calls this screen has always made.
+   Only the surface around them is new. */
 
 export default function Page() {
   return (
@@ -14,10 +20,29 @@ export default function Page() {
   );
 }
 
-function SignInInner() {
-  // The logic class only drives the left-panel benefits carousel (v.stage).
-  const v = useDcLogic(Logic);
+/* What sent them here, so the box can say why it's asking. */
+function intentCopy(next) {
+  if (/action=enroll/.test(next)) return 'Saving your seat. Two taps, you’re back here.';
+  if (/#recording|[?&]res=/.test(next)) return 'It’s free — we just like knowing who’s watching.';
+  return 'For seats, recordings, and files.';
+}
 
+const GOOGLE_SVG = (
+  <svg viewBox="0 0 48 48" aria-hidden="true">
+    <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z" />
+    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+    <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+    <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.2 5.2C36.9 40.2 44 35 44 24c0-1.3-.1-2.6-.4-3.9z" />
+  </svg>
+);
+
+const WHATSAPP_SVG = (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 2a10 10 0 0 0-8.6 15.06L2 22l5.06-1.33A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3 .79.8-2.92-.2-.31A8.2 8.2 0 1 1 12 20.2z" />
+  </svg>
+);
+
+function SignInInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -28,7 +53,63 @@ function SignInInner() {
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Phone / OTP sign-in. view: 'main' | 'phone' | 'otp'. channel: 'whatsapp' | 'sms'.
+  const [view, setView] = useState('main');
+  const [phone, setPhone] = useState('+91');
+  const [channel, setChannel] = useState('whatsapp');
+  const [otp, setOtp] = useState('');
+
   const next = searchParams.get('next') || '/dashboard';
+
+  // Keep only digits and a leading '+', then require E.164 (e.g. +919876543210).
+  const normalizePhone = (p) => String(p || '').replace(/[^\d+]/g, '');
+  const phoneValid = (p) => /^\+[1-9]\d{7,14}$/.test(normalizePhone(p));
+
+  const goPhone = () => { setError(''); setNotice(''); setView('phone'); };
+  const backToMain = () => { setError(''); setNotice(''); setView('main'); };
+
+  const sendCode = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    setNotice('');
+    const ph = normalizePhone(phone);
+    if (!phoneValid(ph)) {
+      setError('Enter your number in international format, e.g. +919876543210.');
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({ phone: ph, options: { channel } });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setNotice(`Code sent via ${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'} to ${ph}.`);
+    setOtp('');
+    setView('otp');
+  };
+
+  const verifyCode = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    setNotice('');
+    const token = otp.trim();
+    if (token.length < 4) {
+      setError('Enter the code you received.');
+      return;
+    }
+    setLoading(true);
+    // For phone auth the verify type is always 'sms', even on the WhatsApp channel.
+    const { error } = await supabase.auth.verifyOtp({ phone: normalizePhone(phone), token, type: 'sms' });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    // New phone users have no role yet; the dashboard guard routes them to onboarding.
+    router.push(next);
+    router.refresh();
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -56,7 +137,6 @@ function SignInInner() {
     if (error) setError(error.message);
   };
   const onGoogle = () => onOAuth('google');
-  //const onLinkedIn = () => onOAuth('linkedin_oidc');
 
   const onForgot = async (e) => {
     e.preventDefault();
@@ -73,76 +153,216 @@ function SignInInner() {
     else setNotice('Password reset link sent — check your email.');
   };
 
-  const submitClass = 'btn btn--primary btn--lg btn--block' + (loading ? ' btn--loading' : '');
-
   return (
-<div data-screen-label="Sign in" style={css(`--bg:#141312;--surface:#1d1c1b;--surface2:#242322;--border:rgba(255,255,255,0.09);--text:#ECEBE9;--muted:#9a9993;--faint:#6e6d6a;--accent:#F5330A;font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr`)} className="si-grid">
+    <SiteShell active="login">
+      <div className="wrap auth-page">
+        <div>
+          <div className="authbox">
+            {view === 'main' && (
+              <>
+                <h2>Log in to RPS Cohorts</h2>
+                <p>{intentCopy(next)}</p>
 
+                {error && (
+                  <div className="banner" role="alert" style={{ textAlign: 'left' }}>
+                    {error}
+                  </div>
+                )}
+                {notice && (
+                  <div className="banner info" role="status" style={{ textAlign: 'left' }}>
+                    {notice}
+                  </div>
+                )}
 
-  <div className="si-left" style={css(`position:relative;overflow:hidden;border-right:1px solid var(--border);background:linear-gradient(160deg,#1b1a18 0%,#141312 60%);padding:clamp(32px,3.4vw,52px);display:flex;flex-direction:column;justify-content:space-between;min-height:100vh`)}>
-    <div aria-hidden="true" style={css(`position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(120% 90% at 30% 25%,#000 30%,transparent 80%);-webkit-mask-image:radial-gradient(120% 90% at 30% 25%,#000 30%,transparent 80%);pointer-events:none`)}></div>
-    <div aria-hidden="true" style={css(`position:absolute;top:-22%;left:-12%;width:60%;height:62%;background:radial-gradient(circle,rgba(245,60,20,0.20),transparent 66%);pointer-events:none`)}></div>
-    <div aria-hidden="true" style={css(`position:absolute;bottom:-24%;right:-14%;width:56%;height:56%;background:radial-gradient(circle,rgba(245,60,20,0.10),transparent 66%);pointer-events:none`)}></div>
+                <button className="oauth" type="button" onClick={onGoogle}>
+                  {GOOGLE_SVG}
+                  Continue with Google
+                </button>
+                <button className="oauth" type="button" onClick={goPhone}>
+                  {WHATSAPP_SVG}
+                  Continue with WhatsApp
+                </button>
 
-    <Link href="/" style={css(`position:relative;display:flex;align-items:center;gap:10px;color:var(--text)`)}>
-      <img src="/assets/academy-logo-full.png" alt="Cohorts" style={css(`height:44px;width:auto;object-fit:contain;display:block`)} />
-      <span style={css(`font-weight:700;font-size:20px;letter-spacing:-0.02em`)}>Cohorts</span>
-    </Link>
+                <div className="or">
+                  <span>or use email</span>
+                </div>
 
-    <div style={css(`position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:34px;padding:clamp(24px,3vw,44px) 0`)}>
-      <div style={css(`position:relative;width:400px;height:300px;max-width:100%`)}>{v.stage}</div>
-      <div style={css(`max-width:360px`)}>
-        <p style={css(`margin:0;font-weight:700;font-size:clamp(22px,2.2vw,28px);line-height:1.1;letter-spacing:-0.03em;color:var(--text)`)}>Learn. Practice. Build. Repeat.</p>
-        <p style={css(`margin:10px 0 0;font-size:14.5px;line-height:1.5;color:var(--muted)`)}>Every workshop is another step toward becoming a better designer.</p>
+                <form onSubmit={onSubmit} noValidate>
+                  <div className="field">
+                    <label htmlFor="si-email">Your email</label>
+                    <input
+                      id="si-email"
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      required
+                      placeholder="you@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="si-pass">
+                      Password
+                      <a
+                        href="#"
+                        onClick={onForgot}
+                        style={{ float: 'right', fontWeight: 600, fontSize: '.8rem' }}
+                      >
+                        Forgot?
+                      </a>
+                    </label>
+                    <input
+                      id="si-pass"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                  <button className="btn full go" type="submit" disabled={loading}>
+                    {loading ? 'Signing in…' : 'Log in'}
+                  </button>
+                </form>
+
+                <small>
+                  We use this to remember your seats. No marketing emails you didn&rsquo;t ask for.
+                  <br />
+                  New here?{' '}
+                  <Link href={`/onboarding?next=${encodeURIComponent(next)}`}>
+                    Create an account
+                  </Link>
+                </small>
+              </>
+            )}
+
+            {view === 'phone' && (
+              <>
+                <h2>Log in with your phone</h2>
+                <p>We&rsquo;ll send a one-time code to check it&rsquo;s you.</p>
+
+                {error && (
+                  <div className="banner" role="alert" style={{ textAlign: 'left' }}>
+                    {error}
+                  </div>
+                )}
+
+                <div className="channel-row">
+                  <button
+                    className="channel"
+                    type="button"
+                    aria-pressed={channel === 'whatsapp'}
+                    onClick={() => setChannel('whatsapp')}
+                  >
+                    {WHATSAPP_SVG}
+                    WhatsApp
+                  </button>
+                  <button
+                    className="channel"
+                    type="button"
+                    aria-pressed={channel === 'sms'}
+                    onClick={() => setChannel('sms')}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    SMS
+                  </button>
+                </div>
+
+                <form onSubmit={sendCode} noValidate>
+                  <div className="field">
+                    <label htmlFor="si-phone">Phone number</label>
+                    <input
+                      id="si-phone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      required
+                      placeholder="+91 98765 43210"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                    <div className="hint">Include your country code, e.g. +91 for India.</div>
+                  </div>
+                  <button className="btn full go" type="submit" disabled={loading}>
+                    {loading ? 'Sending…' : 'Send me a code'}
+                  </button>
+                </form>
+
+                <button className="linkish" type="button" onClick={backToMain}>
+                  ← Back to the other ways in
+                </button>
+              </>
+            )}
+
+            {view === 'otp' && (
+              <>
+                <div className="lockicon" aria-hidden="true">✉️</div>
+                <h2>Check your {channel === 'whatsapp' ? 'WhatsApp' : 'messages'}</h2>
+                <p>
+                  Sent to <b>{normalizePhone(phone)}</b>.
+                </p>
+
+                {error && (
+                  <div className="banner" role="alert" style={{ textAlign: 'left' }}>
+                    {error}
+                  </div>
+                )}
+                {notice && (
+                  <div className="banner info" role="status" style={{ textAlign: 'left' }}>
+                    {notice}
+                  </div>
+                )}
+
+                <form onSubmit={verifyCode} noValidate>
+                  <div className="field">
+                    <label htmlFor="si-otp">The code</label>
+                    <input
+                      id="si-otp"
+                      className="code-input"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      placeholder="000000"
+                      required
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    />
+                  </div>
+                  <button className="btn full go" type="submit" disabled={loading}>
+                    {loading ? 'Checking…' : 'Confirm'}
+                  </button>
+                </form>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 16,
+                    justifyContent: 'center',
+                    flexWrap: 'wrap',
+                    marginTop: 6,
+                  }}
+                >
+                  <button className="linkish" type="button" onClick={sendCode}>
+                    Send it again
+                  </button>
+                  <button className="linkish" type="button" onClick={() => setView('phone')}>
+                    Use a different number
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <p className="micro" style={{ textAlign: 'center', marginTop: 20 }}>
+            Free, and always. We only ask so your seats and recordings follow you around.
+          </p>
+        </div>
       </div>
-    </div>
-
-  </div>
-
-
-  <div className="si-right" style={css(`display:flex;align-items:center;justify-content:center;padding:clamp(28px,4vw,56px);min-height:100vh`)}>
-    <div style={css(`width:100%;max-width:400px`)}>
-      <h1 style={css(`margin:0 0 8px;font-weight:800;font-size:clamp(30px,3.4vw,38px);line-height:1.05;letter-spacing:-0.03em`)}>Welcome back</h1>
-      <p style={css(`margin:0 0 30px;font-size:16px;color:var(--muted)`)}>Sign in to keep building.</p>
-
-      <div style={css(`display:flex;flex-direction:column;gap:11px;margin-bottom:22px`)}>
-        <button type="button" onClick={onGoogle} className="btn btn--secondary btn--lg btn--block">
-          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-2 3.2-4.9 3.2-7.8z"/><path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.7l-3.6-2.7c-1 .7-2.3 1.1-3.6 1.1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.9L6 14.3z"/><path fill="#EA4335" d="M12 5.5c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3L6 10.1c.9-2.6 3.2-4.6 6-4.6z"/></svg>
-          Continue with Google
-        </button>
-        {/* <button type="button" onClick={onLinkedIn} className="btn btn--secondary btn--lg btn--block">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.5 2h-17A1.5 1.5 0 0 0 2 3.5v17A1.5 1.5 0 0 0 3.5 22h17a1.5 1.5 0 0 0 1.5-1.5v-17A1.5 1.5 0 0 0 20.5 2zM8 19H5V9h3v10zM6.5 7.7a1.8 1.8 0 1 1 0-3.5 1.8 1.8 0 0 1 0 3.5zM19 19h-3v-5c0-1.2-.5-2-1.6-2-.9 0-1.4.6-1.6 1.2-.1.2-.1.5-.1.8V19h-3V9h3v1.3c.4-.7 1.2-1.6 3-1.6 2.2 0 3.9 1.4 3.9 4.5V19z"/></svg>
-          Continue with LinkedIn
-        </button> */}
-      </div>
-
-      <div style={css(`display:flex;align-items:center;gap:14px;margin-bottom:22px`)}>
-        <span style={css(`flex:1;height:1px;background:var(--border)`)}></span>
-        <span style={css(`color:var(--faint);font-size:12.5px;letter-spacing:0.06em`)}>or use email</span>
-        <span style={css(`flex:1;height:1px;background:var(--border)`)}></span>
-      </div>
-
-      <form onSubmit={onSubmit} style={css(`display:flex;flex-direction:column;gap:16px`)}>
-        <label style={css(`display:block`)}>
-          <span style={css(`display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px`)}>Email</span>
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@studio.com" style={css(`width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:15px;font-family:inherit;padding:13px 14px;border-radius:12px`)} />
-        </label>
-        <label style={css(`display:block`)}>
-          <span style={css(`display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px`)}><span style={css(`font-size:13px;font-weight:600;color:var(--muted)`)}>Password</span><a href="#" onClick={onForgot} style={css(`font-size:12.5px;font-weight:500`)}>Forgot?</a></span>
-          <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={css(`width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:15px;font-family:inherit;padding:13px 14px;border-radius:12px`)} />
-        </label>
-        {error && <div style={css(`font-size:13.5px;color:#ff8a5f;line-height:1.4`)}>{error}</div>}
-        {notice && <div style={css(`font-size:13.5px;color:#3ecf8e;line-height:1.4`)}>{notice}</div>}
-        <button type="submit" disabled={loading} className={submitClass}>
-          Sign in
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="18" y2="12"/><polyline points="12 6 18 12 12 18"/></svg>
-        </button>
-      </form>
-
-      <p style={css(`margin:24px 0 0;text-align:center;font-size:14.5px;color:var(--muted)`)}>New here? <Link href="/onboarding" style={css(`font-weight:600`)}>Create an account</Link></p>
-    </div>
-  </div>
-
-</div>
+    </SiteShell>
   );
 }

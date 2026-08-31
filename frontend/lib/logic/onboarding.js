@@ -79,47 +79,35 @@ class Component extends DCLogic {
   renderVals() {
     this.maybeSeedName();
     const s = this.state;
-    const seg = (n) => (s.step >= n ? '100%' : '0%');
-    const cardBase = 'text-align:left;font-family:inherit;cursor:pointer;border-radius:16px;padding:18px 20px;transition:border-color .22s,background .22s,transform .18s,box-shadow .22s';
-    const chipBase = 'font-family:inherit;cursor:pointer;font-weight:600;font-size:14.5px;padding:11px 18px;border-radius:999px;transition:border-color .2s,background .2s,color .2s,transform .18s';
-    const toolBase = 'font-family:inherit;cursor:pointer;font-weight:600;font-size:15px;padding:16px;border-radius:14px;text-align:center;transition:border-color .2s,background .2s,color .2s,transform .18s';
-
-    const roleStyle = (id) => cardBase + ';' + (s.role === id
-      ? 'background:rgba(245,60,20,0.10);border:1px solid rgba(255,120,60,0.6);box-shadow:0 0 0 1px rgba(255,120,60,0.35),0 16px 44px -16px rgba(245,60,20,0.6);transform:translateY(-3px)'
-      : 'background:var(--surface2);border:1px solid var(--border)');
-    const iconWrap = (id) => 'width:40px;height:40px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;transition:background .22s,color .22s;' + (s.role === id
-      ? 'background:rgba(245,60,20,0.16);color:#ff8a5f'
-      : 'background:var(--bg);border:1px solid var(--border);color:var(--muted)');
-    const goalChips = this.goalsList.map(g => {
-      const sel = s.goals.includes(g);
-      const style = chipBase + ';' + (sel
-        ? 'background:rgba(245,60,20,0.14);border:1px solid rgba(255,120,60,0.6);color:#ff8a5f'
-        : 'background:var(--surface2);border:1px solid var(--border);color:var(--text)');
-      return { label: g, style, onSelect: () => this.toggle('goals', g) };
-    });
-    const toolCards = this.toolsList.map(t => {
-      const sel = s.tools.includes(t);
-      const style = toolBase + ';' + (sel
-        ? 'background:rgba(245,60,20,0.12);border:1px solid rgba(255,120,60,0.6);color:#ff8a5f;transform:translateY(-2px)'
-        : 'background:var(--surface2);border:1px solid var(--border);color:var(--text)');
-      return { label: t, style, onSelect: () => this.toggle('tools', t) };
-    });
-
     const enabled = this.canNext();
     const roleLabel = (this.roles.find(r => r.id === s.role) || {}).title || 'your path';
-    const summary = "We'll set up your home around " + roleLabel.toLowerCase() + ' · ' + s.goals.length + ' goal' + (s.goals.length === 1 ? '' : 's') + ' · ' + s.tools.length + ' tool' + (s.tools.length === 1 ? '' : 's') + '.';
+    const summary =
+      "We'll set up your home around " + roleLabel.toLowerCase() +
+      ' · ' + s.goals.length + ' goal' + (s.goals.length === 1 ? '' : 's') +
+      ' · ' + s.tools.length + ' tool' + (s.tools.length === 1 ? '' : 's') + '.';
 
     return {
+      // Step state. The view styles itself from CSS classes + aria-pressed, so
+      // nothing here hands out colours any more.
+      step: s.step,
       isStep1: s.step === 1, isStep2: s.step === 2, isStep3: s.step === 3, isStep4: s.step === 4,
-      seg1: seg(1), seg2: seg(2), seg3: seg(3), seg4: seg(4),
+
+      // Fields
       name: s.name, onName: this.onName,
       email: s.email, password: s.password, onEmail: this.onEmail, onPassword: this.onPassword,
-      goalChips, toolCards,
-      rStudent: roleStyle('student'), rSwitcher: roleStyle('switcher'), rJunior: roleStyle('junior'), rSenior: roleStyle('senior'), rLead: roleStyle('lead'),
-      iStudent: iconWrap('student'), iSwitcher: iconWrap('switcher'), iJunior: iconWrap('junior'), iSenior: iconWrap('senior'), iLead: iconWrap('lead'),
-      selStudent: () => this.selectRole('student'), selSwitcher: () => this.selectRole('switcher'), selJunior: () => this.selectRole('junior'), selSenior: () => this.selectRole('senior'), selLead: () => this.selectRole('lead'),
-      continueDisabled: !enabled || s.submitting, submitting: s.submitting, onNext: this.next, onBack: this.back,
-      error: s.error, needsEmailConfirm: s.needsEmailConfirm, goDashboard: this.props.goDashboard,
+
+      // Choices
+      roles: this.roles, goalsList: this.goalsList, toolsList: this.toolsList,
+      role: s.role, goals: s.goals, tools: s.tools,
+      selectRole: this.selectRole,
+      toggleGoal: (g) => this.toggle('goals', g),
+      toggleTool: (t) => this.toggle('tools', t),
+
+      // Flow
+      continueDisabled: !enabled || s.submitting, submitting: s.submitting,
+      onNext: this.next, onBack: this.back,
+      error: s.error, needsEmailConfirm: s.needsEmailConfirm,
+      goDashboard: this.props.goDashboard,
       summary, nameSuffix: s.name.trim() ? ', ' + s.name.trim() : '',
       isComplete: this.isComplete,
       submitLabel: this.isComplete ? 'Finish' : 'Create account',
