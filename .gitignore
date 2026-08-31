@@ -1,0 +1,11 @@
+# The static HTML design prototype the frontend was ported from. Kept on disk
+# as the visual reference, but not carried in the repo — the design system now
+# lives in frontend/app/community.css and frontend/components/community/.
+community website/
+
+# macOS
+.DS_Store
+
+# Editors
+*.swp
+*.bak
