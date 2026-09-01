@@ -178,10 +178,10 @@ function SignInInner() {
                   {GOOGLE_SVG}
                   Continue with Google
                 </button>
-                <button className="oauth" type="button" onClick={goPhone}>
+                {/* <button className="oauth" type="button" onClick={goPhone}>
                   {WHATSAPP_SVG}
                   Continue with WhatsApp
-                </button>
+                </button> */}
 
                 <div className="or">
                   <span>or use email</span>

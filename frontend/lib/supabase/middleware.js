@@ -12,6 +12,29 @@ const AUTH_ROUTES = ["/signin"];
 
 const matches = (pathname, base) => pathname === base || pathname.startsWith(base + "/");
 
+// Has this user finished onboarding?
+//
+// This is the ONE place it gets decided. It used to be checked in the OAuth
+// callback and in the dashboard page only, which left every other way of
+// arriving signed-in — password, WhatsApp/SMS OTP, or a Google redirect that
+// skipped /auth/callback — able to walk straight past the form.
+//
+// Onboarding writes `role` to user_metadata as well as the profiles row, so the
+// common case is answered from the session with no query. Only when that's
+// missing do we pay for a lookup, and then against `profiles`, which is the
+// source of truth (user_metadata is user-writable, so it can't be trusted on
+// its own to say someone IS onboarded — but it's fine as a fast path because a
+// forged one only sends them somewhere they could reach anyway).
+async function hasCompletedOnboarding(supabase, user) {
+  if (user.user_metadata?.role) return true;
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  return !!data?.role;
+}
+
 export async function updateSession(request) {
   let response = NextResponse.next({ request });
 
@@ -50,6 +73,18 @@ export async function updateSession(request) {
     const url = request.nextUrl.clone();
     url.pathname = "/signin";
     url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // Signed in, but the profile was never filled in: finish that first, then
+  // carry on to wherever they were going.
+  if (user && isProtected && !(await hasCompletedOnboarding(supabase, user))) {
+    const url = request.nextUrl.clone();
+    const back = pathname + (request.nextUrl.search || "");
+    url.pathname = "/onboarding";
+    url.search = "";
+    url.searchParams.set("mode", "complete");
+    url.searchParams.set("next", back);
     return NextResponse.redirect(url);
   }
 

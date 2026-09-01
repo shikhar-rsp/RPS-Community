@@ -14,9 +14,9 @@ import {
    dark treatment: on a listing, "which one is next" should be obvious before
    you read a word. */
 
-export function UpcomingCard({ w, lead, mine }) {
+export function UpcomingCard({ w, lead, mine, counts }) {
   const url = workshopUrl(w);
-  const full = isFull(w);
+  const full = isFull(w, counts);
   const h = host(w.hostId);
 
   const cta = mine ? (
@@ -60,7 +60,7 @@ export function UpcomingCard({ w, lead, mine }) {
         <div className="foot">
           {cta}
           <span className="note">
-            {mine ? <StatusChip status={mine.status} /> : seatChipFor(w, false)}
+            {mine ? <StatusChip status={mine.status} /> : seatChipFor(w, false, false, counts)}
           </span>
         </div>
       </div>
@@ -118,9 +118,9 @@ export function PastCard({ w, wide, mine }) {
 /* The homepage's lead: the next session on a tablet screen — one thing to look
    at, one thing to do. The banner already carries the workshop's name, so the
    body only adds when it runs and the way in. */
-export function FeatureCard({ w, mine }) {
+export function FeatureCard({ w, mine, counts }) {
   const url = workshopUrl(w);
-  const full = isFull(w);
+  const full = isFull(w, counts);
 
   const cta = mine ? (
     <Link className="btn lg" href={url}>

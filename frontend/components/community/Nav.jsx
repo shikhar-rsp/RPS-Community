@@ -87,9 +87,9 @@ export default function Nav({ active }) {
           </div>
 
           <div className="nav-right">
-            <Link className="btn sm go" href={seatUrl()}>
+            {/* <Link className="btn sm go" href={seatUrl()}>
               Grab a seat
-            </Link>
+            </Link> */}
 
             {me && (
               <div className="menu-wrap" ref={menuWrap}>

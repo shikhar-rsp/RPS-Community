@@ -44,6 +44,10 @@ export function identityFrom(user) {
     email: user.email || '',
     phone: user.phone || null,
     avatarUrl: user.user_metadata?.avatar_url || '',
+    // Onboarding stamps `role` into user_metadata as well as the profiles row.
+    // Good enough to decide whether to show the form; every gate that matters
+    // re-checks it against `profiles` on the server.
+    onboarded: !!user.user_metadata?.role,
   };
 }
 

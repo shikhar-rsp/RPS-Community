@@ -1,78 +1,25 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { enrollInWorkshop, cancelEnrollment } from '@/app/workshops/actions';
+
 /* =============================================================================
-   Seat state — UI ONLY.
+   Seat state.
 
-   The imported design has a full enrolment journey (grab a seat → sign in →
-   confirm name/email/WhatsApp → registered or waitlisted → "My workshops"),
-   and every one of those states is built. What it does NOT have is anywhere to
-   persist a seat: the Supabase schema this app ships with has exactly two
-   tables, `profiles` and `submissions`, and the brief was to leave the backend
-   untouched. So the confirmed seat is remembered per-user in localStorage.
+   Reads come straight from the `enrollments` table through the browser client;
+   RLS ("own enrollments read") means a session can only ever see its own rows,
+   so there is nothing to filter here. Writes go through the two Server Actions
+   in app/workshops/actions.js, which hand off to the SECURITY DEFINER functions
+   that own the capacity check.
 
-   TO MAKE THIS REAL, and nothing else needs to move:
-     1. add an `enrollments` table (user_id, workshop_slug, status, name, email,
-        whatsapp, created_at) with RLS "user owns their rows";
-     2. add a server action beside app/dashboard/actions.js that inserts it,
-        taking user_id/email from the verified server session the way
-        submitAssignment already does — never from the browser;
-     3. swap the four functions below for reads/writes against it.
-
-   Auth is NOT faked here. Every gate calls the real Supabase session.
+   Nothing about a seat is decided in the browser any more: the client sends
+   three form fields and is told what it got back.
    ============================================================================= */
 
-const KEY = 'rps.seats';
-
-function readAll() {
-  try {
-    return JSON.parse(localStorage.getItem(KEY) || '{}');
-  } catch {
-    return {};
-  }
-}
-
-function writeAll(v) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(v));
-  } catch {
-    /* private mode — the prototype still works, it just forgets */
-  }
-}
-
-function bucket(userId) {
-  return readAll()[userId] || {};
-}
-
-export function enrollmentFor(userId, slug) {
-  if (!userId) return null;
-  return bucket(userId)[slug] || null;
-}
-
-export function myEnrollments(userId) {
-  if (!userId) return [];
-  const mine = bucket(userId);
-  return Object.keys(mine).map((slug) => ({ slug, ...mine[slug] }));
-}
-
-export function saveEnrollment(userId, slug, row) {
-  if (!userId) return null;
-  const all = readAll();
-  all[userId] = { ...(all[userId] || {}), [slug]: row };
-  writeAll(all);
-  return row;
-}
-
-export function cancelEnrollment(userId, slug) {
-  if (!userId) return;
-  const all = readAll();
-  if (all[userId]) {
-    delete all[userId][slug];
-    writeAll(all);
-  }
-}
-
 /* Returns a {field: message} object, or null when everything's fine.
-   Ported from the community store's validateDetails. */
+   The same rules run again in lib/validation.js on the server and once more as
+   NOT NULL / check constraints in the database — this copy exists only so the
+   form can mark a field red without a round trip. */
 export function validateDetails(d) {
   const errors = {};
   if (!String(d.name || '').trim() || String(d.name).trim().length < 2) {
@@ -95,28 +42,105 @@ export function normalisePhone(p) {
   return String(p || '').trim().replace(/\s+/g, ' ');
 }
 
-/* ---------------------------------------------------------------- hooks
-   Read after mount only: the server has no idea what's in this browser, so
-   reading during render would hydrate mismatched markup. */
+function rowToSeat(r) {
+  return {
+    slug: r.workshop_slug,
+    status: r.status,
+    name: r.name,
+    email: r.email,
+    whatsapp: r.whatsapp,
+    enrolledAt: r.created_at,
+  };
+}
 
+/* ------------------------------------------------------------------ my seats
+   Keyed by slug, the shape every card and panel already expects. */
 export function useSeats(userId) {
   const [seats, setSeats] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(() => {
-    setSeats(userId ? bucket(userId) : {});
+  const refresh = useCallback(async () => {
+    if (!userId) {
+      setSeats({});
+      setLoading(false);
+      return;
+    }
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select('workshop_slug, status, name, email, whatsapp, created_at')
+      .neq('status', 'CANCELLED');
+
+    if (!error && data) {
+      setSeats(Object.fromEntries(data.map((r) => [r.workshop_slug, rowToSeat(r)])));
+    }
+    setLoading(false);
   }, [userId]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    refresh().finally(() => {
+      if (!alive) return;
+    });
+    return () => {
+      alive = false;
+    };
+  }, [refresh]);
 
-  const save = useCallback((slug, row) => {
-    saveEnrollment(userId, slug, row);
-    refresh();
-  }, [userId, refresh]);
+  /* Take a seat. Returns { ok, status } — `status` is whatever the database
+     decided, which is why the caller must not assume REGISTERED. */
+  const enroll = useCallback(
+    async (slug, details) => {
+      const res = await enrollInWorkshop({
+        slug,
+        name: String(details.name || '').trim(),
+        email: String(details.email || '').trim(),
+        whatsapp: normalisePhone(details.whatsapp),
+      });
+      if (res.ok && res.enrollment) {
+        setSeats((s) => ({ ...s, [slug]: res.enrollment }));
+      }
+      return res;
+    },
+    []
+  );
 
-  const cancel = useCallback((slug) => {
-    cancelEnrollment(userId, slug);
-    refresh();
-  }, [userId, refresh]);
+  const cancel = useCallback(async (slug) => {
+    const res = await cancelEnrollment(slug);
+    if (res.ok) {
+      setSeats((s) => {
+        const next = { ...s };
+        delete next[slug];
+        return next;
+      });
+    }
+    return res;
+  }, []);
 
-  return { seats, save, cancel, refresh };
+  return { seats, loading, enroll, cancel, refresh };
+}
+
+/* -------------------------------------------------------------- seat counts
+   Aggregate only, and readable logged out — public.workshop_seat_counts()
+   returns slug/capacity/taken and never touches a name or a number. Components
+   fall back to the static numbers in content.js if this hasn't landed yet. */
+export function useSeatCounts() {
+  const [counts, setCounts] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    const supabase = createClient();
+    supabase.rpc('workshop_seat_counts').then(({ data, error }) => {
+      if (!alive || error || !data) return;
+      setCounts(
+        Object.fromEntries(data.map((r) => [r.slug, { capacity: r.capacity, taken: r.taken }]))
+      );
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return counts;
 }

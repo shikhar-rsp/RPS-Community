@@ -3,8 +3,8 @@
    Ported from the community website's assets/js/store.js — the read-only half.
    Status is always derived from `dateTime`, never a stored flag.
 
-   The seat counts here are the published capacity numbers that ship with the
-   content; enrolment itself is a Supabase concern and is not modelled locally.
+   Capacity helpers take an optional live `counts` map from Supabase and fall
+   back to the published numbers in content.js when it isn't there yet.
    ============================================================================= */
 
 import { WORKSHOPS, HOSTS, TESTIMONIALS, FAQS } from './content';
@@ -55,27 +55,38 @@ export function testimonials(workshopId) {
   return TESTIMONIALS.filter((t) => t.featured);
 }
 
-/* ------------------------------------------------------------------ capacity */
+/* ------------------------------------------------------------------ capacity
+   Every one of these takes an optional `counts` map — {slug: {capacity, taken}}
+   from public.workshop_seat_counts(), via useSeatCounts(). When it's supplied
+   the numbers are live from the database; without it they fall back to the
+   static figures in content.js, so the meters still read sensibly on a first
+   paint or if the RPC is unavailable. */
 
-export function enrolledCount(w) {
-  return w.seededEnrollments || 0;
+export function capacityOf(w, counts) {
+  return counts?.[w.slug]?.capacity ?? w.capacity;
 }
 
-export function seatsLeft(w) {
-  if (!w.capacity) return null;
-  return Math.max(0, w.capacity - enrolledCount(w));
+export function enrolledCount(w, counts) {
+  return counts?.[w.slug]?.taken ?? (w.seededEnrollments || 0);
 }
 
-export function isFull(w) {
-  const left = seatsLeft(w);
+export function seatsLeft(w, counts) {
+  const cap = capacityOf(w, counts);
+  if (!cap) return null;
+  return Math.max(0, cap - enrolledCount(w, counts));
+}
+
+export function isFull(w, counts) {
+  const left = seatsLeft(w, counts);
   return left !== null && left === 0;
 }
 
 /* "12 of 45 seats left" / "Full — waitlist open" */
-export function seatLabel(w) {
-  if (!w.capacity) return 'Open to everyone';
-  const left = seatsLeft(w);
-  return left === 0 ? 'Full — waitlist open' : `${left} of ${w.capacity} seats left`;
+export function seatLabel(w, counts) {
+  const cap = capacityOf(w, counts);
+  if (!cap) return 'Open to everyone';
+  const left = seatsLeft(w, counts);
+  return left === 0 ? 'Full — waitlist open' : `${left} of ${cap} seats left`;
 }
 
 export function initialsFrom(name) {

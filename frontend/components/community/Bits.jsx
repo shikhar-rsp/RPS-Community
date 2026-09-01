@@ -2,19 +2,20 @@
 import React, { useState } from 'react';
 import { Avatar } from './Frame';
 import {
-  seatLabel, seatsLeft, enrolledCount, isFull, calParts, dayShort, time,
+  seatLabel, seatsLeft, enrolledCount, isFull, capacityOf, calParts, dayShort, time,
 } from '@/lib/community/workshops';
 
 /* A workshop's capacity drawn as a filling track plus its label, so "12 of 45
    seats left" is something you can see at a glance rather than read. The bar
    shows seats TAKEN, so it fills as the session sells out. */
-export function SeatMeter({ w }) {
-  if (!w || !w.capacity) return <span className="seat">Open to everyone</span>;
-  const taken = enrolledCount(w);
-  const pct = Math.max(0, Math.min(100, Math.round((taken / w.capacity) * 100)));
-  const label = seatLabel(w);
+export function SeatMeter({ w, counts }) {
+  const cap = w ? capacityOf(w, counts) : 0;
+  if (!w || !cap) return <span className="seat">Open to everyone</span>;
+  const taken = enrolledCount(w, counts);
+  const pct = Math.max(0, Math.min(100, Math.round((taken / cap) * 100)));
+  const label = seatLabel(w, counts);
   return (
-    <div className={'seatmeter' + (isFull(w) ? ' is-full' : '')}>
+    <div className={'seatmeter' + (isFull(w, counts) ? ' is-full' : '')}>
       <div className="track" role="img" aria-label={label}>
         <i style={{ width: pct + '%' }} />
       </div>
@@ -113,7 +114,7 @@ export function HostCard({ host }) {
   );
 }
 
-export function seatChipFor(w, past, ready) {
+export function seatChipFor(w, past, ready, counts) {
   if (past) {
     return ready ? (
       <span className="seat done">Recording + files up</span>
@@ -121,7 +122,7 @@ export function seatChipFor(w, past, ready) {
       <span className="seat warn">Recording still being cut</span>
     );
   }
-  return <SeatMeter w={w} />;
+  return <SeatMeter w={w} counts={counts} />;
 }
 
 export { seatsLeft };

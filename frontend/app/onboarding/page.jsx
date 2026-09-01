@@ -87,7 +87,13 @@ function OnboardingInner() {
     if (error) return { ok: false, error: error.message };
     if (data.session) {
       // Email confirmation disabled: sync the trigger-created profile row.
-      await supabase.from('profiles').update({ name, role, goals, tools }).eq('id', data.user.id);
+      const { data: rows } = await supabase
+        .from('profiles')
+        .upsert({ id: data.user.id, name, role, goals, tools }, { onConflict: 'id' })
+        .select('id');
+      if (!rows || rows.length === 0) {
+        return { ok: false, error: 'Your account was created but the profile did not save. Please sign in and try again.' };
+      }
       return { ok: true, needsConfirm: false };
     }
     return { ok: true, needsConfirm: true };
@@ -99,11 +105,20 @@ function OnboardingInner() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: 'Your session expired. Please sign in again.' };
     await supabase.auth.updateUser({ data: { name, role, goals, tools } });
-    const { error } = await supabase
+    // upsert, not update: the profiles row is normally made by the
+    // on_auth_user_created trigger, but if it is ever missing an UPDATE matches
+    // zero rows and returns no error — reporting success while leaving `role`
+    // unset, which the onboarding gate then bounces straight back here forever.
+    // Creating it needs the INSERT grant from supabase/profile-repair.sql.
+    // .select() so a write that lands nowhere is still visible.
+    const { data: rows, error } = await supabase
       .from('profiles')
-      .update({ name, role, goals, tools })
-      .eq('id', user.id);
+      .upsert({ id: user.id, name, role, goals, tools }, { onConflict: 'id' })
+      .select('id');
     if (error) return { ok: false, error: error.message };
+    if (!rows || rows.length === 0) {
+      return { ok: false, error: 'We could not save your profile. Please sign in again.' };
+    }
     return { ok: true, needsConfirm: false };
   };
 

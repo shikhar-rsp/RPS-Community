@@ -8,10 +8,10 @@ import { SeatMeter, StatusChip, DayBox, QuoteCard, HostCard } from '@/components
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession, identityFrom, useToasts } from '@/lib/community/hooks';
 import {
-  useSeats, validateDetails, normalisePhone,
+  useSeats, useSeatCounts, validateDetails,
 } from '@/lib/community/enrollment';
 import {
-  bySlug, host, isPast, isFull, recordingReady, seatsLeft, seatLabel, enrolledCount,
+  bySlug, host, isPast, isFull, recordingReady, seatsLeft, seatLabel, enrolledCount, capacityOf,
   upcoming, featuredPast, testimonials, dateFull, dayShort, time, workshopUrl,
 } from '@/lib/community/workshops';
 
@@ -79,7 +79,8 @@ function WorkshopDetail() {
   const search = useSearchParams();
   const { user, loading } = useSession();
   const me = identityFrom(user);
-  const { seats, save, cancel } = useSeats(user?.id);
+  const { seats, enroll, cancel } = useSeats(user?.id);
+  const counts = useSeatCounts();
   const { toasts, toast } = useToasts();
 
   const slug = String(params?.slug || '');
@@ -91,6 +92,7 @@ function WorkshopDetail() {
   const [raceNotice, setRaceNotice] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [delivered, setDelivered] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const mine = w ? seats[w.slug] : null;
   const past = w ? isPast(w) : false;
@@ -103,10 +105,12 @@ function WorkshopDetail() {
   useEffect(() => {
     if (!w || past || loading) return;
     if (!wantsEnroll || mine) return;
-    if (user) {
-      setPanelMode('confirm');
-    } else {
+    if (!user) {
       goSignIn(`${workshopUrl(w)}?action=enroll`);
+    } else if (!me?.onboarded) {
+      goOnboarding(`${workshopUrl(w)}?action=enroll`);
+    } else {
+      setPanelMode('confirm');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w?.id, wantsEnroll, user?.id, loading, past]);
@@ -128,7 +132,7 @@ function WorkshopDetail() {
   const rememberSeats = () => {
     try {
       if (sessionStorage.getItem(seatsKey) === null) {
-        sessionStorage.setItem(seatsKey, String(seatsLeft(w)));
+        sessionStorage.setItem(seatsKey, String(seatsLeft(w, counts)));
       }
     } catch { /* private mode */ }
   };
@@ -146,6 +150,12 @@ function WorkshopDetail() {
      Supabase + the middleware do the rest; nothing about auth is faked here. */
   function goSignIn(next) {
     router.push('/signin?next=' + encodeURIComponent(next));
+  }
+
+  /* Signed in, but the profile was never filled in — finish that first and come
+     straight back to the seat they were taking. */
+  function goOnboarding(next) {
+    router.push('/onboarding?mode=complete&next=' + encodeURIComponent(next));
   }
 
   /* ------------------------------------------------------------- not found */
@@ -171,7 +181,7 @@ function WorkshopDetail() {
   }
 
   const h = host(w.hostId);
-  const full = isFull(w);
+  const full = isFull(w, counts);
   const ready = recordingReady(w);
 
   /* ------------------------------------------------------------ enrolment */
@@ -185,35 +195,50 @@ function WorkshopDetail() {
       goSignIn(`${workshopUrl(w)}?action=enroll`);
       return;
     }
+    if (!me?.onboarded) {
+      goOnboarding(`${workshopUrl(w)}?action=enroll`);
+      return;
+    }
     setForm(null);
     setErrors(null);
     setPanelMode('confirm');
   }
 
-  function confirmSeat(details) {
+  async function confirmSeat(details) {
+    // Marks the field red without a round trip. The same rules run again in
+    // lib/validation.js on the server and once more in the database.
     const bad = validateDetails(details);
     if (bad) {
       setErrors(bad);
       setForm(details);
       return;
     }
-    const status = full ? 'WAITLISTED' : 'REGISTERED';
-    save(w.slug, {
-      status,
-      name: details.name.trim(),
-      email: details.email.trim(),
-      whatsapp: normalisePhone(details.whatsapp),
-      enrolledAt: new Date().toISOString(),
-    });
+
+    setSaving(true);
+    // The database decides REGISTERED vs WAITLISTED, with the capacity row
+    // locked — so this is the first moment anyone knows which one it is.
+    const res = await enroll(w.slug, details);
+    setSaving(false);
+
+    if (!res.ok) {
+      if (res.needsOnboarding) {
+        goOnboarding(`${workshopUrl(w)}?action=enroll`);
+        return;
+      }
+      setForm(details);
+      toast(res.error || 'Could not save your seat.', 'warn');
+      return;
+    }
+
     // The 150-vs-45 race: seats were open when they started, gone by confirm.
-    setRaceNotice(recallSeats() !== 0 && status === 'WAITLISTED');
+    setRaceNotice(recallSeats() !== 0 && res.status === 'WAITLISTED');
     forgetSeats();
     setErrors(null);
     setForm(null);
     setPanelMode('default');
     toast(
-      status === 'REGISTERED' ? 'You’re in. See you Saturday.' : 'You’re on the waitlist.',
-      status === 'REGISTERED' ? 'good' : 'warn'
+      res.status === 'REGISTERED' ? 'You’re in. See you Saturday.' : 'You’re on the waitlist.',
+      res.status === 'REGISTERED' ? 'good' : 'warn'
     );
   }
 
@@ -230,7 +255,7 @@ function WorkshopDetail() {
   ) : (
     <>
       <span className="eyebrow bare">{w.cohortLabel || 'Cohort'} · Coming up</span>
-      <SeatMeter w={w} />
+      <SeatMeter w={w} counts={counts} />
       {mine && <StatusChip status={mine.status} />}
     </>
   );
@@ -420,8 +445,8 @@ function WorkshopDetail() {
                 </div>
               )}
             </div>
-            <button className="btn full go" type="submit">
-              {full ? 'Join the waitlist' : 'Confirm my seat'}
+            <button className="btn full go" type="submit" disabled={saving}>
+              {saving ? 'Saving…' : full ? 'Join the waitlist' : 'Confirm my seat'}
             </button>
           </form>
 
@@ -433,22 +458,23 @@ function WorkshopDetail() {
     }
 
     /* Default — open or full */
-    const left = seatsLeft(w);
-    const pct = w.capacity ? Math.min(100, (enrolledCount(w) / w.capacity) * 100) : 0;
+    const left = seatsLeft(w, counts);
+    const cap = capacityOf(w, counts);
+    const pct = cap ? Math.min(100, (enrolledCount(w, counts) / cap) * 100) : 0;
     return (
       <div className="panel">
         <span className="kicker">{full ? 'Waitlist open' : 'Take a seat'}</span>
         <DayBox w={w} />
-        <h4 style={{ marginTop: 0 }}>{seatLabel(w)}</h4>
-        {!!w.capacity && (
+        <h4 style={{ marginTop: 0 }}>{seatLabel(w, counts)}</h4>
+        {!!cap && (
           <div className={'meter' + (full ? ' full' : '')}>
             <i style={{ width: pct + '%' }} />
           </div>
         )}
         <p className="micro" style={{ marginTop: 0 }}>
           {full
-            ? `${w.capacity} seats, every time. The waitlist moves.`
-            : `${enrolledCount(w)} already in${left !== null ? `, ${left} to go` : ''}.`}
+            ? `${cap} seats, every time. The waitlist moves.`
+            : `${enrolledCount(w, counts)} already in${left !== null ? `, ${left} to go` : ''}.`}
         </p>
         <button className="btn full go" type="button" onClick={startEnroll}>
           {full ? 'Join the waitlist' : 'Grab a seat'}
@@ -466,8 +492,12 @@ function WorkshopDetail() {
     );
   }
 
-  function releaseSeat() {
-    cancel(w.slug);
+  async function releaseSeat() {
+    const res = await cancel(w.slug);
+    if (!res.ok) {
+      toast(res.error || 'Could not release your seat.', 'warn');
+      return;
+    }
     setPanelMode('default');
     setRaceNotice(false);
     toast('Seat released. Someone on the waitlist just got lucky.');
@@ -611,12 +641,12 @@ function WorkshopDetail() {
                   <span className="kicker">Next session</span>
                   <DayBox w={nextUp} />
                   <h4 style={{ marginTop: 0, fontSize: '1.2rem' }}>{nextUp.title}</h4>
-                  <SeatMeter w={nextUp} />
+                  <SeatMeter w={nextUp} counts={counts} />
                   <p className="micro" style={{ marginTop: 10 }}>
                     Same room, new brief.
                   </p>
                   <Link className="btn full go" href={`${workshopUrl(nextUp)}?action=enroll`}>
-                    {isFull(nextUp) ? 'Join the waitlist' : 'Grab a seat'}
+                    {isFull(nextUp, counts) ? 'Join the waitlist' : 'Grab a seat'}
                   </Link>
                 </div>
               ) : (
