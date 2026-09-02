@@ -9,7 +9,7 @@ import { FeatureCard, PastCard } from '@/components/community/WorkshopCards';
 import { GAP_TILES, BENTO_ART } from '@/lib/community/illustrations';
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession } from '@/lib/community/hooks';
-import { useSeats, useSeatCounts } from '@/lib/community/enrollment';
+import { useSeats } from '@/lib/community/enrollment';
 import {
   upcoming, featuredPast, testimonials, faqs, seatUrl, workshopUrl,
 } from '@/lib/community/workshops';
@@ -17,7 +17,6 @@ import {
 export default function Page() {
   const { user } = useSession();
   const { seats } = useSeats(user?.id);
-  const counts = useSeatCounts();
 
   const next = upcoming()[0];
   const last = featuredPast();
@@ -188,7 +187,7 @@ export default function Page() {
               </Link>
             </header>
             {next ? (
-              <FeatureCard w={next} mine={seats[next.slug]} counts={counts} />
+              <FeatureCard w={next} mine={seats[next.slug]} />
             ) : (
               <div className="wgrid one">
                 <PastCard w={last} mine={seats[last.slug]} />

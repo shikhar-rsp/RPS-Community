@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import SiteShell from '@/components/community/SiteShell';
 import Frame from '@/components/community/Frame';
-import { SeatMeter, DayBox, QuoteCard, HostCard } from '@/components/community/Bits';
+import { DayBox, QuoteCard, HostCard } from '@/components/community/Bits';
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useToasts } from '@/lib/community/hooks';
 import {
-  upcoming, featuredPast, host, isPast, isFull, recordingReady, testimonials,
+  upcoming, featuredPast, host, isPast, recordingReady, testimonials,
   dateFull, dayShort, time, workshopUrl,
 } from '@/lib/community/workshops';
 
@@ -292,9 +292,8 @@ export default function WorkshopClient({ name, email, avatarUrl, initials }) {
                   <span className="kicker">Next session</span>
                   <DayBox w={nextUp} />
                   <h4 style={{ marginTop: 0, fontSize: '1.2rem' }}>{nextUp.title}</h4>
-                  <SeatMeter w={nextUp} />
                   <Link className="btn full go" href={`${workshopUrl(nextUp)}?action=enroll`}>
-                    {isFull(nextUp) ? 'Join the waitlist' : 'Grab a seat'}
+                    Grab a seat
                   </Link>
                 </div>
               )}

@@ -41,7 +41,9 @@ export default function Footer() {
           <div>
             <h4>RPS</h4>
             <div className="links">
-              <a href={CONFIG.aboutRpsUrl}>About RPS</a>
+              <a href={CONFIG.aboutRpsUrl} target="_blank" rel="noopener noreferrer">
+                About RPS
+              </a>
               <a href={CONFIG.sayHiUrl}>Say hi</a>
             </div>
           </div>

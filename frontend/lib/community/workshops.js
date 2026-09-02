@@ -2,9 +2,6 @@
    Derived workshop state + IST formatting.
    Ported from the community website's assets/js/store.js — the read-only half.
    Status is always derived from `dateTime`, never a stored flag.
-
-   Capacity helpers take an optional live `counts` map from Supabase and fall
-   back to the published numbers in content.js when it isn't there yet.
    ============================================================================= */
 
 import { WORKSHOPS, HOSTS, TESTIMONIALS, FAQS } from './content';
@@ -55,39 +52,10 @@ export function testimonials(workshopId) {
   return TESTIMONIALS.filter((t) => t.featured);
 }
 
-/* ------------------------------------------------------------------ capacity
-   Every one of these takes an optional `counts` map — {slug: {capacity, taken}}
-   from public.workshop_seat_counts(), via useSeatCounts(). When it's supplied
-   the numbers are live from the database; without it they fall back to the
-   static figures in content.js, so the meters still read sensibly on a first
-   paint or if the RPC is unavailable. */
-
-export function capacityOf(w, counts) {
-  return counts?.[w.slug]?.capacity ?? w.capacity;
-}
-
-export function enrolledCount(w, counts) {
-  return counts?.[w.slug]?.taken ?? (w.seededEnrollments || 0);
-}
-
-export function seatsLeft(w, counts) {
-  const cap = capacityOf(w, counts);
-  if (!cap) return null;
-  return Math.max(0, cap - enrolledCount(w, counts));
-}
-
-export function isFull(w, counts) {
-  const left = seatsLeft(w, counts);
-  return left !== null && left === 0;
-}
-
-/* "12 of 45 seats left" / "Full — waitlist open" */
-export function seatLabel(w, counts) {
-  const cap = capacityOf(w, counts);
-  if (!cap) return 'Open to everyone';
-  const left = seatsLeft(w, counts);
-  return left === 0 ? 'Full — waitlist open' : `${left} of ${cap} seats left`;
-}
+/* Seat counts, the "N of M seats left" meter and the derived full/waitlist
+   state used to live here. They're gone on purpose: the site no longer shows
+   remaining capacity anywhere, so there's nothing left to derive it for.
+   Enrolment itself is unaffected — the server still owns who has a seat. */
 
 export function initialsFrom(name) {
   return String(name || '')
@@ -100,7 +68,7 @@ export function initialsFrom(name) {
 
 /* ---------------------------------------------------------------- formatting
    Everything renders in IST regardless of where the reader is, because the
-   session runs at 6PM IST. Months are assembled by hand rather than left to a
+   sessions run to IST. Months are assembled by hand rather than left to a
    locale (en-GB abbreviates September as "Sept"). */
 
 const IST = 'Asia/Kolkata';

@@ -121,26 +121,3 @@ export function useSeats(userId) {
   return { seats, loading, enroll, cancel, refresh };
 }
 
-/* -------------------------------------------------------------- seat counts
-   Aggregate only, and readable logged out — public.workshop_seat_counts()
-   returns slug/capacity/taken and never touches a name or a number. Components
-   fall back to the static numbers in content.js if this hasn't landed yet. */
-export function useSeatCounts() {
-  const [counts, setCounts] = useState(null);
-
-  useEffect(() => {
-    let alive = true;
-    const supabase = createClient();
-    supabase.rpc('workshop_seat_counts').then(({ data, error }) => {
-      if (!alive || error || !data) return;
-      setCounts(
-        Object.fromEntries(data.map((r) => [r.slug, { capacity: r.capacity, taken: r.taken }]))
-      );
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  return counts;
-}

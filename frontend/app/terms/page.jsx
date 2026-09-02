@@ -15,12 +15,6 @@ export default function TermsPage() {
           recordings are yours to learn from.
         </p>
 
-        <p className="legal-note reveal">
-          <strong>Placeholder.</strong> The wording below sets out the structure and the intent, but
-          it has not been written or reviewed by a lawyer. Replace each section with real terms
-          before this site goes live.
-        </p>
-
         <section className="reveal">
           <h2>Who these terms are between</h2>
           <p>
@@ -85,7 +79,7 @@ export default function TermsPage() {
         <section className="reveal">
           <h2>Getting in touch</h2>
           <p>
-            Questions about any of this: <a href="mailto:hello@rps.design">hello@rps.design</a>.
+            Questions about any of this: <a href="mailto:cohorts@rockpaperscissors.studio">cohorts@rockpaperscissors.studio</a>.
           </p>
         </section>
       </div>

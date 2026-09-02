@@ -5,18 +5,15 @@ import Frame from './Frame';
 import { artHTML } from '@/lib/community/art';
 import { StatusChip, seatChipFor } from './Bits';
 import {
-  workshopUrl, isFull, recordingReady, dayShort, time, host, metaLine,
+  workshopUrl, recordingReady, dayShort, time, host, metaLine,
 } from '@/lib/community/workshops';
 
-/* The cards carry everything the decision needs — when, who with, how many
-   seats are left, and whether you're already in — so nobody has to open three
-   pages to find out the next one is full. The first upcoming session gets the
-   dark treatment: on a listing, "which one is next" should be obvious before
-   you read a word. */
+/* The cards carry everything the decision needs — when, who with, and whether
+   you're already in. The first upcoming session gets the dark treatment: on a
+   listing, "which one is next" should be obvious before you read a word. */
 
-export function UpcomingCard({ w, lead, mine, counts }) {
+export function UpcomingCard({ w, lead, mine }) {
   const url = workshopUrl(w);
-  const full = isFull(w, counts);
   const h = host(w.hostId);
 
   const cta = mine ? (
@@ -25,7 +22,7 @@ export function UpcomingCard({ w, lead, mine, counts }) {
     </Link>
   ) : (
     <Link className={lead ? 'btn onDark go' : 'btn go'} href={`${url}?action=enroll`}>
-      {full ? 'Join the waitlist' : 'Grab a seat'}
+      Grab a seat
     </Link>
   );
 
@@ -59,9 +56,11 @@ export function UpcomingCard({ w, lead, mine, counts }) {
         </div>
         <div className="foot">
           {cta}
-          <span className="note">
-            {mine ? <StatusChip status={mine.status} /> : seatChipFor(w, false, false, counts)}
-          </span>
+          {mine && (
+            <span className="note">
+              <StatusChip status={mine.status} />
+            </span>
+          )}
         </div>
       </div>
     </article>
@@ -118,9 +117,8 @@ export function PastCard({ w, wide, mine }) {
 /* The homepage's lead: the next session on a tablet screen — one thing to look
    at, one thing to do. The banner already carries the workshop's name, so the
    body only adds when it runs and the way in. */
-export function FeatureCard({ w, mine, counts }) {
+export function FeatureCard({ w, mine }) {
   const url = workshopUrl(w);
-  const full = isFull(w, counts);
 
   const cta = mine ? (
     <Link className="btn lg" href={url}>
@@ -128,7 +126,7 @@ export function FeatureCard({ w, mine, counts }) {
     </Link>
   ) : (
     <Link className="btn lg go" href={`${url}?action=enroll`}>
-      {full ? 'Join the waitlist' : 'Grab a seat'}
+      Grab a seat
     </Link>
   );
 
