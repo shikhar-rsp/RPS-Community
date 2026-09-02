@@ -4,14 +4,12 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import SiteShell from '@/components/community/SiteShell';
 import Frame from '@/components/community/Frame';
-import { SeatMeter, StatusChip, DayBox, QuoteCard, HostCard } from '@/components/community/Bits';
+import { StatusChip, DayBox, QuoteCard, HostCard } from '@/components/community/Bits';
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession, identityFrom, useToasts } from '@/lib/community/hooks';
+import { useSeats, validateDetails } from '@/lib/community/enrollment';
 import {
-  useSeats, useSeatCounts, validateDetails,
-} from '@/lib/community/enrollment';
-import {
-  bySlug, host, isPast, isFull, recordingReady, seatsLeft, seatLabel, enrolledCount, capacityOf,
+  bySlug, host, isPast, recordingReady,
   upcoming, featuredPast, testimonials, dateFull, dayShort, time, workshopUrl,
 } from '@/lib/community/workshops';
 
@@ -80,7 +78,6 @@ function WorkshopDetail() {
   const { user, loading } = useSession();
   const me = identityFrom(user);
   const { seats, enroll, cancel } = useSeats(user?.id);
-  const counts = useSeatCounts();
   const { toasts, toast } = useToasts();
 
   const slug = String(params?.slug || '');
@@ -126,14 +123,11 @@ function WorkshopDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w?.id, user?.id, wantedRes, delivered]);
 
-  /* Seats free at the moment they set off. Kept across the login round-trip so
-     "someone took the last seat while you were signing in" means exactly that. */
+  /* Kept across the login round-trip so the flow can pick up where it left off. */
   const seatsKey = w ? 'rps.seatsAtStart.' + w.slug : null;
   const rememberSeats = () => {
     try {
-      if (sessionStorage.getItem(seatsKey) === null) {
-        sessionStorage.setItem(seatsKey, String(seatsLeft(w, counts)));
-      }
+      if (sessionStorage.getItem(seatsKey) === null) sessionStorage.setItem(seatsKey, '');
     } catch { /* private mode */ }
   };
   const recallSeats = () => {
@@ -181,7 +175,6 @@ function WorkshopDetail() {
   }
 
   const h = host(w.hostId);
-  const full = isFull(w, counts);
   const ready = recordingReady(w);
 
   /* ------------------------------------------------------------ enrolment */
@@ -255,7 +248,6 @@ function WorkshopDetail() {
   ) : (
     <>
       <span className="eyebrow bare">{w.cohortLabel || 'Cohort'} · Coming up</span>
-      <SeatMeter w={w} counts={counts} />
       {mine && <StatusChip status={mine.status} />}
     </>
   );
@@ -376,7 +368,7 @@ function WorkshopDetail() {
       return (
         <div className="panel">
           <span className="kicker">Step 2 of 2</span>
-          <h4>{full ? 'Nearly on the list' : 'Nearly in'}</h4>
+          <h4>Nearly in</h4>
           <DayBox w={w} />
           <p className="micro" style={{ marginTop: -8 }}>
             Three things and we&rsquo;ll see you there.
@@ -446,7 +438,7 @@ function WorkshopDetail() {
               )}
             </div>
             <button className="btn full go" type="submit" disabled={saving}>
-              {saving ? 'Saving…' : full ? 'Join the waitlist' : 'Confirm my seat'}
+              {saving ? 'Saving…' : 'Confirm my seat'}
             </button>
           </form>
 
@@ -457,35 +449,17 @@ function WorkshopDetail() {
       );
     }
 
-    /* Default — open or full */
-    const left = seatsLeft(w, counts);
-    const cap = capacityOf(w, counts);
-    const pct = cap ? Math.min(100, (enrolledCount(w, counts) / cap) * 100) : 0;
+    /* Default */
     return (
       <div className="panel">
-        <span className="kicker">{full ? 'Waitlist open' : 'Take a seat'}</span>
+        <span className="kicker">Take a seat</span>
         <DayBox w={w} />
-        <h4 style={{ marginTop: 0 }}>{seatLabel(w, counts)}</h4>
-        {!!cap && (
-          <div className={'meter' + (full ? ' full' : '')}>
-            <i style={{ width: pct + '%' }} />
-          </div>
-        )}
-        <p className="micro" style={{ marginTop: 0 }}>
-          {full
-            ? `${cap} seats, every time. The waitlist moves.`
-            : `${enrolledCount(w, counts)} already in${left !== null ? `, ${left} to go` : ''}.`}
-        </p>
         <button className="btn full go" type="button" onClick={startEnroll}>
-          {full ? 'Join the waitlist' : 'Grab a seat'}
+          Grab a seat
         </button>
         <ul className="reassure">
           <li>Free. No card, no upsell at the end.</li>
-          <li>
-            {full
-              ? 'We’ll message you the moment a seat frees up.'
-              : 'Meet link and a reminder go to your WhatsApp.'}
-          </li>
+          <li>Meet link and a reminder go to your WhatsApp.</li>
           <li>Recording and files afterwards, yours to keep.</li>
         </ul>
       </div>
@@ -641,12 +615,11 @@ function WorkshopDetail() {
                   <span className="kicker">Next session</span>
                   <DayBox w={nextUp} />
                   <h4 style={{ marginTop: 0, fontSize: '1.2rem' }}>{nextUp.title}</h4>
-                  <SeatMeter w={nextUp} counts={counts} />
                   <p className="micro" style={{ marginTop: 10 }}>
                     Same room, new brief.
                   </p>
                   <Link className="btn full go" href={`${workshopUrl(nextUp)}?action=enroll`}>
-                    {isFull(nextUp, counts) ? 'Join the waitlist' : 'Grab a seat'}
+                    Grab a seat
                   </Link>
                 </div>
               ) : (

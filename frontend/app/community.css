@@ -288,11 +288,14 @@ strong,b{ font-weight:700; }
 
 /* Focus — visible on everything */
 :focus-visible{ outline:2.5px solid var(--accent); outline-offset:3px; border-radius:6px; }
+/* Keyboard-only. `:focus-visible` rather than `:focus` so clicking near the
+   top of the page never drops this over the nav — it's there for people
+   tabbing in, and nobody else needs to see it. */
 .skip{
   position:absolute; left:-9999px; top:0; z-index:200;
   background:var(--deep); color:#fff; padding:12px 18px; border-radius:0 0 12px 0; font-weight:600;
 }
-.skip:focus{ left:0; }
+.skip:focus-visible{ left:0; }
 .sr{
   position:absolute; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
@@ -1898,7 +1901,7 @@ footer.site .logo-badge .logo-img{ height:34px; }
   transform:perspective(1600px) rotateX(30deg) translateY(42px) scale(.95);
   transition:transform 1s cubic-bezier(.22,1,.36,1);
 }
-.wfeature.in .device{
+.wfeature[data-in] .device{
   transform:perspective(1600px) rotateX(0deg) translateY(0) scale(1);
 }
 @keyframes deviceStandUp{
@@ -2159,21 +2162,6 @@ footer.site .logo-badge .logo-img{ height:34px; }
 
 /* The seat count as a filled bar rather than a sentence — the same read as a
    track filling up. Used everywhere a workshop's capacity is shown. */
-.seatmeter{ display:flex; flex-direction:column; gap:7px; min-width:180px; flex:1 1 200px; }
-.seatmeter .track{
-  height:6px; border-radius:99px; overflow:hidden;
-  background:rgba(255,255,255,.16);
-}
-[data-theme="light"] .seatmeter .track{ background:var(--paper-2); }
-.seatmeter .track i{
-  display:block; height:100%; border-radius:99px;
-  background:var(--brand); transition:width .6s var(--ease);
-}
-.seatmeter.is-full .track i{ background:var(--hold); }
-.seatmeter .label{
-  font-size:.8rem; font-weight:600; line-height:1.3; color:var(--muted);
-}
-[data-theme="dark"] .seatmeter .label{ color:#FFF3EC; }
 
 .reassure{ list-style:none; padding:16px 0 0; margin:16px 0 0; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
 .reassure li{ position:relative; padding-left:24px; font-size:.88rem; color:var(--muted); line-height:1.5; }
@@ -2494,7 +2482,7 @@ footer.site .base a{ font-weight:600; color:var(--accent); text-decoration:none;
 @keyframes waBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-7px); } }
 @keyframes waPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12); } }
 .reveal{ opacity:0; transform:translateY(18px); transition:opacity .6s var(--ease), transform .6s var(--ease); }
-.reveal.in{ opacity:1; transform:none; }
+.reveal[data-in]{ opacity:1; transform:none; }
 
 /* ---------- Responsive ---------- */
 @media (max-width:1040px){

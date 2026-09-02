@@ -5,7 +5,7 @@ import SiteShell from '@/components/community/SiteShell';
 import { UpcomingCard, PastCard } from '@/components/community/WorkshopCards';
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession } from '@/lib/community/hooks';
-import { useSeats, useSeatCounts } from '@/lib/community/enrollment';
+import { useSeats } from '@/lib/community/enrollment';
 import { upcoming, past } from '@/lib/community/workshops';
 
 /* Tabs derive from dateTime, never a manual flag. Browsing is never gated —
@@ -13,12 +13,20 @@ import { upcoming, past } from '@/lib/community/workshops';
 export default function WorkshopsPage() {
   const { user } = useSession();
   const { seats } = useSeats(user?.id);
-  const seatCounts = useSeatCounts();
   const [tab, setTab] = useState('upcoming');
 
-  // Default to Upcoming; a #past link lands on the other tab.
+  /* Default to Upcoming; #upcoming and #past both select their tab. It listens
+     for hashchange as well as reading the hash on mount, because the footer
+     links here from this very page — without that, clicking "Upcoming" while
+     already on /workshops only changed the URL and jumped to the top. */
   useEffect(() => {
-    if ((window.location.hash || '').replace('#', '') === 'past') setTab('past');
+    const sync = () => {
+      const h = (window.location.hash || '').replace('#', '');
+      if (h === 'past' || h === 'upcoming') setTab(h);
+    };
+    sync();
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
   }, []);
 
   const items = tab === 'past' ? past() : upcoming();
@@ -114,17 +122,17 @@ export default function WorkshopsPage() {
             /* The lead card gets the full width — it's the one most people came for. */
             <>
               <div className="wgrid one">
-                <UpcomingCard w={items[0]} lead mine={seats[items[0].slug]} counts={seatCounts} />
+                <UpcomingCard w={items[0]} lead mine={seats[items[0].slug]} />
               </div>
               <div className="wgrid" style={{ marginTop: 20 }}>
                 {items.slice(1).map((w) => (
-                  <UpcomingCard key={w.id} w={w} mine={seats[w.slug]} counts={seatCounts} />
+                  <UpcomingCard key={w.id} w={w} mine={seats[w.slug]} />
                 ))}
               </div>
             </>
           ) : (
             <div className="wgrid one">
-              <UpcomingCard w={items[0]} lead mine={seats[items[0].slug]} counts={seatCounts} />
+              <UpcomingCard w={items[0]} lead mine={seats[items[0].slug]} />
             </div>
           )}
         </div>

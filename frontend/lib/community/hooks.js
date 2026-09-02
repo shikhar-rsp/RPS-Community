@@ -52,18 +52,28 @@ export function identityFrom(user) {
 }
 
 /* --------------------------------------------------------------- reveal
-   Adds `.in` to every `.reveal` as it scrolls into view. Re-run it whenever a
-   page swaps its content (a tab change, a re-render) by bumping `deps`. */
+   Marks every `.reveal` with `data-in` as it scrolls into view.
+
+   It has to be an attribute, not a class. React owns `className` on these
+   elements, so any re-render that changes it — opening a different FAQ answer
+   is the obvious one — rewrites the attribute wholesale and takes a class we
+   added by hand out with it. The element then snaps back to opacity:0 and the
+   observer has already stopped watching it, so it never comes back. React
+   doesn't manage `data-in`, so it survives.
+
+   A MutationObserver picks up anything mounted later (a tab switch, a list
+   that grows), which also means the effect doesn't have to be re-run by hand
+   through `deps` — that argument is kept so existing callers still work. */
 export function useReveal(deps = []) {
   useEffect(() => {
-    const items = document.querySelectorAll('.reveal:not(.in)');
-    if (!items.length) return;
-
-    if (
+    const reduced =
       !('IntersectionObserver' in window) ||
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    ) {
-      items.forEach((i) => i.classList.add('in'));
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const show = (el) => el.setAttribute('data-in', '');
+
+    if (reduced) {
+      document.querySelectorAll('.reveal:not([data-in])').forEach(show);
       return;
     }
 
@@ -71,15 +81,26 @@ export function useReveal(deps = []) {
       (entries) => {
         entries.forEach((en) => {
           if (en.isIntersecting) {
-            en.target.classList.add('in');
+            show(en.target);
             io.unobserve(en.target);
           }
         });
       },
       { rootMargin: '0px 0px -8% 0px', threshold: 0.06 }
     );
-    items.forEach((i) => io.observe(i));
-    return () => io.disconnect();
+
+    const scan = () =>
+      document.querySelectorAll('.reveal:not([data-in])').forEach((el) => io.observe(el));
+
+    scan();
+
+    const mo = new MutationObserver(scan);
+    mo.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      mo.disconnect();
+      io.disconnect();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }

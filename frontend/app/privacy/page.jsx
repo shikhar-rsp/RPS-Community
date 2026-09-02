@@ -15,13 +15,6 @@ export default function PrivacyPage() {
           seat and send you the link. That&rsquo;s it.
         </p>
 
-        <p className="legal-note reveal">
-          <strong>Placeholder.</strong> This describes what the site actually does, but it is not a
-          reviewed legal document and it names no data controller, retention period or legal basis.
-          Have it written properly before launch — and note that if you take registrations from the
-          EU or UK, GDPR applies.
-        </p>
-
         <section className="reveal">
           <h2>What we collect</h2>
           <p>
@@ -75,7 +68,7 @@ export default function PrivacyPage() {
         <section className="reveal">
           <h2>Getting your data out, or deleted</h2>
           <p>
-            Email <a href="mailto:hello@rps.design">hello@rps.design</a> and ask. We&rsquo;ll send
+            Email <a href="mailto:cohorts@rockpaperscissors.studio">cohorts@rockpaperscissors.studio</a> and ask. We&rsquo;ll send
             you what we hold, or delete it, whichever you want.
           </p>
         </section>
