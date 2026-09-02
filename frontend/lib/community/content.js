@@ -13,7 +13,7 @@ export const CONFIG = {
     'Free live design workshops. We build real client work in front of you, you build along.',
   footerTagline:
     'By RPS, a design studio that works with Fortune 500 teams and can’t stop teaching.',
-  whatsappUrl: 'https://chat.whatsapp.com/#replace-with-real-invite',
+  whatsappUrl: 'https://chat.whatsapp.com/DTkop0ZD0FH8oAEpVsFTIP',
   aboutRpsUrl: 'https://rockpaperscissors.studio',
   sayHiUrl: 'mailto:cohorts@rockpaperscissors.studio',
 
