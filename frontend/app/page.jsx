@@ -246,9 +246,6 @@ export default function Page() {
                   Join the WhatsApp group
                 </a>
               </div>
-              <p className="micro" style={{ marginTop: 16 }}>
-                Free. Loud. Leave whenever.
-              </p>
             </div>
             <div className="art">
               <div className="wa-decor" aria-hidden="true" />

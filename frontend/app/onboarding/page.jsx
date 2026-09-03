@@ -338,10 +338,6 @@ function OnboardingInner() {
             )}
           </div>
         )}
-
-        <p className="micro" style={{ textAlign: 'center', marginTop: 20 }}>
-          Already have an account? <Link href="/signin">Log in</Link>
-        </p>
       </div>
     </SiteShell>
   );

@@ -10,6 +10,21 @@ const PROTECTED = ["/dashboard", "/workshop"];
 // Auth routes an already-signed-in user shouldn't see.
 const AUTH_ROUTES = ["/signin"];
 
+// Onboarding is not a step you can walk around. A signed-in account with no
+// answers on file is sent to the form from ANY page, not just the gated ones —
+// so a new person's first act after logging in is always the three steps.
+//
+// These are the only paths that stay reachable while it's outstanding: the form
+// itself, the endpoints that finish or repair a session, and the legal pages
+// (which must be readable by anyone, including someone mid-signup).
+const ONBOARDING_EXEMPT = [
+  "/onboarding",
+  "/auth",
+  "/reset-password",
+  "/privacy",
+  "/terms",
+];
+
 const matches = (pathname, base) => pathname === base || pathname.startsWith(base + "/");
 
 // Has this user finished onboarding?
@@ -77,15 +92,28 @@ export async function updateSession(request) {
   }
 
   // Signed in, but the profile was never filled in: finish that first, then
-  // carry on to wherever they were going.
-  if (user && isProtected && !(await hasCompletedOnboarding(supabase, user))) {
-    const url = request.nextUrl.clone();
-    const back = pathname + (request.nextUrl.search || "");
-    url.pathname = "/onboarding";
-    url.search = "";
-    url.searchParams.set("mode", "complete");
-    url.searchParams.set("next", back);
-    return NextResponse.redirect(url);
+  // carry on to wherever they were going. Checked before the auth-route
+  // redirect below so someone landing on /signin with a live session goes to
+  // the form rather than bouncing via the dashboard.
+  if (user && !ONBOARDING_EXEMPT.some((p) => matches(pathname, p))) {
+    if (!(await hasCompletedOnboarding(supabase, user))) {
+      const url = request.nextUrl.clone();
+      // Where to put them once they're done. An auth route is not a
+      // destination, so honour its ?next (or fall back to the dashboard)
+      // instead of sending them back to the login box they just left.
+      let back = pathname + (request.nextUrl.search || "");
+      if (isAuthRoute) {
+        const wanted = request.nextUrl.searchParams.get("next");
+        back = wanted && wanted.startsWith("/") && !wanted.startsWith("//")
+          ? wanted
+          : "/dashboard";
+      }
+      url.pathname = "/onboarding";
+      url.search = "";
+      url.searchParams.set("mode", "complete");
+      url.searchParams.set("next", back);
+      return NextResponse.redirect(url);
+    }
   }
 
   if (user && isAuthRoute) {

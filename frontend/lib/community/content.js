@@ -117,11 +117,16 @@ export const WORKSHOPS = [
     hostId: 'host_1',
     cohortLabel: 'Cohort 01',
     featured: true,
+    /* The real thing, not placeholders: the session summary PDF, served from
+       /public. The row is always visible; the download is what login gates. */
     resources: [
-      { id: 'r1', title: 'The PDF guide — the full method, step by step', type: 'pdf', fileUrl: '#' },
-      { id: 'r2', title: 'The prompt library', type: 'link', fileUrl: '#' },
-      { id: 'r3', title: 'The B2B SaaS landing page brief', type: 'pdf', fileUrl: '#' },
-      { id: 'r4', title: 'Links and tools we used', type: 'link', fileUrl: '#' },
+      {
+        id: 'r1',
+        title: 'From a client brief to a page you would ship — the workshop summary',
+        type: 'pdf',
+        fileUrl: '/assets/resources/rps-cohorts-workshop-summary.pdf',
+        fileName: 'RPS-Cohorts-Workshop-Summary.pdf',
+      },
     ],
   },
 ];

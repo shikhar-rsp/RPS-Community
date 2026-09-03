@@ -8,7 +8,7 @@ import { CONFIG } from '@/lib/community/content';
 import { useReveal, useToasts } from '@/lib/community/hooks';
 import {
   upcoming, featuredPast, host, isPast, recordingReady, testimonials,
-  dateFull, dayShort, time, workshopUrl,
+  dateFull, dayShort, time, workshopUrl, downloadResource,
 } from '@/lib/community/workshops';
 
 /* The member view of the current workshop.
@@ -216,7 +216,7 @@ export default function WorkshopClient({ name, email, avatarUrl, initials }) {
             {!!(w.resources && w.resources.length) && (
               <div className="blk" id="files">
                 <span className="eyebrow">Everything from the session</span>
-                <p>The file we built, the brief, the links. Yours — you&rsquo;re signed in.</p>
+                <p>The full session summary, start to finish. Yours — you&rsquo;re signed in.</p>
                 <div style={{ marginTop: 20 }}>
                   {w.resources.map((r) => {
                     const icons = { figma: '🎛', pdf: '📄', zip: '🗂', link: '🔗' };
@@ -235,7 +235,10 @@ export default function WorkshopClient({ name, email, avatarUrl, initials }) {
                         <button
                           className="btn sm"
                           type="button"
-                          onClick={() => toast(`Downloading “${r.title}”.`, 'good')}
+                          onClick={() => {
+                            if (downloadResource(r)) toast(`Downloading “${r.title}”.`, 'good');
+                            else toast('That file isn’t up yet — try again shortly.', 'bad');
+                          }}
                         >
                           Download
                         </button>

@@ -1,6 +1,5 @@
 'use client';
 import { Suspense, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SiteShell from '@/components/community/SiteShell';
 import { createClient } from '@/lib/supabase/client';
@@ -227,14 +226,6 @@ function SignInInner() {
                   </button>
                 </form>
 
-                <small>
-                  We use this to remember your seats. No marketing emails you didn&rsquo;t ask for.
-                  <br />
-                  New here?{' '}
-                  <Link href={`/onboarding?next=${encodeURIComponent(next)}`}>
-                    Create an account
-                  </Link>
-                </small>
               </>
             )}
 
@@ -357,10 +348,6 @@ function SignInInner() {
               </>
             )}
           </div>
-
-          <p className="micro" style={{ textAlign: 'center', marginTop: 20 }}>
-            Free, and always. We only ask so your seats and recordings follow you around.
-          </p>
         </div>
       </div>
     </SiteShell>

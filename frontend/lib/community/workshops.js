@@ -131,3 +131,20 @@ export function seatUrl() {
 export function workshopUrl(w) {
   return `/workshops/${encodeURIComponent(w.slug)}`;
 }
+
+/* Hand a resource over for real. Used by the row's own button and by the
+   deferred hand-off that fires when someone comes back from logging in, so
+   both paths do the same thing: a `download` for files, a new tab for links. */
+export function downloadResource(r) {
+  if (!r || !r.fileUrl || r.fileUrl === '#') return false;
+  if (typeof document === 'undefined') return false;
+  const a = document.createElement('a');
+  a.href = r.fileUrl;
+  a.rel = 'noopener';
+  if (r.type === 'link') a.target = '_blank';
+  else a.download = r.fileName || '';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  return true;
+}
