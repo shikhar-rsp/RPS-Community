@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { siteOrigin, requestOrigin } from "@/lib/site-url";
 
 // Handles the OAuth / email-link redirect: exchanges the `code` for a session
 // cookie, then forwards the user on to `next` (default /dashboard).
 export async function GET(request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  // NOT `new URL(request.url).origin` — behind Vercel's proxy that is the
+  // internal *.vercel.app host, which is how a login that started on the
+  // custom domain used to finish on the deployment URL.
+  const origin = siteOrigin(requestOrigin(request));
   const code = searchParams.get("code");
   const next = searchParams.get("next") || "/dashboard";
 
