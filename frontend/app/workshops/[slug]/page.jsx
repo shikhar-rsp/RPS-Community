@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import SiteShell from '@/components/community/SiteShell';
 import Frame from '@/components/community/Frame';
-import { StatusChip, DayBox, QuoteCard, HostCard } from '@/components/community/Bits';
+import { StatusChip, DayBox, QuoteCard, HostCard, seatChipFor } from '@/components/community/Bits';
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession, identityFrom, useToasts } from '@/lib/community/hooks';
 import { useSeats, validateDetails } from '@/lib/community/enrollment';
@@ -176,6 +176,10 @@ function WorkshopDetail() {
 
   const h = host(w.hostId);
   const ready = recordingReady(w);
+  // Whether this workshop has a recording story to tell at all. Without one
+  // there is no player, no "still editing" promise, and no #recording anchor
+  // for anything to point at.
+  const hasRecordingBlock = ready || !!w.recordingComing;
 
   /* ------------------------------------------------------------ enrolment */
   function startEnroll() {
@@ -239,11 +243,8 @@ function WorkshopDetail() {
   const chips = past ? (
     <>
       <span className="eyebrow bare">{w.cohortLabel || 'Past cohort'} · Done</span>
-      {ready ? (
-        <span className="seat done">Recording + files up</span>
-      ) : (
-        <span className="seat warn">Recording still being cut</span>
-      )}
+      {/* One rule for this chip, shared with the listing cards. */}
+      {seatChipFor(w, true, ready)}
     </>
   ) : (
     <>
@@ -525,13 +526,24 @@ function WorkshopDetail() {
                 </div>
               )}
 
-              {featured && featured.id !== w.id && (
+                  {featured && featured.id !== w.id && (
                 <div className="callout plain">
                   <h3>Want to see how one of these actually goes?</h3>
-                  <p>Cohort 01 is up in full, dead air removed, with the file we built.</p>
+                  {recordingReady(featured) ? (
+                    <p>Cohort 01 is up in full, dead air removed, with the file we built.</p>
+                  ) : (
+                    <p>The last session is written up in full, with the file we built.</p>
+                  )}
                   <div className="cta-row">
-                    <Link className="btn ghost go" href={`${workshopUrl(featured)}#recording`}>
-                      Watch the last one
+                    <Link
+                      className="btn ghost go"
+                      href={
+                        recordingReady(featured)
+                          ? `${workshopUrl(featured)}#recording`
+                          : workshopUrl(featured)
+                      }
+                    >
+                      {recordingReady(featured) ? 'Watch the last one' : 'See the last one'}
                     </Link>
                   </div>
                 </div>
@@ -557,22 +569,27 @@ function WorkshopDetail() {
     <SiteShell active="workshops" toasts={toasts}>
       {hero(
         <>
-          <a className="btn go" href="#recording">
-            {ready ? 'Watch the recording' : 'See what happened'}
-          </a>
+          {hasRecordingBlock && (
+            <a className="btn go" href="#recording">
+              {ready ? 'Watch the recording' : 'See what happened'}
+            </a>
+          )}
           {!!(w.resources && w.resources.length) && (
-            <a className="btn ghost" href="#files">
+            /* With no recording to lead on, the files are the reason to be here. */
+            <a className={'btn ' + (hasRecordingBlock ? 'ghost' : 'go')} href="#files">
               Get the files
             </a>
           )}
         </>
       )}
 
-      <div className="wrap" style={{ paddingTop: 'clamp(40px,5vw,60px)' }}>
-        <div className="blk" id="recording">
-          {Recording()}
+      {hasRecordingBlock && (
+        <div className="wrap" style={{ paddingTop: 'clamp(40px,5vw,60px)' }}>
+          <div className="blk" id="recording">
+            {Recording()}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="wrap" style={{ paddingBottom: 'clamp(64px,8vw,104px)' }}>
         <div className="detail" style={{ paddingTop: 0 }}>
@@ -661,6 +678,8 @@ function WorkshopDetail() {
   /* Recording — gated preview, unlocks in place, player lazy-loads on click. */
   function Recording() {
     if (!ready) {
+      // Only reachable when a recording is on its way; otherwise the caller
+      // never renders this block.
       return (
         <div className="callout plain">
           <h3>Recording&rsquo;s not up yet</h3>

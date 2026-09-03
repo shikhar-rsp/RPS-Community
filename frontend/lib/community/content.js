@@ -112,8 +112,11 @@ export const WORKSHOPS = [
     capacity: 45,
     seededEnrollments: 45,
     meetLink: null,
-    recordingUrl: 'https://www.youtube-nocookie.com/embed/RPS-COHORT-01',
-    recordingLength: '90 min',
+    /* No recording exists for this one, and none is coming — so every recording
+       surface (player, "Watch it", the hero CTA, the chips) stays hidden. Set
+       `recordingUrl` on a future workshop and they all come back; set
+       `recordingComing: true` to show the "still editing" note in the meantime. */
+    recordingUrl: null,
     hostId: 'host_1',
     cohortLabel: 'Cohort 01',
     featured: true,
