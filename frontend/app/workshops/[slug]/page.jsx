@@ -9,7 +9,7 @@ import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession, identityFrom, useToasts } from '@/lib/community/hooks';
 import { useSeats, validateDetails } from '@/lib/community/enrollment';
 import {
-  bySlug, host, isPast, recordingReady,
+  bySlug, host, isPast, recordingReady, downloadResource,
   upcoming, featuredPast, testimonials, dateFull, dayShort, time, workshopUrl,
 } from '@/lib/community/workshops';
 
@@ -118,7 +118,7 @@ function WorkshopDetail() {
     const r = (w.resources || []).find((x) => x.id === wantedRes);
     if (r) {
       setDelivered(true);
-      toast(`Downloading “${r.title}”.`, 'good');
+      if (downloadResource(r)) toast(`Downloading “${r.title}”.`, 'good');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w?.id, user?.id, wantedRes, delivered]);
@@ -586,7 +586,7 @@ function WorkshopDetail() {
               <div className="blk" id="files">
                 <span className="eyebrow">Everything from the session</span>
                 <p>
-                  The file we built, the brief, the links. Log in once and every row unlocks.
+                  The full session summary, start to finish. Log in once and it&rsquo;s yours.
                 </p>
                 <div style={{ marginTop: 20 }}>
                   {Resources()}
@@ -770,7 +770,8 @@ function WorkshopDetail() {
                   goSignIn(`${workshopUrl(w)}?res=${encodeURIComponent(r.id)}#files`);
                   return;
                 }
-                toast(`Downloading “${r.title}”.`, 'good');
+                if (downloadResource(r)) toast(`Downloading “${r.title}”.`, 'good');
+                else toast('That file isn’t up yet — try again shortly.', 'bad');
               }}
             >
               {user ? 'Download' : 'Log in to download'}
