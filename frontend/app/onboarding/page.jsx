@@ -6,6 +6,7 @@ import SiteShell from '@/components/community/SiteShell';
 import { useDcLogic } from '@/lib/dc';
 import Logic from '@/lib/logic/onboarding';
 import { createClient } from '@/lib/supabase/client';
+import { siteUrl } from '@/lib/site-url';
 
 export default function Page() {
   return (
@@ -81,7 +82,7 @@ function OnboardingInner() {
       password,
       options: {
         data: { name, role, goals, tools },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: siteUrl('/auth/callback'),
       },
     });
     if (error) return { ok: false, error: error.message };
