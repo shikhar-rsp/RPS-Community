@@ -11,7 +11,7 @@ import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession } from '@/lib/community/hooks';
 import { useSeats } from '@/lib/community/enrollment';
 import {
-  upcoming, featuredPast, testimonials, faqs, seatUrl, workshopUrl,
+  upcoming, featuredPast, testimonials, faqs, seatUrl, workshopUrl, recordingReady,
 } from '@/lib/community/workshops';
 
 export default function Page() {
@@ -45,9 +45,13 @@ export default function Page() {
             </Link>
             <Link
               className="btn ghost lg"
-              href={last ? `${workshopUrl(last)}#recording` : '/workshops#past'}
+              href={
+                last
+                  ? workshopUrl(last) + (recordingReady(last) ? '#recording' : '')
+                  : '/workshops#past'
+              }
             >
-              Watch the last one
+              {last && !recordingReady(last) ? 'See the last one' : 'Watch the last one'}
             </Link>
           </div>
         </div>

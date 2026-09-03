@@ -128,9 +128,13 @@ function Row({ e }) {
       <Link className="linkish" href={`${url}#recording`}>
         Watch it again
       </Link>
-    ) : (
+    ) : w.recordingComing ? (
       <span className="micro">Recording still being cut</span>
-    );
+    ) : (w.resources || []).length ? (
+      <Link className="linkish" href={`${url}#files`}>
+        Get the files
+      </Link>
+    ) : null;
   } else if (e.status === 'WAITLISTED') {
     statusCls = 'wait';
     statusText = 'Waitlisted';
