@@ -97,9 +97,10 @@ export function HostCard({ host }) {
    nothing — the seat counter and its meter are deliberately gone. */
 export function seatChipFor(w, past, ready) {
   if (!past) return null;
-  return ready ? (
-    <span className="seat done">Recording + files up</span>
-  ) : (
-    <span className="seat warn">Recording still being cut</span>
-  );
+  if (ready) return <span className="seat done">Recording + files up</span>;
+  // Don't promise an edit that isn't happening. A session with no recording
+  // coming is described by what it does have.
+  if (w && w.recordingComing) return <span className="seat warn">Recording still being cut</span>;
+  if (w && w.resources && w.resources.length) return <span className="seat done">Files up</span>;
+  return null;
 }

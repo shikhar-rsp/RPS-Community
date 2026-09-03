@@ -102,7 +102,9 @@ export function PastCard({ w, wide, mine }) {
           )}
         </div>
         <div className="foot">
-          <Link className={'btn ' + (ready ? 'go' : 'quiet')} href={`${url}#recording`}>
+          {/* No recording means no #recording to jump to — the page itself is
+              the destination. */}
+          <Link className={'btn ' + (ready ? 'go' : 'quiet')} href={ready ? `${url}#recording` : url}>
             {ready ? 'Watch it' : 'See what happened'}
           </Link>
           <span className="note">

@@ -3,6 +3,7 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SiteShell from '@/components/community/SiteShell';
 import { createClient } from '@/lib/supabase/client';
+import { siteUrl } from '@/lib/site-url';
 
 /* Log in is a page of its own, not a modal. Every gated action leaves for here
    carrying where to come back to, and comes back to finish the job.
@@ -130,7 +131,7 @@ function SignInInner() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        redirectTo: siteUrl(`/auth/callback?next=${encodeURIComponent(next)}`),
       },
     });
     if (error) setError(error.message);
@@ -146,7 +147,7 @@ function SignInInner() {
       return;
     }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: siteUrl('/reset-password'),
     });
     if (error) setError(error.message);
     else setNotice('Password reset link sent — check your email.');
