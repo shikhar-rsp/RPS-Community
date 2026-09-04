@@ -27,6 +27,16 @@ const ONBOARDING_EXEMPT = [
 
 const matches = (pathname, base) => pathname === base || pathname.startsWith(base + "/");
 
+// Pages worth coming back to once onboarding is done: a gated page, or a
+// workshop the person was in the middle of taking a seat for. Anything else —
+// the homepage above all — is a starting point, not a destination.
+function isReturnable(target) {
+  const path = String(target || "").split(/[?#]/)[0];
+  if (!path || path === "/") return false;
+  if (PROTECTED.some((p) => matches(path, p))) return true;
+  return matches(path, "/workshops") && path !== "/workshops";
+}
+
 // Has this user finished onboarding?
 //
 // This is the ONE place it gets decided. It used to be checked in the OAuth
@@ -108,6 +118,11 @@ export async function updateSession(request) {
           ? wanted
           : "/dashboard";
       }
+      // The marketing pages are where people happen to BE, not somewhere they
+      // asked to go. Sending them back to the homepage after the form makes the
+      // last step's "Go to my workshops" land on the landing page. Only a page
+      // with something waiting on it is worth returning to.
+      if (!isReturnable(back)) back = "/dashboard";
       url.pathname = "/onboarding";
       url.search = "";
       url.searchParams.set("mode", "complete");

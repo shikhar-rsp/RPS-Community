@@ -11,6 +11,7 @@ import { useSeats, validateDetails } from '@/lib/community/enrollment';
 import {
   bySlug, host, isPast, recordingReady, downloadResource,
   upcoming, featuredPast, testimonials, dateFull, dayShort, time, workshopUrl,
+  calendarUrl,
 } from '@/lib/community/workshops';
 
 /* One route, two layouts, branching on derived status. Everything on this page
@@ -59,6 +60,27 @@ const ICON = {
   ),
 };
 
+/* E.164 stops at 15 digits, so anything past that is a slip of the thumb, not
+   a number. Trimmed as it's typed rather than only rejected on submit — the
+   field simply stops taking digits once the number is as long as one can be. */
+const MAX_PHONE_DIGITS = 15;
+function capPhone(raw) {
+  const s = String(raw || '');
+  const plus = s.trimStart().startsWith('+');
+  let digits = 0;
+  let out = '';
+  for (const ch of s.replace(/[^\d ]/g, '').replace(/ {2,}/g, ' ')) {
+    if (ch === ' ') {
+      out += ch;
+      continue;
+    }
+    if (digits >= MAX_PHONE_DIGITS) continue;
+    digits += 1;
+    out += ch;
+  }
+  return (plus ? '+' : '') + out;
+}
+
 function Meta({ icon, label, value }) {
   return (
     <div className="m">
@@ -90,6 +112,12 @@ function WorkshopDetail() {
   const [playing, setPlaying] = useState(false);
   const [delivered, setDelivered] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Giving up a seat is a real decision, so it asks once before it happens.
+  const [confirmRelease, setConfirmRelease] = useState(false);
+  const [releasing, setReleasing] = useState(false);
+  // Just let a seat go: the panel says so, instead of silently reverting to the
+  // pitch card a logged-out visitor sees.
+  const [released, setReleased] = useState(false);
 
   const mine = w ? seats[w.slug] : null;
   const past = w ? isPast(w) : false;
@@ -198,6 +226,7 @@ function WorkshopDetail() {
     }
     setForm(null);
     setErrors(null);
+    setReleased(false);
     setPanelMode('confirm');
   }
 
@@ -290,6 +319,31 @@ function WorkshopDetail() {
     </div>
   );
 
+  /* A seat is not given up by a single stray tap. The link swaps for a plain
+     yes/no in place — same card, no dialog to dismiss. */
+  function ReleaseControl({ label, prompt }) {
+    if (!confirmRelease) {
+      return (
+        <button className="linkish" type="button" onClick={() => setConfirmRelease(true)}>
+          {label}
+        </button>
+      );
+    }
+    return (
+      <div style={{ marginTop: 4 }}>
+        <p className="micro" style={{ margin: '0 0 10px' }}>{prompt}</p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button className="btn quiet" type="button" onClick={() => setConfirmRelease(false)}>
+            Keep it
+          </button>
+          <button className="btn" type="button" onClick={releaseSeat} disabled={releasing}>
+            {releasing ? 'Releasing…' : 'Yes, release it'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   /* ---------------------------------------------------- enrolment panel */
   function Panel() {
     if (mine && mine.status === 'REGISTERED') {
@@ -319,12 +373,17 @@ function WorkshopDetail() {
               Join on Meet
             </a>
           )}
-          <Link className="btn quiet full" href="/dashboard" style={{ marginBottom: 6 }}>
-            My workshops
-          </Link>
-          <button className="linkish" type="button" onClick={releaseSeat}>
-            Can&rsquo;t make it?
-          </button>
+          {/* The seat is taken, so the useful next act is putting the session
+              somewhere it will be remembered — not a second route into My
+              workshops, which the account menu already carries. */}
+          <a
+            className="btn quiet full"
+            href={calendarUrl(w)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Add to calendar
+          </a>
         </div>
       );
     }
@@ -347,9 +406,7 @@ function WorkshopDetail() {
           <Link className="btn quiet full" href="/dashboard" style={{ marginBottom: 6 }}>
             My workshops
           </Link>
-          <button className="linkish" type="button" onClick={releaseSeat}>
-            Leave the waitlist
-          </button>
+          <ReleaseControl label="Leave the waitlist" prompt="Come off the waitlist? You’d go to the back of it if you change your mind." />
         </div>
       );
     }
@@ -428,9 +485,16 @@ function WorkshopDetail() {
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
+                maxLength={20}
                 placeholder="+91 98765 43210"
                 defaultValue={v.whatsapp}
                 aria-invalid={errors?.whatsapp ? 'true' : undefined}
+                onInput={(e) => {
+                  // Fires before the form's own onInput, so what the parent
+                  // reads back through FormData is already the capped value.
+                  const capped = capPhone(e.target.value);
+                  if (capped !== e.target.value) e.target.value = capped;
+                }}
               />
               {err('whatsapp') || (
                 <div className="hint">
@@ -450,29 +514,46 @@ function WorkshopDetail() {
       );
     }
 
-    /* Default */
+    /* Default. The three reassurances are the pitch — they answer "is this
+       going to cost me anything?" for someone still deciding. A signed-in
+       member has been past all that, so letting a seat go leaves them on a
+       plain card that says what just happened, not on the sales card they last
+       saw while logged out. */
+    const signedIn = !!user && !!me?.onboarded;
     return (
       <div className="panel">
-        <span className="kicker">Take a seat</span>
+        <span className="kicker">{released ? 'Seat released' : 'Take a seat'}</span>
         <DayBox w={w} />
+        {released && (
+          <p className="micro" style={{ marginTop: -2 }}>
+            You&rsquo;re off the list for this one. The seat is yours again any time before it
+            fills.
+          </p>
+        )}
         <button className="btn full go" type="button" onClick={startEnroll}>
-          Grab a seat
+          {released ? 'Take it back' : 'Grab a seat'}
         </button>
-        <ul className="reassure">
-          <li>Free. No card, no upsell at the end.</li>
-          <li>Meet link and a reminder go to your WhatsApp.</li>
-          <li>Recording and files afterwards, yours to keep.</li>
-        </ul>
+        {!signedIn && (
+          <ul className="reassure">
+            <li>Free. No card, no upsell at the end.</li>
+            <li>Meet link and a reminder go to your WhatsApp.</li>
+            <li>Recording and files afterwards, yours to keep.</li>
+          </ul>
+        )}
       </div>
     );
   }
 
   async function releaseSeat() {
+    setReleasing(true);
     const res = await cancel(w.slug);
+    setReleasing(false);
     if (!res.ok) {
       toast(res.error || 'Could not release your seat.', 'warn');
       return;
     }
+    setConfirmRelease(false);
+    setReleased(true);
     setPanelMode('default');
     setRaceNotice(false);
     toast('Seat released. Someone on the waitlist just got lucky.');
@@ -592,7 +673,11 @@ function WorkshopDetail() {
       )}
 
       <div className="wrap" style={{ paddingBottom: 'clamp(64px,8vw,104px)' }}>
-        <div className="detail" style={{ paddingTop: 0 }}>
+        {/* The zeroed top padding is only right when the recording block sits
+            above and has already opened the gap. With no recording — a session
+            that only left files — it collapsed the hero's buttons straight onto
+            "What went down". */}
+        <div className="detail" style={hasRecordingBlock ? { paddingTop: 0 } : undefined}>
           <div>
             <div className="blk">
               <span className="eyebrow">What went down</span>
@@ -635,7 +720,7 @@ function WorkshopDetail() {
                   <p className="micro" style={{ marginTop: 10 }}>
                     Same room, new brief.
                   </p>
-                  <Link className="btn full go" href={`${workshopUrl(nextUp)}?action=enroll`}>
+                  <Link className="btn full go" href={workshopUrl(nextUp)}>
                     Grab a seat
                   </Link>
                 </div>

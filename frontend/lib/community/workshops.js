@@ -121,11 +121,36 @@ export function calParts(iso) {
   return { dy: bits[0], mo: (bits[1] || '').toUpperCase() };
 }
 
-/* Where "Grab a seat" should go: the next open session, with the enrol flow
-   already firing. Nothing upcoming → the listing, which owns the empty state. */
+/* Where "Grab a seat" should go: the next open session's page, so the decision
+   is made with the brief in front of you. The enrol flow fires from the panel
+   on that page, not from here — a marketing button should never be the thing
+   that bounces someone to a login box.
+   Nothing upcoming → the listing, which owns the empty state. */
 export function seatUrl() {
   const next = upcoming()[0];
-  return next ? `/workshops/${encodeURIComponent(next.slug)}?action=enroll` : '/workshops';
+  return next ? `/workshops/${encodeURIComponent(next.slug)}` : '/workshops';
+}
+
+/* "Add to calendar" — a Google Calendar template link, which is the calendar
+   these sessions already live in. The stamps go over in UTC so the entry lands
+   at the right local hour wherever the reader keeps their calendar, even though
+   everything on the site is written in IST. */
+function stampUTC(d) {
+  return new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+export function calendarUrl(w) {
+  if (!w || !w.dateTime) return '';
+  const start = new Date(w.dateTime);
+  const end = new Date(start.getTime() + (w.durationMins || 90) * 60000);
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: w.title || 'RPS Cohorts workshop',
+    dates: `${stampUTC(start)}/${stampUTC(end)}`,
+    details: [w.summary, w.meetLink ? `Meet: ${w.meetLink}` : ''].filter(Boolean).join('\n\n'),
+    location: w.meetLink || 'Google Meet',
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 export function workshopUrl(w) {

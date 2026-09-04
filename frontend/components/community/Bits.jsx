@@ -47,7 +47,7 @@ export function Faq({ items, className = 'faq' }) {
   const [open, setOpen] = useState(items?.[0]?.id ?? null);
   return (
     <div className={className}>
-      {(items || []).map((f) => {
+      {(items || []).map((f, i) => {
         const isOpen = open === f.id;
         return (
           <div key={f.id} className={'faq-item reveal' + (isOpen ? ' open' : '')}>
@@ -59,7 +59,9 @@ export function Faq({ items, className = 'faq' }) {
                 aria-controls={`faq-a-${f.id}`}
                 onClick={() => setOpen(isOpen ? null : f.id)}
               >
-                <span className="mark" aria-hidden="true">?</span>
+                {/* Numbered, not a row of identical question marks: the tile
+                    now says where you are in the list. */}
+                <span className="mark" aria-hidden="true">{i + 1}</span>
                 <span className="qt">{f.question}</span>
                 <span className="sign" aria-hidden="true" />
               </button>
