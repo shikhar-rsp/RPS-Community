@@ -16,6 +16,14 @@ export default function Page() {
   );
 }
 
+function safeNext(raw) {
+  const wanted = String(raw || '');
+  if (!wanted.startsWith('/') || wanted.startsWith('//')) return '/dashboard';
+  const path = wanted.split(/[?#]/)[0];
+  if (!path || path === '/' || path === '/signin') return '/dashboard';
+  return wanted;
+}
+
 const ROLE_ICON = {
   student: (
     <>
@@ -62,7 +70,11 @@ function OnboardingInner() {
   // 'complete' = already-authenticated user (e.g. Google) filling in their
   // profile. Default = full email/password signup wizard.
   const mode = searchParams.get('mode') === 'complete' ? 'complete' : 'signup';
-  const next = searchParams.get('next') || '/dashboard';
+  // The last step's button says "Go to my workshops", so that is where it has
+  // to land. A `next` is only honoured when it is a real destination someone
+  // was on their way to — a relative path that isn't the landing page, which is
+  // simply where most people happen to be when the form catches them.
+  const next = safeNext(searchParams.get('next'));
   const [initialName, setInitialName] = useState('');
 
   // In complete mode, pre-fill the name from the signed-in identity.
@@ -85,7 +97,17 @@ function OnboardingInner() {
         emailRedirectTo: siteUrl('/auth/callback'),
       },
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      // The one failure worth rewriting: this email already has an account, so
+      // the answer is the login box, not a different password.
+      if (/already registered|already exists/i.test(error.message || '')) {
+        return {
+          ok: false,
+          error: 'There’s already an account on that email. Log in instead — or use “Forgot?” there if the password has gone.',
+        };
+      }
+      return { ok: false, error: error.message };
+    }
     if (data.session) {
       // Email confirmation disabled: sync the trigger-created profile row.
       const { data: rows } = await supabase
@@ -226,6 +248,13 @@ function OnboardingInner() {
               <div className="banner" role="alert" style={{ marginTop: 18 }}>
                 {v.error}
               </div>
+            )}
+
+            {!v.isComplete && (
+              <p className="micro" style={{ marginTop: 18, marginBottom: 0 }}>
+                Already have an account?{' '}
+                <Link href={`/signin?next=${encodeURIComponent(next)}`}>Log in</Link>.
+              </p>
             )}
 
             <div className="ob-actions end">

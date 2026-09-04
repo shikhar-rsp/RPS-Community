@@ -21,7 +21,7 @@ export function UpcomingCard({ w, lead, mine }) {
       You&rsquo;re {mine.status === 'WAITLISTED' ? 'on the list' : 'in'} →
     </Link>
   ) : (
-    <Link className={lead ? 'btn onDark go' : 'btn go'} href={`${url}?action=enroll`}>
+    <Link className={lead ? 'btn onDark go' : 'btn go'} href={url}>
       Grab a seat
     </Link>
   );
@@ -127,7 +127,7 @@ export function FeatureCard({ w, mine }) {
       You&rsquo;re {mine.status === 'WAITLISTED' ? 'on the list' : 'in'}
     </Link>
   ) : (
-    <Link className="btn lg go" href={`${url}?action=enroll`}>
+    <Link className="btn lg go" href={url}>
       Grab a seat
     </Link>
   );

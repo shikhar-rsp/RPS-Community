@@ -22,8 +22,6 @@ export default function Footer() {
           <div>
             <h4>Workshops</h4>
             <div className="links">
-              <Link href="/">Home</Link>
-              <Link href="/workshops">All workshops</Link>
               <Link href="/workshops#upcoming">Upcoming</Link>
               <Link href="/workshops#past">Past &amp; recordings</Link>
             </div>

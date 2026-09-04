@@ -111,6 +111,22 @@ function SignInInner() {
     router.refresh();
   };
 
+  /* Supabase says "Invalid login credentials" for every failure, including the
+     two that aren't a wrong password: no account under this email at all, and
+     an account that only ever existed through Google (which has no password to
+     type). Both of those are a signup problem, so say so and point at the way
+     out rather than leaving people retyping a password they never set. */
+  const signInMessage = (message) => {
+    const m = String(message || '');
+    if (/invalid login credentials/i.test(m)) {
+      return 'That email and password don’t match an account. If you signed up with Google, use the button above — or create an account below.';
+    }
+    if (/email not confirmed/i.test(m)) {
+      return 'Your email isn’t confirmed yet. Open the link we sent you, then log in.';
+    }
+    return m;
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -119,7 +135,7 @@ function SignInInner() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(signInMessage(error.message));
       return;
     }
     router.push(next);
@@ -137,6 +153,12 @@ function SignInInner() {
     if (error) setError(error.message);
   };
   const onGoogle = () => onOAuth('google');
+
+  /* Signing up is the same three-step form new accounts have always used — it
+     collects the email and password itself. This screen just stops pretending
+     it is the only door. */
+  const signUpHref = `/onboarding?next=${encodeURIComponent(next)}`;
+  const goSignUp = () => router.push(signUpHref);
 
   const onForgot = async (e) => {
     e.preventDefault();
@@ -227,6 +249,13 @@ function SignInInner() {
                   </button>
                 </form>
 
+                <small>
+                  First time here?{' '}
+                  <a href={signUpHref} onClick={(e) => { e.preventDefault(); goSignUp(); }}>
+                    Create an account
+                  </a>{' '}
+                  — it takes three steps.
+                </small>
               </>
             )}
 

@@ -1770,7 +1770,7 @@ footer.site .logo-badge .logo-img{ height:34px; }
 .tab{
   display:inline-flex; align-items:center; gap:8px;
   min-height:42px; padding:10px 20px; border-radius:var(--radius-btn);
-  background:transparent; border:0; color:var(--muted);
+  background:transparent; border:1px solid transparent; color:var(--muted);
   font-size:.92rem; font-weight:600; cursor:pointer;
   transition:all var(--dur) var(--ease);
 }
@@ -1780,8 +1780,15 @@ footer.site .logo-badge .logo-img{ height:34px; }
   border-radius:999px; background:var(--soft-fill); color:inherit;
   font-size:.74rem; font-weight:700; font-variant-numeric:tabular-nums;
 }
-.tab[aria-selected="true"]{ background:var(--card); color:var(--heading); box-shadow:var(--shadow-sm); }
-.tab[aria-selected="true"] .n{ background:var(--accent-soft); color:var(--accent); }
+/* The selected tab used to be --card on --paper-2, which in dark mode is a
+   near-black pill on a near-black track — and a shadow reads as nothing at all
+   against it. Selection now carries a tint, an outline and its own ink, so
+   which tab you are on survives both themes and a glance. */
+.tab[aria-selected="true"]{
+  background:var(--accent-soft); border-color:var(--accent);
+  color:var(--accent-ink); box-shadow:var(--shadow-sm);
+}
+.tab[aria-selected="true"] .n{ background:var(--accent); color:var(--on-accent); }
 
 /* ---------- Workshop cards ---------- */
 .wgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:20px; margin-top:44px; align-items:stretch; }
