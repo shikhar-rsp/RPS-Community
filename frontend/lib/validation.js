@@ -1,4 +1,7 @@
 import { z } from "zod";
+// The signup form and this schema must agree on what a valid address is, so
+// both defer to the same dependency-free checker.
+import { isValidEmail } from "./email";
 
 // Only http(s) links are allowed. This blocks stored-XSS vectors like
 // `javascript:...` or `data:...` URLs that would otherwise become clickable.
@@ -56,3 +59,8 @@ export const enrollmentSchema = z.object({
       return digits.length >= 9 && digits.length <= 15;
     }, "That’s not a whole number."),
 });
+
+export const signupEmailSchema = emailSchema.refine(
+  isValidEmail,
+  "Enter a valid email address."
+);

@@ -1,5 +1,6 @@
 'use client';
 import { DCLogic } from '@/lib/dc';
+import { isValidEmail, suggestEmail } from '@/lib/email';
 
 class Component extends DCLogic {
   state = { step: 1, name: '', email: '', password: '', role: null, goals: [], tools: [], submitting: false, error: '', needsEmailConfirm: false };
@@ -38,7 +39,13 @@ class Component extends DCLogic {
     return { [key]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] };
   });
 
-  emailValid() { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.state.email); }
+  // Was a loose regex that accepted `a@b.c` and `someone@gmial.com` — both of
+  // which sign up fine and then hard-bounce the confirmation email.
+  emailValid() { return isValidEmail(this.state.email); }
+  acceptEmailSuggestion = () => {
+    const fix = suggestEmail(this.state.email);
+    if (fix) this.setState({ email: fix });
+  };
 
   canNext() {
     const s = this.state;
@@ -95,6 +102,8 @@ class Component extends DCLogic {
       // Fields
       name: s.name, onName: this.onName,
       email: s.email, password: s.password, onEmail: this.onEmail, onPassword: this.onPassword,
+      emailSuggestion: suggestEmail(s.email),
+      acceptEmailSuggestion: this.acceptEmailSuggestion,
 
       // Choices
       roles: this.roles, goalsList: this.goalsList, toolsList: this.toolsList,

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Nav from './Nav';
 import Footer from './Footer';
+import PostAuthGuard from './PostAuthGuard';
 
 /* ------------------------------------------------------------ cookie notice
    Shown once, then remembered. It sits at the bottom and does NOT block the
@@ -77,6 +78,9 @@ export function Toasts({ items }) {
 export default function SiteShell({ active, children, toasts }) {
   return (
     <>
+      {/* Catches a just-completed login whose session appeared without
+          /auth/callback running — see PostAuthGuard. */}
+      <PostAuthGuard />
       <Nav active={active} />
       <main id="main">{children}</main>
       <Footer />

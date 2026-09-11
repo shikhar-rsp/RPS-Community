@@ -197,6 +197,20 @@ function OnboardingInner() {
                     value={v.email}
                     onChange={v.onEmail}
                   />
+                  {v.emailSuggestion && (
+                    <div className="hint">
+                      Did you mean{' '}
+                      <button
+                        type="button"
+                        className="linkish"
+                        onClick={v.acceptEmailSuggestion}
+                        style={{ padding: 0, minHeight: 0 }}
+                      >
+                        {v.emailSuggestion}
+                      </button>
+                      ?
+                    </div>
+                  )}
                 </div>
                 <div className="field">
                   <label htmlFor="ob-pass">Password</label>

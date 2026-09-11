@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import SiteShell from '@/components/community/SiteShell';
 import { createClient } from '@/lib/supabase/client';
 import { siteUrl } from '@/lib/site-url';
+import { landingAfterAuth, markAuthPending } from '@/lib/community/authLanding';
 
 /* Log in is a page of its own, not a modal. Every gated action leaves for here
    carrying where to come back to, and comes back to finish the job.
@@ -106,8 +107,9 @@ function SignInInner() {
       setError(error.message);
       return;
     }
-    // New phone users have no role yet; the dashboard guard routes them to onboarding.
-    router.push(next);
+    // New phone users have no role yet — resolve where they actually belong
+    // rather than pushing `next` and hoping a later gate catches them.
+    router.push(await landingAfterAuth(supabase, next));
     router.refresh();
   };
 
@@ -138,12 +140,16 @@ function SignInInner() {
       setError(signInMessage(error.message));
       return;
     }
-    router.push(next);
+    router.push(await landingAfterAuth(supabase, next));
     router.refresh();
   };
 
   const onOAuth = async (provider) => {
     setError('');
+    // Remember that a login started here, so PostAuthGuard can still route the
+    // user to onboarding if the provider returns somewhere other than
+    // /auth/callback and that route's own check never runs.
+    markAuthPending();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
