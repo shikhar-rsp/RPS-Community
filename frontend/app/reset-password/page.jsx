@@ -30,6 +30,8 @@ function ResetInner() {
   const [supabase] = useState(() => createClient());
 
   const [phase, setPhase] = useState('checking');
+  // why a link failed: 'expired' | 'wrong-browser' | 'unknown'
+  const [reason, setReason] = useState('expired');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [touched, setTouched] = useState({});
@@ -39,44 +41,63 @@ function ResetInner() {
 
   useEffect(() => {
     let alive = true;
+    let stop = () => {};
 
     (async () => {
       const url = new URL(window.location.href);
       const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
 
-      // Supabase reports a dead link in the query or the hash, depending on flow.
-      if (url.searchParams.get('error') || hash.get('error')) {
-        if (alive) setPhase('invalid');
+      // Supabase reports a genuinely dead link in the query or the hash.
+      const urlError = url.searchParams.get('error_description') || url.searchParams.get('error')
+        || hash.get('error_description') || hash.get('error');
+      if (urlError) {
+        if (alive) { setReason(/expired|invalid/i.test(urlError) ? 'expired' : 'unknown'); setPhase('invalid'); }
         return;
       }
 
-      // PKCE: the link comes back with ?code= to exchange for a session.
+      const hasSession = async () => {
+        const { data } = await supabase.auth.getSession();
+        return !!data.session;
+      };
+
+      // Catch the exchange the client may be doing on its own right now.
+      const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+        if (session && alive) setPhase('ready');
+      });
+      stop = () => sub?.subscription?.unsubscribe();
+
+      // IMPORTANT: look for a session BEFORE trying to redeem the code.
+      // createBrowserClient runs detectSessionInUrl by default and consumes the
+      // ?code= itself. Redeeming a single-use code a second time fails, and
+      // treating that failure as "expired" is what made good links look dead.
+      for (let i = 0; i < 12; i++) {
+        if (!alive) return;
+        if (await hasSession()) { setPhase('ready'); return; }
+        await new Promise((r) => setTimeout(r, 250));
+      }
+
+      // No session after 3s: the client either isn't handling it or failed.
+      // Now it's safe to redeem the code ourselves.
       const code = url.searchParams.get('code');
       if (code) {
         const { error: err } = await supabase.auth.exchangeCodeForSession(code);
         if (!alive) return;
-        setPhase(err ? 'invalid' : 'ready');
+        if (!err) { setPhase('ready'); return; }
+        // One last look — the client may have won the race while we waited.
+        if (await hasSession()) { setPhase('ready'); return; }
+        // A PKCE link can only be redeemed by the browser that asked for it:
+        // the code_verifier lives here. Opened on another device or after
+        // clearing site data, the code is fine but unusable — which is a
+        // different problem from an expired link, and needs different advice.
+        setReason(/verifier|challenge/i.test(err.message || '') ? 'wrong-browser' : 'expired');
+        setPhase('invalid');
         return;
       }
 
-      // Implicit: the browser client picks the token out of the hash itself, so
-      // all that's left is to confirm a session actually materialised.
-      const { data } = await supabase.auth.getSession();
-      if (!alive) return;
-      if (data.session) { setPhase('ready'); return; }
-
-      // The client may still be mid-exchange on first paint — wait for it to
-      // say so rather than calling a good link dead.
-      const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-        if (session && alive) setPhase('ready');
-      });
-      setTimeout(() => {
-        if (alive) setPhase((p) => (p === 'checking' ? 'invalid' : p));
-        sub?.subscription?.unsubscribe();
-      }, 2500);
+      if (alive) { setReason('expired'); setPhase('invalid'); }
     })();
 
-    return () => { alive = false; };
+    return () => { alive = false; stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -126,7 +147,21 @@ function ResetInner() {
               </>
             )}
 
-            {phase === 'invalid' && (
+            {phase === 'invalid' && reason === 'wrong-browser' && (
+              <>
+                <div className="lockicon" aria-hidden="true">🧭</div>
+                <h2>Open this link where you asked for it</h2>
+                <p>
+                  For your security the link can only be opened in the same browser that requested
+                  it. It looks like this one was opened somewhere else — on another device, or after
+                  the browser data was cleared.
+                </p>
+                <Link className="btn full go" href="/forgot-password">Ask for a new link here</Link>
+                <small>Then open it in this browser.</small>
+              </>
+            )}
+
+            {phase === 'invalid' && reason !== 'wrong-browser' && (
               <>
                 <div className="lockicon" aria-hidden="true">⏳</div>
                 <h2>This reset link has expired</h2>
