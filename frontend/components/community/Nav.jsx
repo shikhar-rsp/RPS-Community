@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { CONFIG } from '@/lib/community/content';
 import { seatUrl, initialsFrom } from '@/lib/community/workshops';
 import { useSession, identityFrom, useStuck } from '@/lib/community/hooks';
+import { clearClientState } from '@/lib/community/session-state';
 
 /* The wordmark is the fallback. CONFIG.logoUrl takes over everywhere, nav and
    footer. Some marks (white line-art, no fill) only read against a dark chip —
@@ -60,7 +61,15 @@ export default function Nav({ active }) {
   // pages already do — the middleware then handles the redirect on next nav.
   const onSignOut = async () => {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    // scope 'global' so the refresh token dies server-side, not just the cookie
+    // on this machine — otherwise "sign out" leaves a session that can be
+    // resumed anywhere it was already open.
+    await supabase.auth.signOut({ scope: 'global' });
+    // Supabase clears its own cookie and knows nothing about ours. Everything
+    // under `rps.` belongs to whoever just left: seats, the pending-auth flag,
+    // the mid-enrolment snapshot. Leave it and the next person to log in on
+    // this browser sees the previous user's workshop registrations.
+    clearClientState();
     setMenuOpen(false);
     router.push('/');
     router.refresh();

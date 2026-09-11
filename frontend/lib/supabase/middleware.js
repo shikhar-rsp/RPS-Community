@@ -10,6 +10,11 @@ const PROTECTED = ["/dashboard", "/workshop"];
 // Auth routes an already-signed-in user shouldn't see.
 const AUTH_ROUTES = ["/signin"];
 
+// Set the first time someone proves they have an account. It decides which of
+// the two public doors a signed-out visitor is shown, and nothing else — so a
+// missing or forged value costs nothing beyond the wrong greeting.
+const RETURNING_COOKIE = "rps.returning";
+
 // Onboarding is not a step you can walk around. A signed-in account with no
 // answers on file is sent to the form from ANY page, not just the gated ones —
 // so a new person's first act after logging in is always the three steps.
@@ -21,6 +26,7 @@ const ONBOARDING_EXEMPT = [
   "/onboarding",
   "/auth",
   "/reset-password",
+  "/forgot-password",
   "/privacy",
   "/terms",
 ];
@@ -95,9 +101,15 @@ export async function updateSession(request) {
   const isAuthRoute = AUTH_ROUTES.some((p) => matches(pathname, p));
 
   if (!user && isProtected) {
+    // Signup is the default door. A first-time visitor has no account, so
+    // opening with a login form asks them to do the one thing they cannot —
+    // whereas someone who has signed in on this browser before gets the login
+    // box, because for them the signup form is the dead end.
+    const returning = request.cookies.get(RETURNING_COOKIE)?.value === "1";
     const url = request.nextUrl.clone();
-    url.pathname = "/signin";
-    url.searchParams.set("next", pathname);
+    url.pathname = returning ? "/signin" : "/onboarding";
+    url.search = "";
+    url.searchParams.set("next", pathname + (request.nextUrl.search || ""));
     return NextResponse.redirect(url);
   }
 

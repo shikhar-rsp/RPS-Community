@@ -7,6 +7,9 @@ import { useDcLogic } from '@/lib/dc';
 import Logic from '@/lib/logic/onboarding';
 import { createClient } from '@/lib/supabase/client';
 import { siteUrl } from '@/lib/site-url';
+import { markAuthPending } from '@/lib/community/authLanding';
+import { clearClientState, markReturningVisitor } from '@/lib/community/session-state';
+import { GoogleMark, OrDivider, FieldError } from '@/components/community/AuthBits';
 
 export default function Page() {
   return (
@@ -25,41 +28,11 @@ function safeNext(raw) {
 }
 
 const ROLE_ICON = {
-  student: (
-    <>
-      <path d="M22 10L12 5 2 10l10 5 10-5z" />
-      <path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5" />
-    </>
-  ),
-  switcher: (
-    <>
-      <polyline points="17 1 21 5 17 9" />
-      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-      <polyline points="7 23 3 19 7 15" />
-      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-    </>
-  ),
-  junior: (
-    <>
-      <path d="M12 22V12" />
-      <path d="M12 12C12 8 9 5 5 5c0 4 3 7 7 7z" />
-      <path d="M12 10c0-3.3 2.7-6 6-6 0 3.3-2.7 6-6 6z" />
-    </>
-  ),
-  senior: (
-    <>
-      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-      <polyline points="17 6 23 6 23 12" />
-    </>
-  ),
-  lead: (
-    <>
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </>
-  ),
+  student: (<><path d="M22 10L12 5 2 10l10 5 10-5z" /><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5" /></>),
+  switcher: (<><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></>),
+  junior: (<><path d="M12 22V12" /><path d="M12 12C12 8 9 5 5 5c0 4 3 7 7 7z" /><path d="M12 10c0-3.3 2.7-6 6-6 0 3.3-2.7 6-6 6z" /></>),
+  senior: (<><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></>),
+  lead: (<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>),
 };
 
 function OnboardingInner() {
@@ -87,277 +60,365 @@ function OnboardingInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  // Signup mode: create the Supabase account from the wizard's collected data.
-  const onSignup = async ({ email, password, name, role, goals, tools }) => {
+  /* Where the new fields land. `role`, `goals` and `tools` keep their existing
+     meaning; the rest are the nullable columns from profile-fields.sql. */
+  const profileRow = (d) => ({
+    name: d.name,
+    role: d.role,
+    goals: d.goals,
+    tools: d.tools,
+    mobile: d.mobile,
+    organisation: d.organisation,
+    year_of_study: d.yearOfStudy || null,
+    department: d.department || null,
+    how_heard: d.howHeard || null,
+    terms_accepted_at: d.termsAcceptedAt,
+  });
+
+  const onSignup = async (d) => {
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+      email: d.email,
+      password: d.password,
       options: {
-        data: { name, role, goals, tools },
+        data: { name: d.name, role: d.role, goals: d.goals, tools: d.tools },
         emailRedirectTo: siteUrl('/auth/callback'),
       },
     });
+
     if (error) {
       // The one failure worth rewriting: this email already has an account, so
       // the answer is the login box, not a different password.
-      if (/already registered|already exists/i.test(error.message || '')) {
-        return {
-          ok: false,
-          error: 'There’s already an account on that email. Log in instead — or use “Forgot?” there if the password has gone.',
-        };
+      if (/already registered|already exists|already been registered/i.test(error.message || '')) {
+        return { ok: false, duplicate: true };
       }
       return { ok: false, error: error.message };
     }
+
+    // Supabase's enumeration-safe signal: an address that already exists comes
+    // back as a "success" with no identities attached rather than as an error.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return { ok: false, duplicate: true };
+    }
+
     if (data.session) {
-      // Email confirmation disabled: sync the trigger-created profile row.
+      // Email confirmation disabled: the session exists, so write the profile.
       const { data: rows } = await supabase
         .from('profiles')
-        .upsert({ id: data.user.id, name, role, goals, tools }, { onConflict: 'id' })
+        .upsert({ id: data.user.id, ...profileRow(d) }, { onConflict: 'id' })
         .select('id');
       if (!rows || rows.length === 0) {
-        return { ok: false, error: 'Your account was created but the profile did not save. Please sign in and try again.' };
+        return { ok: false, error: 'Your account was created but the profile did not save. Please log in and try again.' };
       }
+      markReturningVisitor();
       return { ok: true, needsConfirm: false };
     }
+
+    // Confirmation is ON, so there is no session and RLS won't let us write the
+    // profile yet. signUp parked the answers in user_metadata, and the
+    // handle_new_user trigger copies them across.
+    markReturningVisitor();
     return { ok: true, needsConfirm: true };
   };
 
-  // Complete mode: the user is already signed in — just save their answers to
-  // the profile (and keep user_metadata in sync).
-  const onComplete = async ({ name, role, goals, tools }) => {
+  // Complete mode: already signed in — just save the answers.
+  const onComplete = async (d) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { ok: false, error: 'Your session expired. Please sign in again.' };
-    await supabase.auth.updateUser({ data: { name, role, goals, tools } });
+    if (!user) return { ok: false, error: 'Your session expired. Please log in again.' };
+    await supabase.auth.updateUser({ data: { name: d.name, role: d.role, goals: d.goals, tools: d.tools } });
     // upsert, not update: the profiles row is normally made by the
     // on_auth_user_created trigger, but if it is ever missing an UPDATE matches
     // zero rows and returns no error — reporting success while leaving `role`
     // unset, which the onboarding gate then bounces straight back here forever.
-    // Creating it needs the INSERT grant from supabase/profile-repair.sql.
-    // .select() so a write that lands nowhere is still visible.
     const { data: rows, error } = await supabase
       .from('profiles')
-      .upsert({ id: user.id, name, role, goals, tools }, { onConflict: 'id' })
+      .upsert({ id: user.id, ...profileRow(d) }, { onConflict: 'id' })
       .select('id');
     if (error) return { ok: false, error: error.message };
     if (!rows || rows.length === 0) {
-      return { ok: false, error: 'We could not save your profile. Please sign in again.' };
+      return { ok: false, error: 'We could not save your profile. Please log in again.' };
     }
+    markReturningVisitor();
     return { ok: true, needsConfirm: false };
   };
 
   const onFinish = mode === 'complete' ? onComplete : onSignup;
+  const goDashboard = () => { router.push(next); router.refresh(); };
 
-  const goDashboard = () => {
-    router.push(next);
-    router.refresh();
+  const onGoogle = async () => {
+    // A new identity is about to own this browser — drop whatever the last one
+    // left behind before the round trip.
+    clearClientState();
+    markAuthPending();
+    markReturningVisitor();
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: siteUrl(`/auth/callback?next=${encodeURIComponent(next)}`) },
+    });
   };
 
   const v = useDcLogic(Logic, { onFinish, goDashboard, mode, initialName });
+  const loginHref = `/signin?next=${encodeURIComponent(next)}`;
 
   return (
     <SiteShell active="login">
       <div className="wrap ob-wrap">
-        <div className="ob-rail" aria-hidden="true">
-          {[1, 2, 3, 4].map((n) => (
-            <i key={n}>
-              <b style={{ width: v.step >= n ? '100%' : '0%' }} />
-            </i>
-          ))}
-        </div>
+        {!v.isDone && (
+          <div className="ob-rail" aria-hidden="true">
+            {[1, 2].map((n) => (
+              <i key={n}><b style={{ width: v.step >= n ? '100%' : '0%' }} /></i>
+            ))}
+          </div>
+        )}
 
-        {/* ------------------------------------------------------- step 1 */}
+        {/* ---------------------------------------------------- step 1 */}
         {v.isStep1 && (
           <div className="ob-card">
-            <span className="eyebrow bare">Step 1 of 3</span>
-            <h1>Welcome</h1>
-            <p>First, tell us where you are in your design journey.</p>
-
-            <div className="field">
-              <label htmlFor="ob-name">Your name</label>
-              <input
-                id="ob-name"
-                type="text"
-                autoComplete="name"
-                placeholder="What should we call you?"
-                value={v.name}
-                onChange={v.onName}
-              />
-            </div>
+            <span className="eyebrow bare">Step 1 of {v.totalSteps}</span>
+            <h1>{v.isComplete ? 'Finish your profile' : 'Create your RPS account'}</h1>
+            <p>
+              {v.isComplete
+                ? 'A few details and you’re in.'
+                : 'Join the community and register for workshops.'}
+            </p>
 
             {!v.isComplete && (
-              <div className="form-grid">
+              <>
+                <button className="oauth" type="button" onClick={onGoogle}>
+                  <GoogleMark />
+                  Continue with Google
+                </button>
+                <OrDivider>or sign up with email</OrDivider>
+              </>
+            )}
+
+            {v.duplicateEmail && (
+              <div className="banner dup" role="alert">
+                <span>An account with this email already exists.</span>
+                <Link
+                  className="btn sm"
+                  href={`/signin?email=${encodeURIComponent(v.duplicateEmail)}&next=${encodeURIComponent(next)}`}
+                >
+                  Log in instead
+                </Link>
+              </div>
+            )}
+            {v.error && <div className="banner" role="alert" style={{ textAlign: 'left' }}>{v.error}</div>}
+
+            <form noValidate onSubmit={(e) => { e.preventDefault(); v.onNext(); }}>
+              <div className="field">
+                <label htmlFor="ob-name">Full name</label>
+                <input id="ob-name" type="text" autoComplete="name" value={v.name}
+                  onChange={v.onName} onBlur={v.onBlur('name')}
+                  aria-invalid={v.err('name') ? 'true' : undefined}
+                  aria-describedby={v.err('name') ? 'ob-name-err' : undefined}
+                  placeholder="What should we call you?" />
+                <FieldError id="ob-name-err" message={v.err('name')} />
+              </div>
+
+              {!v.isComplete && (
                 <div className="field">
                   <label htmlFor="ob-email">Email</label>
-                  <input
-                    id="ob-email"
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    placeholder="you@email.com"
-                    value={v.email}
-                    onChange={v.onEmail}
-                  />
-                  {v.emailSuggestion && (
+                  <input id="ob-email" type="email" inputMode="email" autoComplete="email" value={v.email}
+                    onChange={v.onEmail} onBlur={v.onBlur('email')}
+                    aria-invalid={v.err('email') ? 'true' : undefined}
+                    aria-describedby={v.err('email') ? 'ob-email-err' : undefined}
+                    placeholder="you@email.com" />
+                  <FieldError id="ob-email-err" message={v.err('email')} />
+                  {!v.err('email') && v.emailSuggestion && (
                     <div className="hint">
                       Did you mean{' '}
-                      <button
-                        type="button"
-                        className="linkish"
-                        onClick={v.acceptEmailSuggestion}
-                        style={{ padding: 0, minHeight: 0 }}
-                      >
-                        {v.emailSuggestion}
-                      </button>
-                      ?
+                      <button type="button" className="linkish" onClick={v.acceptEmailSuggestion}
+                        style={{ padding: 0, minHeight: 0 }}>{v.emailSuggestion}</button>?
                     </div>
                   )}
                 </div>
-                <div className="field">
-                  <label htmlFor="ob-pass">Password</label>
-                  <input
-                    id="ob-pass"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="At least 8 characters"
-                    value={v.password}
-                    onChange={v.onPassword}
-                  />
-                </div>
-              </div>
-            )}
+              )}
 
-            <span className="eyebrow bare">I am a…</span>
-            <div className="ob-roles">
-              {v.roles.map((r) => (
-                <button
-                  key={r.id}
-                  className="ob-role"
-                  type="button"
-                  aria-pressed={v.role === r.id}
-                  onClick={() => v.selectRole(r.id)}
-                >
-                  <span className="ico">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      {ROLE_ICON[r.id]}
-                    </svg>
-                  </span>
+              <div className="field">
+                <label htmlFor="ob-mobile">Mobile number</label>
+                <input id="ob-mobile" type="tel" inputMode="tel" autoComplete="tel" value={v.mobile}
+                  onChange={v.onMobile} onBlur={v.onBlur('mobile')}
+                  aria-invalid={v.err('mobile') ? 'true' : undefined}
+                  aria-describedby={v.err('mobile') ? 'ob-mobile-err' : 'ob-mobile-hint'}
+                  placeholder="+91 98765 43210" />
+                <FieldError id="ob-mobile-err" message={v.err('mobile')} />
+                {!v.err('mobile') && (
+                  <div className="hint" id="ob-mobile-hint">With your country code. Workshop reminders go here.</div>
+                )}
+              </div>
+
+              {!v.isComplete && (
+                <>
+                  <div className="field">
+                    <label htmlFor="ob-pass">Password</label>
+                    <div className="pw-wrap">
+                      <input id="ob-pass" type={v.showPassword ? 'text' : 'password'} autoComplete="new-password"
+                        value={v.password} onChange={v.onPassword} onBlur={v.onBlur('password')}
+                        aria-invalid={v.err('password') ? 'true' : undefined}
+                        aria-describedby="ob-pass-rules"
+                        placeholder="At least 8 characters" />
+                      <button type="button" className="pw-toggle" onClick={v.toggleShowPassword}
+                        aria-pressed={v.showPassword}
+                        aria-label={v.showPassword ? 'Hide password' : 'Show password'}>
+                        {v.showPassword ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                    {!!v.password && (
+                      <div className="pw-meter" aria-hidden="true">
+                        <i data-score={v.passwordScore} style={{ width: v.passwordScore * 25 + '%' }} />
+                      </div>
+                    )}
+                    <div className="hint" id="ob-pass-rules">
+                      {v.password ? (
+                        <>
+                          <b>{v.passwordStrength}</b>{' — '}
+                          {v.passwordRules.map((r) => (
+                            <span key={r.id} className={r.met ? 'pw-ok' : undefined}>
+                              {r.met ? '✓' : '•'} {r.label}{' '}
+                            </span>
+                          ))}
+                        </>
+                      ) : (
+                        'At least 8 characters, with a letter and a number.'
+                      )}
+                    </div>
+                    <FieldError id="ob-pass-err" message={v.err('password')} />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="ob-confirm">Confirm password</label>
+                    <input id="ob-confirm" type={v.showPassword ? 'text' : 'password'} autoComplete="new-password"
+                      value={v.confirm} onChange={v.onConfirm} onBlur={v.onBlur('confirm')}
+                      aria-invalid={v.err('confirm') ? 'true' : undefined}
+                      aria-describedby={v.err('confirm') ? 'ob-confirm-err' : undefined}
+                      placeholder="Type it again" />
+                    <FieldError id="ob-confirm-err" message={v.err('confirm')} />
+                  </div>
+                </>
+              )}
+
+              <div className="field">
+                <label htmlFor="ob-org">College or organisation</label>
+                <input id="ob-org" type="text" autoComplete="organization" value={v.organisation}
+                  onChange={v.onOrganisation} onBlur={v.onBlur('organisation')}
+                  aria-invalid={v.err('organisation') ? 'true' : undefined}
+                  aria-describedby={v.err('organisation') ? 'ob-org-err' : undefined}
+                  placeholder="Where you study or work" />
+                <FieldError id="ob-org-err" message={v.err('organisation')} />
+              </div>
+
+              <div className="field">
+                <label className="check-row" htmlFor="ob-terms">
+                  <input id="ob-terms" type="checkbox" checked={v.terms} onChange={v.onTerms}
+                    onBlur={v.onBlur('terms')}
+                    aria-invalid={v.err('terms') ? 'true' : undefined}
+                    aria-describedby={v.err('terms') ? 'ob-terms-err' : undefined} />
                   <span>
-                    <b>{r.title}</b>
-                    <small>{r.desc}</small>
+                    I agree to the <Link href="/terms">Terms</Link> and{' '}
+                    <Link href="/privacy">Privacy policy</Link>.
                   </span>
-                </button>
-              ))}
-            </div>
-
-            {v.error && (
-              <div className="banner" role="alert" style={{ marginTop: 18 }}>
-                {v.error}
+                </label>
+                <FieldError id="ob-terms-err" message={v.err('terms')} />
               </div>
-            )}
+
+              <div className="ob-actions end">
+                <button className="btn go" type="submit" disabled={v.continueDisabled}>Continue</button>
+              </div>
+            </form>
 
             {!v.isComplete && (
-              <p className="micro" style={{ marginTop: 18, marginBottom: 0 }}>
-                Already have an account?{' '}
-                <Link href={`/signin?next=${encodeURIComponent(next)}`}>Log in</Link>.
+              <p className="micro" style={{ textAlign: 'center', marginTop: 18 }}>
+                Already have an account? <Link href={loginHref}>Log in</Link>
               </p>
             )}
-
-            <div className="ob-actions end">
-              <button className="btn go" type="button" onClick={v.onNext} disabled={v.continueDisabled}>
-                Continue
-              </button>
-            </div>
           </div>
         )}
 
-        {/* ------------------------------------------------------- step 2 */}
+        {/* ---------------------------------------------------- step 2 */}
         {v.isStep2 && (
           <div className="ob-card">
-            <span className="eyebrow bare">Step 2 of 3</span>
-            <h1>What are you here for?</h1>
-            <p>Pick all that apply — we&rsquo;ll personalise your home.</p>
-            <div className="ob-chips">
-              {v.goalsList.map((g) => (
-                <button
-                  key={g}
-                  className="ob-chip"
-                  type="button"
-                  aria-pressed={v.goals.includes(g)}
-                  onClick={() => v.toggleGoal(g)}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-            <div className="ob-actions">
-              <button className="btn quiet" type="button" onClick={v.onBack}>
-                Back
-              </button>
-              <button className="btn go" type="button" onClick={v.onNext} disabled={v.continueDisabled}>
-                Continue
-              </button>
-            </div>
-          </div>
-        )}
+            <span className="eyebrow bare">Step 2 of {v.totalSteps}</span>
+            <h1>A bit about you</h1>
+            <p>So we can point you at the right sessions. Only the first one is required.</p>
 
-        {/* ------------------------------------------------------- step 3 */}
-        {v.isStep3 && (
-          <div className="ob-card">
-            <span className="eyebrow bare">Step 3 of 3</span>
-            <h1>Which tools do you use?</h1>
-            <p>We&rsquo;ll surface guides and posts for these first.</p>
-            <div className="ob-chips">
-              {v.toolsList.map((t) => (
-                <button
-                  key={t}
-                  className="ob-chip"
-                  type="button"
-                  aria-pressed={v.tools.includes(t)}
-                  onClick={() => v.toggleTool(t)}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-            {v.error && (
-              <div className="banner" role="alert" style={{ marginTop: 18 }}>
-                {v.error}
+            <form noValidate onSubmit={(e) => { e.preventDefault(); v.onNext(); }}>
+              <span className="eyebrow bare">I am a…</span>
+              <div className="ob-roles">
+                {v.roles.map((r) => (
+                  <button key={r.id} className="ob-role" type="button"
+                    aria-pressed={v.role === r.id} onClick={() => v.selectRole(r.id)}>
+                    <span className="ico">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{ROLE_ICON[r.id]}</svg>
+                    </span>
+                    <span><b>{r.title}</b><small>{r.desc}</small></span>
+                  </button>
+                ))}
               </div>
-            )}
-            <div className="ob-actions">
-              <button className="btn quiet" type="button" onClick={v.onBack}>
-                Back
-              </button>
-              <button className="btn go" type="button" onClick={v.onNext} disabled={v.continueDisabled}>
-                {v.submitting ? 'Working…' : v.submitLabel}
-              </button>
-            </div>
+
+              {v.isStudent && (
+                <div className="form-grid" style={{ marginTop: 22 }}>
+                  <div className="field">
+                    <label htmlFor="ob-year">Year of study <span className="opt">optional</span></label>
+                    <input id="ob-year" type="text" value={v.yearOfStudy} onChange={v.onYearOfStudy}
+                      placeholder="e.g. 3rd year" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="ob-dept">Department <span className="opt">optional</span></label>
+                    <input id="ob-dept" type="text" value={v.department} onChange={v.onDepartment}
+                      placeholder="e.g. Design" />
+                  </div>
+                </div>
+              )}
+
+              <span className="eyebrow bare" style={{ marginTop: 26 }}>
+                What are you here for? <span className="opt">optional</span>
+              </span>
+              <div className="ob-chips">
+                {v.goalsList.map((g) => (
+                  <button key={g} className="ob-chip" type="button"
+                    aria-pressed={v.goals.includes(g)} onClick={() => v.toggleGoal(g)}>{g}</button>
+                ))}
+              </div>
+
+              <span className="eyebrow bare" style={{ marginTop: 26 }}>
+                Tools you use <span className="opt">optional</span>
+              </span>
+              <div className="ob-chips">
+                {v.toolsList.map((t) => (
+                  <button key={t} className="ob-chip" type="button"
+                    aria-pressed={v.tools.includes(t)} onClick={() => v.toggleTool(t)}>{t}</button>
+                ))}
+              </div>
+
+              <div className="field" style={{ marginTop: 26 }}>
+                <label htmlFor="ob-heard">How did you hear about us? <span className="opt">optional</span></label>
+                <select id="ob-heard" value={v.howHeard} onChange={v.onHowHeard}>
+                  <option value="">Choose one</option>
+                  {v.howHeardList.map((h) => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+
+              {v.error && (
+                <div className="banner" role="alert" style={{ textAlign: 'left', marginTop: 18 }}>{v.error}</div>
+              )}
+
+              <div className="ob-actions">
+                <button className="btn quiet" type="button" onClick={v.onBack} disabled={v.submitting}>Back</button>
+                <button className="btn go" type="submit" disabled={v.continueDisabled || !v.role}>
+                  {v.submitting ? 'Creating your account…' : v.submitLabel}
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
-        {/* ------------------------------------------------------- step 4 */}
-        {v.isStep4 && (
+        {/* ------------------------------------------------------- done */}
+        {v.isDone && (
           <div className="ob-card ob-done">
             <div className="tick" aria-hidden="true">
-              <svg
-                width="30"
-                height="30"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
@@ -365,9 +426,10 @@ function OnboardingInner() {
               <>
                 <h1>Check your email{v.nameSuffix}.</h1>
                 <p>
-                  We sent a confirmation link. Click it to activate your account, then log in.
+                  We&rsquo;ve sent a confirmation link to <b>{v.email}</b>. Click it and you&rsquo;re in.
+                  If it isn&rsquo;t there in a minute, check your spam folder.
                 </p>
-                <Link className="btn full go" href="/signin">
+                <Link className="btn full go" href={`/signin?email=${encodeURIComponent(v.email)}`}>
                   Go to log in
                 </Link>
               </>

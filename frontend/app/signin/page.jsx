@@ -1,10 +1,12 @@
 'use client';
 import { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SiteShell from '@/components/community/SiteShell';
 import { createClient } from '@/lib/supabase/client';
 import { siteUrl } from '@/lib/site-url';
 import { landingAfterAuth, markAuthPending } from '@/lib/community/authLanding';
+import { clearClientState, markReturningVisitor } from '@/lib/community/session-state';
 
 /* Log in is a page of its own, not a modal. Every gated action leaves for here
    carrying where to come back to, and comes back to finish the job.
@@ -48,7 +50,8 @@ function SignInInner() {
   const searchParams = useSearchParams();
   const supabase = createClient();
 
-  const [email, setEmail] = useState('');
+  // Carried in by the duplicate-email button on signup, or the confirm screen.
+  const [email, setEmail] = useState(() => searchParams.get('email') || '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -109,6 +112,8 @@ function SignInInner() {
     }
     // New phone users have no role yet — resolve where they actually belong
     // rather than pushing `next` and hoping a later gate catches them.
+    clearClientState();
+    markReturningVisitor();
     router.push(await landingAfterAuth(supabase, next));
     router.refresh();
   };
@@ -121,7 +126,7 @@ function SignInInner() {
   const signInMessage = (message) => {
     const m = String(message || '');
     if (/invalid login credentials/i.test(m)) {
-      return 'That email and password don’t match an account. If you signed up with Google, use the button above — or create an account below.';
+      return 'Incorrect email or password. If you signed up with Google, use the button above.';
     }
     if (/email not confirmed/i.test(m)) {
       return 'Your email isn’t confirmed yet. Open the link we sent you, then log in.';
@@ -140,6 +145,10 @@ function SignInInner() {
       setError(signInMessage(error.message));
       return;
     }
+    // A different account may be taking over this browser — drop the previous
+    // occupant's seats and flags before their data can show up as this user's.
+    clearClientState();
+    markReturningVisitor();
     router.push(await landingAfterAuth(supabase, next));
     router.refresh();
   };
@@ -149,7 +158,9 @@ function SignInInner() {
     // Remember that a login started here, so PostAuthGuard can still route the
     // user to onboarding if the provider returns somewhere other than
     // /auth/callback and that route's own check never runs.
+    clearClientState();
     markAuthPending();
+    markReturningVisitor();
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
@@ -165,21 +176,6 @@ function SignInInner() {
      it is the only door. */
   const signUpHref = `/onboarding?next=${encodeURIComponent(next)}`;
   const goSignUp = () => router.push(signUpHref);
-
-  const onForgot = async (e) => {
-    e.preventDefault();
-    setError('');
-    setNotice('');
-    if (!email) {
-      setError('Enter your email above first, then click Forgot.');
-      return;
-    }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: siteUrl('/reset-password'),
-    });
-    if (error) setError(error.message);
-    else setNotice('Password reset link sent — check your email.');
-  };
 
   return (
     <SiteShell active="login">
@@ -232,13 +228,12 @@ function SignInInner() {
                   <div className="field">
                     <label htmlFor="si-pass">
                       Password
-                      <a
-                        href="#"
-                        onClick={onForgot}
+                      <Link
+                        href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
                         style={{ float: 'right', fontWeight: 600, fontSize: '.8rem' }}
                       >
                         Forgot?
-                      </a>
+                      </Link>
                     </label>
                     <input
                       id="si-pass"
@@ -260,7 +255,7 @@ function SignInInner() {
                   <a href={signUpHref} onClick={(e) => { e.preventDefault(); goSignUp(); }}>
                     Create an account
                   </a>{' '}
-                  — it takes three steps.
+                  — it takes two steps.
                 </small>
               </>
             )}
