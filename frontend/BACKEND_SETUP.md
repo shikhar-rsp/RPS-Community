@@ -71,6 +71,52 @@ Free tier is 3,000 emails/month and 100/day at the time of writing — check
 resend.com/pricing, since a launch announcement is the one thing that could
 push a day over 100.
 
+### Fix the SPF record first
+
+**The domain currently has two SPF records, and that breaks SPF for every mail
+it sends — Google Workspace included.** A domain is allowed exactly one. When a
+receiver finds two it returns `permerror` and stops evaluating, so nothing the
+domain sends is SPF-authenticated. This is the most likely cause of the bounce
+problem noted at the top of `lib/email.js`, and setting Resend up on top of it
+would inherit a broken foundation.
+
+Checked 2026-09-15 against public DNS:
+
+```
+v=spf1 include:_spf.google.com ~all      <- Google Workspace, live (MX + DKIM present)
+v=spf1 include:mailgun.org ~all          <- Mailgun, no DKIM found; looks like a leftover
+```
+
+DNS is on **Cloudflare** (`edward.ns` / `jamie.ns.cloudflare.com`). In the
+Cloudflare dashboard → the domain → **DNS → Records**, delete one of the two
+TXT records at the root (`@`) and edit the other to a single merged record:
+
+```
+v=spf1 include:_spf.google.com include:mailgun.org ~all
+```
+
+That is the safe merge: it fixes the `permerror` and changes nothing about who
+can send. Only the tracking CNAME `email.rockpaperscissors.studio → mailgun.org`
+was found for Mailgun and no DKIM, which suggests it is not actually sending —
+but confirm that before dropping `include:mailgun.org`, because if some other
+system still sends through Mailgun, removing it fails their mail instead.
+
+While in there: DMARC is `p=none` with reports going to `dmarc.brevo.com`, so
+it is monitoring only and not enforcing. Worth revisiting once SPF is clean and
+Resend's DKIM is live, but it is not a blocker.
+
+### Verify it worked
+
+From `frontend/`, with the key in the shell:
+
+```bash
+RESEND_API_KEY=re_xxx node scripts/check-mail.mjs you@example.com
+```
+
+It checks the three things that fail, in the order they fail, and names which
+one it was. Run it before trusting a real registration — the domain-not-verified
+case is silent, and the app cannot tell it apart from success.
+
 To change what the email says, edit `lib/emails/enrollment.js`. It builds the
 HTML and plain-text parts together; keep them in step, because the text part is
 what spam filters read and what a watch or screen reader falls back to.

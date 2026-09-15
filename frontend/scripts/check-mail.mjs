@@ -14,6 +14,8 @@
    nobody except your own account address.
    ============================================================================= */
 
+import { Resolver } from 'node:dns/promises';
+
 const KEY = process.env.RESEND_API_KEY;
 const FROM = process.env.MAIL_FROM || 'RPS Cohorts <cohorts@rockpaperscissors.studio>';
 
@@ -33,9 +35,58 @@ async function api(path) {
   return { status: res.status, body: await res.json().catch(() => ({})) };
 }
 
+/* One SPF record, or none, is fine. Two is the failure: RFC 7208 allows exactly
+   one, and a receiver that finds two returns permerror and stops — so nothing
+   the domain sends is SPF-authenticated, including mail that has nothing to do
+   with this app. Resend's own domain status cannot see this, which is why it is
+   checked here rather than left to the API. */
+/* The system resolver first, then public ones. A lot of home and office routers
+   refuse direct TXT queries from Node even where nslookup works, and "your
+   router is fussy" is not a useful answer to "is my email set up right". */
+async function txtRecords(domain) {
+  const attempts = [null, ['1.1.1.1', '8.8.8.8']];
+  let lastErr;
+  for (const servers of attempts) {
+    try {
+      const r = new Resolver();
+      if (servers) r.setServers(servers);
+      return await r.resolveTxt(domain);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr;
+}
+
+async function checkSpf(domain) {
+  let records;
+  try {
+    records = await txtRecords(domain);
+  } catch (err) {
+    info('Could not read TXT for ' + domain + ' (' + err.code + ') — skipping the SPF check.');
+    return true;
+  }
+  const spf = records.map((r) => r.join('')).filter((t) => t.toLowerCase().startsWith('v=spf1'));
+
+  if (spf.length > 1) {
+    bad(domain + ' has ' + spf.length + ' SPF records. It is allowed one.');
+    spf.forEach((t) => info('  ' + t));
+    info('');
+    info('Receivers return permerror and authenticate none of your mail.');
+    info('Merge the includes into one record — see BACKEND_SETUP.md section 7.');
+    return false;
+  }
+  if (spf.length === 1) ok('One SPF record on ' + domain + '.');
+  else info('No SPF record on ' + domain + '. Not fatal — DKIM can carry DMARC alone.');
+  return true;
+}
+
 async function main() {
   const to = process.argv[2];
+  let spfOk = true;
   console.log('\nResend setup check\n');
+
+  spfOk = await checkSpf(fromDomain());
 
   // 1 -------------------------------------------------------------- the key
   if (!KEY) {
@@ -117,7 +168,9 @@ async function main() {
   }
   ok('Sent to ' + to + '. Check the inbox, and the spam folder.');
   console.log('');
-  return 0;
+  // The send worked, but a broken SPF record still costs deliverability on
+  // every message, so a run that found one does not get to report success.
+  return spfOk ? 0 : 1;
 }
 
 // exitCode rather than process.exit(), so the process winds down on its own
