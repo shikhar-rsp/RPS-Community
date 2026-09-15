@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Avatar } from './Frame';
-import { calParts, dayShort, time } from '@/lib/community/workshops';
+import { calParts, dayShort, time, durationLabel } from '@/lib/community/workshops';
 
 /* Status label is always text, never colour alone. */
 export function StatusChip({ status }) {
@@ -22,7 +22,7 @@ export function DayBox({ w, note }) {
         <b>
           {dayShort(w.dateTime)} · {time(w.dateTime)}
         </b>
-        <small>{note || '90 minutes, live on Google Meet'}</small>
+        <small>{note || `${durationLabel(w)}, live on Google Meet`}</small>
       </span>
     </div>
   );

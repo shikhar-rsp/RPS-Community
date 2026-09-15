@@ -156,6 +156,19 @@ export function calendarUrl(w) {
 /* `description` is one paragraph on some workshops and several on others.
    Every renderer normalises it through here rather than each one guessing,
    so adding a paragraph to the content is never also a change to a page. */
+/* "90 minutes" / "2 hours" / "1 hour". Whole hours read as hours; anything else
+   stays in minutes, because "1 hour 30 minutes" is a worse way to say 90 for a
+   session length. One formatter so the page, the seat panel and the email can
+   never disagree about how long a workshop runs. */
+export function durationLabel(w) {
+  const mins = Number(w?.durationMins) || 90;
+  if (mins % 60 === 0) {
+    const hrs = mins / 60;
+    return hrs === 1 ? '1 hour' : `${hrs} hours`;
+  }
+  return `${mins} minutes`;
+}
+
 export function paragraphs(value) {
   return (Array.isArray(value) ? value : [value]).filter(Boolean);
 }

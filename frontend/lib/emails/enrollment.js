@@ -13,7 +13,7 @@
 
 import { sendEmail } from '@/lib/mail';
 import { siteUrl } from '@/lib/site-url';
-import { bySlug, host, dayShort, time, dateFull, calendarUrl } from '@/lib/community/workshops';
+import { bySlug, host, dayShort, time, dateFull, calendarUrl, durationLabel } from '@/lib/community/workshops';
 
 const ACCENT = '#FF630B';
 const INK = '#13100E';
@@ -82,7 +82,7 @@ export function buildEnrollmentEmail({ name, workshop, status }) {
   // than no PIN, because someone would sit on hold in an empty meeting.
   const dialIn = meet && w.meetPhone?.number && w.meetPhone?.pin ? w.meetPhone : null;
   const when = dayShort(w.dateTime) + ' · ' + time(w.dateTime);
-  const mins = String(w.durationMins || 90);
+  const mins = durationLabel(w);
 
   // Every workshop title is a full sentence ending in a full stop, so anything
   // appended to it reads as a new one ("...looking like it. on Sat 19 Sep").
@@ -101,7 +101,7 @@ export function buildEnrollmentEmail({ name, workshop, status }) {
     : 'Your seat at <strong>' + esc(w.title) + '</strong> is confirmed. Here’s everything you need.';
 
   const facts =
-    row('When', esc(when) + sub(dateFull(w.dateTime) + ' · ' + mins + ' minutes')) +
+    row('When', esc(when) + sub(dateFull(w.dateTime) + ' · ' + mins)) +
     row(
       'Where',
       meet
@@ -191,7 +191,7 @@ export function buildEnrollmentEmail({ name, workshop, status }) {
         '— we’ll email you straight away.'
       : 'Your seat at "' + w.title + '" is confirmed.',
     '',
-    'When:  ' + when + ' (' + dateFull(w.dateTime) + ', ' + mins + ' minutes)',
+    'When:  ' + when + ' (' + dateFull(w.dateTime) + ', ' + mins + ')',
     'Where: ' + (meet || 'Google Meet — the link goes to your WhatsApp before the session.'),
     dialIn
       ? '       Or dial ' + dialIn.number + ' (' + dialIn.country + '), PIN ' + dialIn.pin
