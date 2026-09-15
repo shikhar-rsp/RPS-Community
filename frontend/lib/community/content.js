@@ -53,23 +53,30 @@ export const WORKSHOPS = [
   {
     id: 'w_ai_product',
     slug: 'design-products-with-ai',
-    title: 'Design a product with AI. Without it looking like it.',
-    summary: 'A real product screen set, built in 90 minutes — specs, states and judgment.',
-    description:
-      'Everyone’s output looks the same right now. That’s not a prompting problem. In 90 minutes we build a real product screen set — and fix the actual cause.',
+    title: 'Designing product journeys with AI. Not just websites.',
+    summary:
+      'Build a real product design system, user flows and production-ready screens — all with AI understanding. See how design consistency happens at scale, from journeys to code.',
+    /* Several paragraphs, not one: the section opens on the gap, names the
+       problem, then lays out the pipeline. Rendered through paragraphs() in
+       lib/community/workshops.js. */
+    description: [
+      'Building a website with AI is easy. Building a consistent product flow with AI is not. This session is about the gap between design intent and what actually ships — a complete pipeline where AI understands a design system and generates consistent, production-ready screens, turning weeks in design tools into minutes without losing design system integrity or the real-world edge cases.',
+      'The problem: design output today looks generic. Design systems are documented, but never truly understood by the tools we use. Designers spend weeks in Figma on screens, components, variants and states — and even with the best system, scaling that work is slow, inconsistent and error-prone.',
+      'The solution is an AI-native design pipeline. Instead of describing a design system through documentation, you feed the AI the actual artifacts: user journey maps, screenshots, user flows, the real UX patterns already in your product, and your design system’s constraints and tokens.',
+      'What happens next: the AI understands your design language at a semantic level. It generates screens that carry your design system automatically. You get production-ready output in minutes, not weeks.',
+    ],
     whoItsFor: [
-      'Students and freshers who’ve never had a real brief, system or user story',
-      'Product designers wondering why this takes four hours with AI and still looks wrong',
-      'Designers with a design system AI keeps ignoring',
-      'Anyone who opened an agent, got something generic, and closed the tab',
+      'You’re a student or fresher who’s never had a real design brief, system or user story — and you want to see how real products are actually built',
+      'You’re a product designer wondering why AI design tools spit out generic UIs that don’t match your brand or system',
+      'You have a design system AI keeps ignoring, because the tool doesn’t understand constraints the way a designer does',
+      'You got generic output from an AI agent, closed the tab, and want to know what actually went wrong',
     ],
     curriculum: [
-      'Why AI output looks generic, named precisely',
-      'User stories with acceptance criteria a machine can actually follow',
-      'The states everyone forgets: empty, loading, error, first-run, too-much-data',
-      'Your design system wired in as a constraint, not a suggestion',
-      'The vocabulary to reject output — name the defect, don’t describe the vibe',
-      'A PDF guide and prompt library to run the method on your own brief',
+      'Why AI output looks generic — and how to name design defects, not vibes',
+      'How to write user stories that machines can actually follow',
+      'How to use your design system as a hard constraint, not just a suggestion',
+      'The vocabulary to reject output — precise defect names, not “it doesn’t feel right”',
+      'The AI-to-code pipeline: from Figma to design tokens, to AI generation, to HTML handoff',
     ],
     bannerUrl: '/assets/workshops/design-products-with-ai.png',
     bannerArt: 'proto',

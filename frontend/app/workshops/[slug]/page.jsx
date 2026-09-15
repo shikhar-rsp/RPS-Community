@@ -11,7 +11,7 @@ import { useSeats, validateDetails } from '@/lib/community/enrollment';
 import {
   bySlug, host, isPast, recordingReady, downloadResource,
   upcoming, featuredPast, testimonials, dateFull, dayShort, time, workshopUrl,
-  enrollUrl, calendarUrl,
+  enrollUrl, calendarUrl, paragraphs,
 } from '@/lib/community/workshops';
 
 /* One route, two layouts, branching on derived status. Everything on this page
@@ -557,7 +557,9 @@ function WorkshopDetail() {
             <div>
               <div className="blk">
                 <span className="eyebrow">What we&rsquo;re building</span>
-                <p>{w.description}</p>
+                {paragraphs(w.description).map((t, k) => (
+                  <p key={k}>{t}</p>
+                ))}
               </div>
 
               <div className="blk">
@@ -665,7 +667,9 @@ function WorkshopDetail() {
           <div>
             <div className="blk">
               <span className="eyebrow">What went down</span>
-              <p>{w.description}</p>
+              {paragraphs(w.description).map((t, k) => (
+                <p key={k}>{t}</p>
+              ))}
             </div>
 
             {!!(w.resources && w.resources.length) && (

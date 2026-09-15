@@ -153,6 +153,13 @@ export function calendarUrl(w) {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
+/* `description` is one paragraph on some workshops and several on others.
+   Every renderer normalises it through here rather than each one guessing,
+   so adding a paragraph to the content is never also a change to a page. */
+export function paragraphs(value) {
+  return (Array.isArray(value) ? value : [value]).filter(Boolean);
+}
+
 export function workshopUrl(w) {
   return `/workshops/${encodeURIComponent(w.slug)}`;
 }

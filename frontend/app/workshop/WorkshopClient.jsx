@@ -8,7 +8,7 @@ import { CONFIG } from '@/lib/community/content';
 import { useReveal, useToasts } from '@/lib/community/hooks';
 import {
   upcoming, featuredPast, host, isPast, recordingReady, testimonials,
-  dateFull, dayShort, time, workshopUrl, downloadResource,
+  dateFull, dayShort, time, workshopUrl, downloadResource, paragraphs,
 } from '@/lib/community/workshops';
 
 /* The member view of the current workshop.
@@ -192,7 +192,9 @@ export default function WorkshopClient({ name, email, avatarUrl, initials }) {
           <div>
             <div className="blk">
               <span className="eyebrow">{past ? 'What went down' : 'What we’re building'}</span>
-              <p>{w.description}</p>
+              {paragraphs(w.description).map((t, k) => (
+                <p key={k}>{t}</p>
+              ))}
             </div>
 
             <div className="blk">
