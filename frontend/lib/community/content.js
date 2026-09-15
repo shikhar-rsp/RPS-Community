@@ -77,7 +77,12 @@ export const WORKSHOPS = [
     durationMins: 90,
     capacity: 45,
     seededEnrollments: 33,
-    meetLink: 'https://meet.google.com/#link-set-by-rps-before-the-session',
+    meetLink: 'https://meet.google.com/dfb-caiq-ciq',
+    /* Dial-in for anyone whose connection gives out mid-session. Google issues
+       these per room, so they change whenever meetLink does — replace both
+       together or the number rings into a meeting nobody is in. */
+    meetPhone: { number: '+1 470-268-2152', pin: '411 984 325#', country: 'US' },
+    meetPhoneUrl: 'https://tel.meet/dfb-caiq-ciq?pin=9417822559100',
     recordingUrl: null,
     hostId: 'host_2',
     resources: [],

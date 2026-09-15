@@ -78,6 +78,9 @@ export function buildEnrollmentEmail({ name, workshop, status }) {
   const waitlisted = status === 'WAITLISTED';
   const h = host(w.hostId);
   const meet = realMeetLink(w);
+  // Only offered alongside a real room — a PIN for a placeholder link is worse
+  // than no PIN, because someone would sit on hold in an empty meeting.
+  const dialIn = meet && w.meetPhone?.number && w.meetPhone?.pin ? w.meetPhone : null;
   const when = dayShort(w.dateTime) + ' · ' + time(w.dateTime);
   const mins = String(w.durationMins || 90);
 
@@ -102,7 +105,9 @@ export function buildEnrollmentEmail({ name, workshop, status }) {
     row(
       'Where',
       meet
-        ? '<a href="' + esc(meet) + '" style="color:' + ACCENT + ';text-decoration:none;">Google Meet</a>'
+        ? '<a href="' + esc(meet) + '" style="color:' + ACCENT + ';text-decoration:none;">' +
+          esc(meet.replace(/^https:\/\//, '')) + '</a>' +
+          (dialIn ? sub('Or dial ' + dialIn.number + ' (' + dialIn.country + '), PIN ' + dialIn.pin) : '')
         : 'Google Meet' + sub('The link goes to your WhatsApp before the session.')
     ) +
     (h ? row('With', esc(h.name) + sub(h.title)) : '') +
@@ -188,6 +193,9 @@ export function buildEnrollmentEmail({ name, workshop, status }) {
     '',
     'When:  ' + when + ' (' + dateFull(w.dateTime) + ', ' + mins + ' minutes)',
     'Where: ' + (meet || 'Google Meet — the link goes to your WhatsApp before the session.'),
+    dialIn
+      ? '       Or dial ' + dialIn.number + ' (' + dialIn.country + '), PIN ' + dialIn.pin
+      : null,
     h ? 'With:  ' + h.name + ', ' + h.title : null,
     'Cost:  Free. No card, no upsell at the end.',
     '',
