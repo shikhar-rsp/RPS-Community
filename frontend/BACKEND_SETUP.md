@@ -47,6 +47,34 @@ Test flow: `/onboarding` (create account) → `/dashboard` (submit a link) →
 - No admin panel needed — the service-role/dashboard view bypasses RLS so the team
   sees all rows, while each end-user (via the app) only sees their own.
 
+## 7. Confirmation email (Resend)
+
+When someone takes a workshop seat they get a "You're in" email — or a "You're
+on the waitlist" one, if the session was already full. Nothing is sent until
+this is configured, and **enrolling keeps working either way**: an unsent
+confirmation is logged, never surfaced to the person registering, and never
+allowed to fail the seat.
+
+1. [resend.com](https://resend.com) → **API Keys** → create one with *Sending*
+   access. It starts `re_`.
+2. **Domains** → add `rockpaperscissors.studio` and put the DKIM/SPF records it
+   gives you into DNS. Resend refuses any `From` on an unverified domain —
+   **until this is done you can only send to your own Resend account address**,
+   so a test registration to any other inbox will fail.
+3. Set `RESEND_API_KEY` in Vercel → **Settings → Environment Variables**, for
+   **Production** only. Leave it unset locally and on previews, so development
+   never mails a real person.
+4. Optionally override `MAIL_FROM` / `MAIL_REPLY_TO` (see `.env.example`). Both
+   default to `cohorts@rockpaperscissors.studio`.
+
+Free tier is 3,000 emails/month and 100/day at the time of writing — check
+resend.com/pricing, since a launch announcement is the one thing that could
+push a day over 100.
+
+To change what the email says, edit `lib/emails/enrollment.js`. It builds the
+HTML and plain-text parts together; keep them in step, because the text part is
+what spam filters read and what a watch or screen reader falls back to.
+
 ## What's wired
 | Area | File |
 |------|------|
@@ -58,4 +86,6 @@ Test flow: `/onboarding` (create account) → `/dashboard` (submit a link) →
 | Sign up + profile | `app/onboarding/page.jsx` |
 | Submit assignment | `app/dashboard/page.jsx` |
 | Password reset | `app/reset-password/page.jsx` |
+| Workshop seats + waitlist | `app/workshops/actions.js`, `supabase/enrollments.sql` |
+| Seat confirmation email | `lib/emails/enrollment.js`, `lib/mail.js` |
 | DB schema | `supabase/schema.sql` |
