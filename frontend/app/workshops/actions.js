@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { enrollmentSchema } from "@/lib/validation";
 import { sendEnrollmentEmail } from "@/lib/emails/enrollment";
+import { recordRegistration } from "@/lib/sheets";
+import { bySlug } from "@/lib/community/workshops";
 
 // Server Actions for workshop seats. Same shape as app/dashboard/actions.js:
 // the client can only influence the form fields, and identity comes from the
@@ -91,6 +93,19 @@ export async function enrollInWorkshop(input) {
     }
   }
 
+  // Mirror into the team's sheet. Unlike the email this runs on every
+  // successful enrol, not only a new one: the sheet keys on workshop + email
+  // and updates in place, so a repeat is a no-op that also repairs a row which
+  // failed to write the first time.
+  await recordRegistration({
+    slug,
+    workshopTitle: bySlug(slug)?.title || slug,
+    name: row?.name || name,
+    email: row?.email || email,
+    whatsapp: row?.whatsapp || whatsapp,
+    status: row?.status || "REGISTERED",
+  });
+
   return {
     ok: true,
     status: row?.status || "REGISTERED",
@@ -123,9 +138,32 @@ export async function cancelEnrollment(slug) {
     return { ok: false, error: "You must be signed in to do that." };
   }
 
+  // Read the row before it goes: cancel_enrollment() deletes it outright, so
+  // after this call there is nothing left to name in the sheet.
+  const { data: leaving } = await supabase
+    .from("enrollments")
+    .select("name, email, whatsapp")
+    .eq("workshop_slug", clean)
+    .maybeSingle();
+
   const { error } = await supabase.rpc("cancel_enrollment", { p_slug: clean });
   if (error) {
     return { ok: false, error: "Could not release your seat. Please try again." };
   }
+
+  // Mark them CANCELLED rather than deleting the row. Someone reading the sheet
+  // to send out Meet links needs to see that a name came off the list, not find
+  // it silently absent — and a row that merely vanished looks like a bug.
+  if (leaving?.email) {
+    await recordRegistration({
+      slug: clean,
+      workshopTitle: bySlug(clean)?.title || clean,
+      name: leaving.name,
+      email: leaving.email,
+      whatsapp: leaving.whatsapp,
+      status: "CANCELLED",
+    });
+  }
+
   return { ok: true };
 }
