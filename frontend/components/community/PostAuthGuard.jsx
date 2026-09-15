@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
-  hasOnboarded, onboardingUrl, peekAuthPending, takeAuthPending,
+  hasOnboarded, onboardingUrl, peekAuthPending, takeAuthPending, skipsOnboarding,
 } from '@/lib/community/authLanding';
 
 /* The backstop for "a Google login must go through onboarding".
@@ -34,6 +34,13 @@ export default function PostAuthGuard() {
         return;
       }
       if (path.startsWith('/signin') || path.startsWith('/auth')) return;
+      // Landed somewhere that doesn't need a profile — a workshop above all,
+      // where the seat form collects what it needs. Spend the flag so this
+      // doesn't fire again, and leave them where they asked to be.
+      if (skipsOnboarding(path)) {
+        takeAuthPending();
+        return;
+      }
       if (!peekAuthPending()) return;
 
       const done = await hasOnboarded(supabase);

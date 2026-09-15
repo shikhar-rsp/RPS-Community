@@ -11,7 +11,7 @@ import { useSeats, validateDetails } from '@/lib/community/enrollment';
 import {
   bySlug, host, isPast, recordingReady, downloadResource,
   upcoming, featuredPast, testimonials, dateFull, dayShort, time, workshopUrl,
-  calendarUrl,
+  enrollUrl, calendarUrl,
 } from '@/lib/community/workshops';
 
 /* One route, two layouts, branching on derived status. Everything on this page
@@ -132,8 +132,6 @@ function WorkshopDetail() {
     if (!wantsEnroll || mine) return;
     if (!user) {
       goSignIn(`${workshopUrl(w)}?action=enroll`);
-    } else if (!me?.onboarded) {
-      goOnboarding(`${workshopUrl(w)}?action=enroll`);
     } else {
       setPanelMode('confirm');
     }
@@ -172,12 +170,6 @@ function WorkshopDetail() {
      Supabase + the middleware do the rest; nothing about auth is faked here. */
   function goSignIn(next) {
     router.push('/signin?next=' + encodeURIComponent(next));
-  }
-
-  /* Signed in, but the profile was never filled in — finish that first and come
-     straight back to the seat they were taking. */
-  function goOnboarding(next) {
-    router.push('/onboarding?mode=complete&next=' + encodeURIComponent(next));
   }
 
   /* ------------------------------------------------------------- not found */
@@ -220,10 +212,6 @@ function WorkshopDetail() {
       goSignIn(`${workshopUrl(w)}?action=enroll`);
       return;
     }
-    if (!me?.onboarded) {
-      goOnboarding(`${workshopUrl(w)}?action=enroll`);
-      return;
-    }
     setForm(null);
     setErrors(null);
     setReleased(false);
@@ -247,10 +235,6 @@ function WorkshopDetail() {
     setSaving(false);
 
     if (!res.ok) {
-      if (res.needsOnboarding) {
-        goOnboarding(`${workshopUrl(w)}?action=enroll`);
-        return;
-      }
       setForm(details);
       toast(res.error || 'Could not save your seat.', 'warn');
       return;
@@ -519,7 +503,7 @@ function WorkshopDetail() {
        member has been past all that, so letting a seat go leaves them on a
        plain card that says what just happened, not on the sales card they last
        saw while logged out. */
-    const signedIn = !!user && !!me?.onboarded;
+    const signedIn = !!user;
     return (
       <div className="panel">
         <span className="kicker">{released ? 'Seat released' : 'Take a seat'}</span>
@@ -720,7 +704,7 @@ function WorkshopDetail() {
                   <p className="micro" style={{ marginTop: 10 }}>
                     Same room, new brief.
                   </p>
-                  <Link className="btn full go" href={workshopUrl(nextUp)}>
+                  <Link className="btn full go" href={enrollUrl(nextUp)}>
                     Grab a seat
                   </Link>
                 </div>

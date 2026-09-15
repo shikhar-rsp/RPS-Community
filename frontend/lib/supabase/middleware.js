@@ -15,13 +15,20 @@ const AUTH_ROUTES = ["/signin"];
 // missing or forged value costs nothing beyond the wrong greeting.
 const RETURNING_COOKIE = "rps.returning";
 
-// Onboarding is not a step you can walk around. A signed-in account with no
-// answers on file is sent to the form from ANY page, not just the gated ones —
-// so a new person's first act after logging in is always the three steps.
+// Onboarding is not a step you can walk around on the way to a members' page:
+// a signed-in account with no answers on file is sent to the form from any page
+// that isn't listed below, not just the gated ones.
 //
 // These are the only paths that stay reachable while it's outstanding: the form
-// itself, the endpoints that finish or repair a session, and the legal pages
-// (which must be readable by anyone, including someone mid-signup).
+// itself, the endpoints that finish or repair a session, the legal pages (which
+// must be readable by anyone, including someone mid-signup), and the workshop
+// pages.
+//
+// Workshops are exempt because taking a seat asks for the three things it
+// actually needs — name, email, WhatsApp — on the page itself. Making someone
+// answer the role/goals/tools wizard before they can register was a wall in
+// front of the one action the site is for. Onboarding still guards /dashboard
+// and /workshop, which are the pages that genuinely read a profile.
 const ONBOARDING_EXEMPT = [
   "/onboarding",
   "/auth",
@@ -29,6 +36,7 @@ const ONBOARDING_EXEMPT = [
   "/forgot-password",
   "/privacy",
   "/terms",
+  "/workshops",
 ];
 
 const matches = (pathname, base) => pathname === base || pathname.startsWith(base + "/");

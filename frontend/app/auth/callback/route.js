@@ -18,11 +18,17 @@ export async function GET(request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       // First-time OAuth users have a profile row (created by the DB trigger)
-      // but no role/goals/tools yet. Send them through onboarding first.
+      // but no role/goals/tools yet. Send them through onboarding first —
+      // unless they were on their way to a workshop, where the seat form asks
+      // for the name, email and number it needs and nothing is waiting on a
+      // profile. Matches ONBOARDING_EXEMPT in lib/supabase/middleware.js.
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (user) {
+      const nextPath = next.split(/[?#]/)[0];
+      const skipOnboarding =
+        nextPath === "/workshops" || nextPath.startsWith("/workshops/");
+      if (user && !skipOnboarding) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("role")

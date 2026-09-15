@@ -29,22 +29,11 @@ export async function enrollInWorkshop(input) {
     return { ok: false, error: "You must be signed in to take a seat." };
   }
 
-  // A seat is a real action, so onboarding has to be done first. The workshop
-  // page redirects before it ever gets here; this is the backstop, because the
-  // client's copy of that answer lives in user_metadata, which users can write.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.role) {
-    return {
-      ok: false,
-      needsOnboarding: true,
-      error: "Finish setting up your account first.",
-    };
-  }
+  // Taking a seat no longer waits on onboarding. The form on the workshop page
+  // asks for the three things a registration actually needs — name, email and
+  // WhatsApp number — and they're validated here and again in the database, so
+  // there's nothing a profile row would add. The role/goals/tools answers are
+  // still collected, just not as a toll gate on the way in.
 
   const { slug, name, email, whatsapp } = parsed.data;
 

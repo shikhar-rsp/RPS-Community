@@ -52,6 +52,22 @@ export function onboardingUrl(next) {
   return '/onboarding?mode=complete&next=' + encodeURIComponent(next || '/dashboard');
 }
 
+/* Does this destination let someone in without onboarding first?
+
+   Mirrors ONBOARDING_EXEMPT in lib/supabase/middleware.js — the server-side
+   copy is the one that actually enforces it; this one exists so the client
+   redirects agree with it instead of fighting it. Kept as its own list rather
+   than imported because that module runs in the Edge runtime.
+
+   Workshops are on it so "Grab a seat" leads to the registration form and
+   nothing else. Everything gated (/dashboard, /workshop) is deliberately not. */
+const NO_ONBOARDING_NEEDED = ['/workshops', '/privacy', '/terms'];
+
+export function skipsOnboarding(target) {
+  const path = String(target || '').split(/[?#]/)[0];
+  return NO_ONBOARDING_NEEDED.some((p) => path === p || path.startsWith(p + '/'));
+}
+
 /* true / false, or null when there's no session to judge yet.
    `profiles.role` is the source of truth; user_metadata is only a fast path,
    and is never used to conclude someone has NOT onboarded. */
@@ -70,8 +86,11 @@ export async function hasOnboarded(supabase) {
   return !!data?.role;
 }
 
-/* The one call every sign-in form makes instead of pushing `next` blindly. */
+/* The one call every sign-in form makes instead of pushing `next` blindly.
+   Someone who logged in on their way to a workshop goes to the workshop — the
+   seat form asks for what it needs, so there's nothing to collect first. */
 export async function landingAfterAuth(supabase, next) {
+  if (next && skipsOnboarding(next)) return next;
   const done = await hasOnboarded(supabase);
   return done ? next || '/dashboard' : onboardingUrl(next);
 }

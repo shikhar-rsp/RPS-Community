@@ -73,7 +73,7 @@ export const WORKSHOPS = [
     ],
     bannerUrl: '/assets/workshops/design-products-with-ai.png',
     bannerArt: 'proto',
-    dateTime: '2026-09-12T15:00:00+05:30',
+    dateTime: '2026-09-19T15:00:00+05:30',
     durationMins: 90,
     capacity: 45,
     seededEnrollments: 33,

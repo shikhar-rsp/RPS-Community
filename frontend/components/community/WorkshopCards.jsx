@@ -5,7 +5,7 @@ import Frame from './Frame';
 import { artHTML } from '@/lib/community/art';
 import { StatusChip, seatChipFor } from './Bits';
 import {
-  workshopUrl, recordingReady, dayShort, time, host, metaLine,
+  workshopUrl, enrollUrl, recordingReady, dayShort, time, host, metaLine,
 } from '@/lib/community/workshops';
 
 /* The cards carry everything the decision needs — when, who with, and whether
@@ -21,7 +21,7 @@ export function UpcomingCard({ w, lead, mine }) {
       You&rsquo;re {mine.status === 'WAITLISTED' ? 'on the list' : 'in'} →
     </Link>
   ) : (
-    <Link className={lead ? 'btn onDark go' : 'btn go'} href={url}>
+    <Link className={lead ? 'btn onDark go' : 'btn go'} href={enrollUrl(w)}>
       Grab a seat
     </Link>
   );
@@ -127,7 +127,7 @@ export function FeatureCard({ w, mine }) {
       You&rsquo;re {mine.status === 'WAITLISTED' ? 'on the list' : 'in'}
     </Link>
   ) : (
-    <Link className="btn lg go" href={url}>
+    <Link className="btn lg go" href={enrollUrl(w)}>
       Grab a seat
     </Link>
   );

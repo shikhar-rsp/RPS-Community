@@ -121,14 +121,14 @@ export function calParts(iso) {
   return { dy: bits[0], mo: (bits[1] || '').toUpperCase() };
 }
 
-/* Where "Grab a seat" should go: the next open session's page, so the decision
-   is made with the brief in front of you. The enrol flow fires from the panel
-   on that page, not from here — a marketing button should never be the thing
-   that bounces someone to a login box.
+/* Where "Grab a seat" should go: the next open session, with the registration
+   form already open. `?action=enroll` is what the workshop page reads to put
+   the name/email/WhatsApp panel up on arrival, so the button lands on the thing
+   it names rather than on a page with the same button further down.
    Nothing upcoming → the listing, which owns the empty state. */
 export function seatUrl() {
   const next = upcoming()[0];
-  return next ? `/workshops/${encodeURIComponent(next.slug)}` : '/workshops';
+  return next ? `/workshops/${encodeURIComponent(next.slug)}?action=enroll` : '/workshops';
 }
 
 /* "Add to calendar" — a Google Calendar template link, which is the calendar
@@ -155,6 +155,13 @@ export function calendarUrl(w) {
 
 export function workshopUrl(w) {
   return `/workshops/${encodeURIComponent(w.slug)}`;
+}
+
+/* The same page, but asking for the seat form on arrival. Use this on the
+   buttons that say "Grab a seat"; use workshopUrl() on titles and banners,
+   where someone is going to read the brief, not to register. */
+export function enrollUrl(w) {
+  return `${workshopUrl(w)}?action=enroll`;
 }
 
 /* Hand a resource over for real. Used by the row's own button and by the
