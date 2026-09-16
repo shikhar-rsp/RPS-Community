@@ -26,11 +26,66 @@
   margin-bottom: 8px;
 }
 
-.title {
-  margin: 0;
-  font-size: clamp(1.7rem, 4.4vw, 2.4rem);
-  letter-spacing: -.02em;
+/* The workshop picker, doing the job of the page heading. It has to read as a
+   title first and a control second: display size and weight, with the chevron
+   and a hover rule as the only hints it opens. */
+.picked { min-width: 0; flex: 1 1 340px; }
+
+.pickWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
 }
+
+.pick {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-size: clamp(1.35rem, 3.6vw, 1.95rem);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 2px 30px 4px 0;
+  margin: 0;
+  max-width: 100%;
+  cursor: pointer;
+  /* A long title truncates rather than pushing the chevron off the row. */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.pick:hover { border-bottom-color: var(--line-2); }
+.pick:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+
+/* The native menu paints itself, so its options need colours of their own —
+   inheriting transparent here gives unreadable text on Windows. */
+.pick option {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--card);
+}
+
+.chev {
+  position: absolute;
+  right: 4px;
+  color: var(--faint);
+  pointer-events: none;
+}
+.pickWrap:hover .chev { color: var(--accent); }
+
+.tagNext,
+.tagPast {
+  font-weight: 600;
+}
+.tagNext { color: var(--accent); }
+.tagPast { color: var(--faint); }
 
 .sub {
   margin: 8px 0 0;

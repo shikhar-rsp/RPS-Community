@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { WORKSHOPS } from "@/lib/community/content";
+import { allWorkshops, isPast, dateFull } from "@/lib/community/workshops";
 import RegistrationsClient from "./RegistrationsClient";
 
 export const metadata = {
@@ -40,6 +41,21 @@ export default async function RegistrationsPage() {
   // ever stores the slug.
   const titles = Object.fromEntries(WORKSHOPS.map((w) => [w.slug, w.title]));
 
+  /* Newest first, so the session everyone is currently asking about is the one
+     the page opens on. Built from the content module rather than from the rows,
+     so a workshop nobody has registered for yet can still be selected — its
+     empty list is an answer, and a missing option looks like a bug. */
+  const workshops = allWorkshops()
+    .slice()
+    .sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime))
+    .map((w) => ({
+      slug: w.slug,
+      title: w.title,
+      cohort: w.cohortLabel || "",
+      date: dateFull(w.dateTime),
+      past: isPast(w),
+    }));
+
   const rows = (data || []).map((r) => ({
     slug: r.workshop_slug,
     workshop: titles[r.workshop_slug] || r.workshop_slug,
@@ -60,7 +76,8 @@ export default async function RegistrationsPage() {
       rows={rows}
       failed={!!error}
       viewer={user.email}
-      workshops={Array.from(new Set(rows.map((r) => r.workshop)))}
+      workshops={workshops}
+      initialSlug={workshops[0]?.slug || "all"}
     />
   );
 }

@@ -46,28 +46,40 @@ function csvCell(value) {
   return `"${safe.replace(/"/g, '""')}"`;
 }
 
-export default function RegistrationsClient({ rows, failed, viewer, workshops }) {
+export default function RegistrationsClient({ rows, failed, viewer, workshops, initialSlug }) {
   const [q, setQ] = useState('');
-  const [workshop, setWorkshop] = useState('all');
+  // Opens on the most recent session rather than on everything at once: the
+  // question this page gets asked is almost always about the next one.
+  const [slug, setSlug] = useState(initialSlug);
   const [status, setStatus] = useState('all');
+
+  const selected = workshops.find((w) => w.slug === slug) || null;
+
+  // Filtered by workshop only — what the counts below are counting, and what
+  // the status filter then narrows.
+  const inWorkshop = useMemo(
+    () => (slug === 'all' ? rows : rows.filter((r) => r.slug === slug)),
+    [rows, slug]
+  );
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (workshop !== 'all' && r.workshop !== workshop) return false;
+    return inWorkshop.filter((r) => {
       if (status !== 'all' && r.status !== status) return false;
       if (!needle) return true;
       return [r.name, r.email, r.whatsapp, r.accountEmail]
         .filter(Boolean)
         .some((v) => v.toLowerCase().includes(needle));
     });
-  }, [rows, q, workshop, status]);
+  }, [inWorkshop, q, status]);
 
+  /* Counts describe the selected workshop, not the database. A number next to a
+     name that is filtered out would be answering a question nobody asked. */
   const counts = useMemo(() => {
     const c = { REGISTERED: 0, WAITLISTED: 0, ATTENDED: 0 };
-    rows.forEach((r) => { if (c[r.status] !== undefined) c[r.status] += 1; });
+    inWorkshop.forEach((r) => { if (c[r.status] !== undefined) c[r.status] += 1; });
     return c;
-  }, [rows]);
+  }, [inWorkshop]);
 
   function exportCsv() {
     const header = ['Registered at (IST)', 'Name', 'Email', 'Account email', 'WhatsApp', 'Status', 'Workshop'];
@@ -81,7 +93,8 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops })
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rps-registrations-${whenExact(new Date().toISOString()).slice(0, 10)}.csv`;
+    const which = selected ? selected.slug : 'all-workshops';
+    a.download = `rps-registrations-${which}-${whenExact(new Date().toISOString()).slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -92,12 +105,46 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops })
     <SiteShell active="">
       <div className={'wrap page-top ' + styles.page}>
         <header className={styles.head}>
-          <div>
-            <span className={styles.eyebrow}>Admin</span>
-            <h1 className={styles.title}>Registrations</h1>
+          <div className={styles.picked}>
+            <span className={styles.eyebrow}>Registrations for</span>
+
+            {/* The heading IS the control. This page's first question is always
+                "which workshop am I looking at", so the answer is the biggest
+                thing on it and changing it is one click, not a filter to hunt
+                for further down. */}
+            <div className={styles.pickWrap}>
+              <select
+                id="reg-workshop"
+                className={styles.pick}
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                aria-label="Which workshop"
+              >
+                {workshops.map((w) => (
+                  <option key={w.slug} value={w.slug}>
+                    {w.cohort ? w.cohort + ' · ' : ''}{w.title}
+                  </option>
+                ))}
+                <option value="all">All workshops</option>
+              </select>
+              <svg className={styles.chev} width="18" height="18" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                   strokeLinejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+
             <p className={styles.sub}>
-              {rows.length} {rows.length === 1 ? 'person' : 'people'} across all workshops
-              {rows.length > 0 && (
+              {selected && (
+                <>
+                  <span className={selected.past ? styles.tagPast : styles.tagNext}>
+                    {selected.past ? 'Held' : 'Coming up'} {selected.date}
+                  </span>
+                  {' · '}
+                </>
+              )}
+              {inWorkshop.length} {inWorkshop.length === 1 ? 'person' : 'people'}
+              {inWorkshop.length > 0 && (
                 <>
                   {' · '}{counts.REGISTERED} registered
                   {counts.WAITLISTED > 0 && <>{' · '}{counts.WAITLISTED} waitlisted</>}
@@ -128,20 +175,6 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops })
             onChange={(e) => setQ(e.target.value)}
             aria-label="Search registrations"
           />
-          {workshops.length > 1 && (
-            <select
-              id="reg-workshop"
-              className={styles.select}
-              value={workshop}
-              onChange={(e) => setWorkshop(e.target.value)}
-              aria-label="Filter by workshop"
-            >
-              <option value="all">All workshops</option>
-              {workshops.map((w) => (
-                <option key={w} value={w}>{w}</option>
-              ))}
-            </select>
-          )}
           <select
             id="reg-status"
             className={styles.select}
@@ -158,11 +191,15 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops })
 
         {shown.length === 0 ? (
           <div className={styles.empty}>
-            <h2>{rows.length ? 'Nothing matches that.' : 'No registrations yet.'}</h2>
+            <h2>
+              {inWorkshop.length
+                ? 'Nothing matches that.'
+                : 'Nobody has registered for this one yet.'}
+            </h2>
             <p>
-              {rows.length
-                ? 'Try a different search, or clear the filters.'
-                : 'They appear here the moment someone takes a seat — no import, no sync.'}
+              {inWorkshop.length
+                ? 'Try a different search, or set the status back to any.'
+                : 'Registrations appear here the moment someone takes a seat — no import, no sync.'}
             </p>
           </div>
         ) : (
@@ -175,7 +212,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops })
                   <th scope="col">Email</th>
                   <th scope="col">WhatsApp</th>
                   <th scope="col">Status</th>
-                  <th scope="col">Workshop</th>
+                  {slug === 'all' && <th scope="col">Workshop</th>}
                 </tr>
               </thead>
               <tbody>
@@ -200,7 +237,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops })
                       </a>
                     </td>
                     <td><StatusChip status={r.status} /></td>
-                    <td className={styles.workshop}>{r.workshop}</td>
+                    {slug === 'all' && <td className={styles.workshop}>{r.workshop}</td>}
                   </tr>
                 ))}
               </tbody>
