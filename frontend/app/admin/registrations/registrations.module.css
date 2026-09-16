@@ -1,0 +1,171 @@
+/* The registrations table. Every colour comes from the tokens in
+   app/community.css, so this follows the site rather than restating it. */
+
+.page {
+  padding-bottom: clamp(64px, 8vw, 104px);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  display: block;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.7rem, 4.4vw, 2.4rem);
+  letter-spacing: -.02em;
+}
+
+.sub {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: .95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------- controls */
+.controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.search,
+.select {
+  font: inherit;
+  font-size: .94rem;
+  padding: 11px 13px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line-2);
+  background: var(--card);
+  color: var(--ink);
+}
+
+.select { flex: 0 1 auto; max-width: 100%; }
+
+.search:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ---------------------------------------------------------------- table */
+/* The one element allowed to run wider than the page, in its own scroller so
+   the body never scrolls sideways. */
+.scroller {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .92rem;
+  /* Below this the columns crush rather than wrap; the scroller takes over. */
+  min-width: 720px;
+}
+
+.table th {
+  text-align: left;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line-2);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 1;
+}
+
+.table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  color: var(--ink-2);
+}
+
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:hover td { background: var(--band-soft); }
+
+.table a { color: var(--accent); text-decoration: none; }
+.table a:hover { text-decoration: underline; }
+
+.strong { color: var(--ink); font-weight: 600; }
+
+/* Times and phone numbers line up as columns. */
+.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.note {
+  display: block;
+  font-size: .76rem;
+  color: var(--faint);
+  margin-top: 3px;
+}
+
+.workshop {
+  max-width: 260px;
+  color: var(--muted);
+  font-size: .86rem;
+}
+
+/* ------------------------------------------------------------ the rest */
+.empty {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  padding: clamp(32px, 7vw, 56px) 24px;
+  text-align: center;
+}
+.empty h2 { margin: 0 0 8px; font-size: 1.25rem; }
+.empty p { margin: 0; color: var(--muted); font-size: .94rem; }
+
+.warn {
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-size: .9rem;
+  line-height: 1.55;
+}
+
+.foot {
+  margin: 0;
+  font-size: .8rem;
+  color: var(--faint);
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .head { align-items: flex-start; }
+}

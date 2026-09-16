@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 // page and stays gated, while the public listing at "/workshops" and the
 // public detail pages under "/workshops/<slug>" must stay browsable — the
 // gate there fires on the action (enrol, watch, download), not the page.
-const PROTECTED = ["/dashboard", "/workshop"];
+const PROTECTED = ["/dashboard", "/workshop", "/admin"];
 // Auth routes an already-signed-in user shouldn't see.
 const AUTH_ROUTES = ["/signin"];
 
@@ -37,6 +37,10 @@ const ONBOARDING_EXEMPT = [
   "/privacy",
   "/terms",
   "/workshops",
+  // The registration list is for the team, not for members. Sending an admin
+  // through the role/goals/tools wizard to reach it would be asking the wrong
+  // question of the wrong person — the gate there is the email, not a profile.
+  "/admin",
 ];
 
 const matches = (pathname, base) => pathname === base || pathname.startsWith(base + "/");

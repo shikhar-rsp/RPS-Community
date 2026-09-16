@@ -121,7 +121,27 @@ To change what the email says, edit `lib/emails/enrollment.js`. It builds the
 HTML and plain-text parts together; keep them in step, because the text part is
 what spam filters read and what a watch or screen reader falls back to.
 
-## 8. Registrations in the Google Sheet
+## 8. The registration list, in the site
+
+`/admin/registrations` is the list, built in. It reads `enrollments` live, so
+there is nothing to sync, import or keep up to date — a registration is on it
+the moment it happens. Search by name, email or number, filter by workshop and
+status, and **Export CSV** for anything a spreadsheet is genuinely better at.
+Each row links the email to a mail client and the number to WhatsApp, which is
+what sending the Meet link round actually involves.
+
+**Who can open it.** Only the addresses in `ADMIN_EMAILS`; unset, it is
+`dheena@rockpaperscissors.studio` alone. Anyone else — signed in or not — gets a
+404 rather than a refusal, so the page's existence is not advertised. The check
+is the session's verified email, made on the server before any data is fetched;
+there is no client-side gate to bypass and nothing about who is an admin reaches
+the browser.
+
+The read uses the service-role client, because RLS limits every normal session
+to its own row. That key stays on the server, and only the rows rendered reach
+the page.
+
+## 9. Registrations in a Google Sheet (optional)
 
 The team's sheet ("Cohort Ep2 Registrations") reads the registration list
 without needing a Supabase login. There are two ways to fill it, and **you only
@@ -170,5 +190,6 @@ converge on the same rows — but there is no reason to.
 | Password reset | `app/reset-password/page.jsx` |
 | Workshop seats + waitlist | `app/workshops/actions.js`, `supabase/enrollments.sql` |
 | Seat confirmation email | `lib/emails/enrollment.js`, `lib/mail.js` |
+| Registration list (admin) | `app/admin/registrations/`, `lib/admin.js` |
 | Registrations → Google Sheet | `scripts/sheet-sync-supabase.gs` (pull) or `lib/sheets.js` (push) |
 | DB schema | `supabase/schema.sql` |
