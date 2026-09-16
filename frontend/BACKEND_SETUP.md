@@ -121,6 +121,42 @@ To change what the email says, edit `lib/emails/enrollment.js`. It builds the
 HTML and plain-text parts together; keep them in step, because the text part is
 what spam filters read and what a watch or screen reader falls back to.
 
+## 8. Registrations in the Google Sheet
+
+The team's sheet ("Cohort Ep2 Registrations") reads the registration list
+without needing a Supabase login. There are two ways to fill it, and **you only
+need one**.
+
+### The simple one: the sheet pulls from Supabase
+
+`scripts/sheet-sync-supabase.gs` goes into the sheet itself
+(Extensions → Apps Script) and reads the `enrollments` table directly on a
+15-minute timer. Nothing is added to the website, nothing is deployed, and the
+first run brings across every registration that already exists — so there is no
+separate backfill step.
+
+Setup is in that file's header: paste it in, run `setUp` once and give it the
+Supabase project URL and **service_role** key, then run `syncNow`, then
+`startAutoSync`. It also adds a **Registrations** menu to the sheet so the team
+can sync on demand without opening the editor.
+
+The service_role key is required because `enrollments` is behind RLS — the anon
+key can only read a signed-in user's own row, which from a script is nobody.
+That key bypasses every access rule, so it is stored in Script Properties rather
+than in the file, and anyone who can open the Apps Script editor on that sheet
+can read it. Keep the sheet's edit access tight.
+
+### The other one: the site pushes on each registration
+
+`lib/sheets.js` + `scripts/registrations-sheet.gs` + `SHEETS_WEBHOOK_URL`.
+Rows appear the instant someone registers rather than within 15 minutes, at the
+cost of a deployed web app and two environment variables.
+`scripts/backfill-sheet.mjs` carries across anyone who registered before it was
+switched on.
+
+Running both is safe — they upsert on the same key (email + workshop) and
+converge on the same rows — but there is no reason to.
+
 ## What's wired
 | Area | File |
 |------|------|
@@ -134,4 +170,5 @@ what spam filters read and what a watch or screen reader falls back to.
 | Password reset | `app/reset-password/page.jsx` |
 | Workshop seats + waitlist | `app/workshops/actions.js`, `supabase/enrollments.sql` |
 | Seat confirmation email | `lib/emails/enrollment.js`, `lib/mail.js` |
+| Registrations → Google Sheet | `scripts/sheet-sync-supabase.gs` (pull) or `lib/sheets.js` (push) |
 | DB schema | `supabase/schema.sql` |
