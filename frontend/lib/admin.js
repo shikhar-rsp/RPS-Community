@@ -8,13 +8,19 @@
    admin UI to grant one through anyway.
 
    Set ADMIN_EMAILS to change it — comma-separated, no NEXT_PUBLIC_ prefix, or
-   the list of who is privileged ships to every browser. With it unset the
-   fallback below applies, which is one address rather than none: failing closed
-   to a single known person is safer than failing open, and safer than failing
-   to nobody and having someone widen the gate in a hurry.
+   the list of who is privileged ships to every browser. Setting it REPLACES the
+   fallback below rather than adding to it, so an address left out of the
+   variable loses access even if it is named here.
+
+   With it unset the fallback applies: named people rather than nobody, so the
+   page is never locked out and never open.
    ============================================================================= */
 
-const FALLBACK = ["dheena@rockpaperscissors.studio"];
+const FALLBACK = [
+  "dheena@rockpaperscissors.studio",
+  "rishi@rockpaperscissors.studio",
+  "vivin@rockpaperscissors.studio",
+];
 
 function parse(raw) {
   return String(raw || "")

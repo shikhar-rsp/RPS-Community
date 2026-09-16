@@ -130,8 +130,10 @@ status, and **Export CSV** for anything a spreadsheet is genuinely better at.
 Each row links the email to a mail client and the number to WhatsApp, which is
 what sending the Meet link round actually involves.
 
-**Who can open it.** Only the addresses in `ADMIN_EMAILS`; unset, it is
-`dheena@rockpaperscissors.studio` alone. Anyone else — signed in or not — gets a
+**Who can open it.** Only the addresses in `ADMIN_EMAILS`; unset, it is the
+three in `lib/admin.js` — dheena@, rishi@ and vivin@. Setting the variable
+**replaces** that list rather than adding to it, so name everyone who needs
+access, not just the new person. Anyone else — signed in or not — gets a
 404 rather than a refusal, so the page's existence is not advertised. The check
 is the session's verified email, made on the server before any data is fetched;
 there is no client-side gate to bypass and nothing about who is an admin reaches
