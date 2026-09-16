@@ -26,66 +26,106 @@
   margin-bottom: 8px;
 }
 
-/* The workshop picker, doing the job of the page heading. It has to read as a
-   title first and a control second: display size and weight, with the chevron
-   and a hover rule as the only hints it opens. */
 .picked { min-width: 0; flex: 1 1 340px; }
 
-.pickWrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
+.title {
+  margin: 0 0 10px;
+  font-size: clamp(1.7rem, 4.4vw, 2.4rem);
+  letter-spacing: -.02em;
 }
+
+/* The workshop picker. Deliberately a small control, not the headline: it says
+   which session is on screen and swaps it, and that is all. */
+.pickWrap { display: block; max-width: 100%; }
 
 .pick {
-  appearance: none;
-  -webkit-appearance: none;
   font: inherit;
-  font-size: clamp(1.35rem, 3.6vw, 1.95rem);
-  font-weight: 700;
-  letter-spacing: -.02em;
-  line-height: 1.2;
+  font-size: .9rem;
+  font-weight: 600;
   color: var(--ink);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 2px 30px 4px 0;
-  margin: 0;
+  background: var(--card);
+  border: 1.5px solid var(--line-2);
+  border-radius: 9px;
+  padding: 8px 11px;
   max-width: 100%;
   cursor: pointer;
-  /* A long title truncates rather than pushing the chevron off the row. */
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
 }
+.pick:hover { border-color: var(--accent); }
+.pick:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; }
 
-.pick:hover { border-bottom-color: var(--line-2); }
-.pick:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+/* The native menu paints itself, so its options need their own colours —
+   inheriting leaves unreadable text on Windows. */
+.pick option { font-weight: 500; color: var(--ink); background: var(--card); }
 
-/* The native menu paints itself, so its options need colours of their own —
-   inheriting transparent here gives unreadable text on Windows. */
-.pick option {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--ink);
+.tagNext,
+.tagPast { font-weight: 600; }
+.tagNext { color: var(--accent); }
+.tagPast { color: var(--faint); }
+
+/* --------------------------------------------------- the status filter */
+/* Three states with their counts on them, so the split is readable without
+   opening anything — which is what the select could never show. */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 11px;
   background: var(--card);
 }
 
-.chev {
-  position: absolute;
-  right: 4px;
-  color: var(--faint);
-  pointer-events: none;
-}
-.pickWrap:hover .chev { color: var(--accent); }
-
-.tagNext,
-.tagPast {
+.segBtn {
+  font: inherit;
+  font-size: .86rem;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
 }
-.tagNext { color: var(--accent); }
-.tagPast { color: var(--faint); }
+.segBtn:hover { color: var(--ink); }
+.segBtn[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.segN {
+  font-variant-numeric: tabular-nums;
+  font-size: .78rem;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: var(--soft-fill);
+  color: inherit;
+}
+.segBtn[aria-pressed='true'] .segN { background: rgba(255, 255, 255, .22); }
+
+/* ----------------------------------------------------- the row actions */
+.statusCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.act {
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1.5px solid var(--line-2);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.act:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.act:disabled { opacity: .5; cursor: progress; }
 
 .sub {
   margin: 8px 0 0;

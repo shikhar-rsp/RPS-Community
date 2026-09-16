@@ -5,6 +5,17 @@ import { WORKSHOPS } from "@/lib/community/content";
 import { allWorkshops, isPast, dateFull } from "@/lib/community/workshops";
 import RegistrationsClient from "./RegistrationsClient";
 
+/* Everything before this is test data from building the thing, so the list
+   starts here. Filtered in the query rather than deleted from the database:
+   the old rows are somebody's record of what was tried, and a date is
+   reversible in a way a DELETE is not.
+
+   An ISO instant with the offset on it, because "15 September" in IST starts
+   five and a half hours before it does in UTC, and a registration taken on the
+   evening of the 14th UTC belongs to the 15th here. */
+const REGISTRATIONS_FROM =
+  process.env.REGISTRATIONS_FROM || "2026-09-15T00:00:00+05:30";
+
 export const metadata = {
   title: "Registrations — RPS Cohorts",
   // This page lists real people's contact details. Keep it out of every index
@@ -31,10 +42,18 @@ export default async function RegistrationsPage() {
   if (!user) redirect("/signin?next=/admin/registrations");
   if (!isAdminEmail(user.email)) notFound();
 
+  /* This is the workshop registration list and nothing else.
+
+     Every row is somebody who filled in the form on a workshop page. Creating
+     an account does not put anyone here — `enrollments` is only written when a
+     seat is taken — and the account an address signed in with is deliberately
+     not read, because it is not what this list is about. */
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("enrollments")
-    .select("workshop_slug, name, email, user_email, whatsapp, status, created_at")
+    .select("id, workshop_slug, name, email, whatsapp, status, created_at")
+    .neq("status", "CANCELLED")
+    .gte("created_at", REGISTRATIONS_FROM)
     .order("created_at", { ascending: false });
 
   // Titles come from the content module rather than the database, which only
@@ -56,16 +75,16 @@ export default async function RegistrationsPage() {
       past: isPast(w),
     }));
 
+  // The upcoming session, not merely the newest row — once 19 Sep has been and
+  // gone this should follow on to whatever is next rather than staying put.
+  const nextUp = workshops.filter((w) => !w.past).pop() || workshops[0];
+
   const rows = (data || []).map((r) => ({
+    id: r.id,
     slug: r.workshop_slug,
     workshop: titles[r.workshop_slug] || r.workshop_slug,
     name: r.name || "",
     email: r.email || "",
-    // Only worth showing when it differs from what they typed on the form.
-    accountEmail:
-      r.user_email && r.user_email.toLowerCase() !== String(r.email || "").toLowerCase()
-        ? r.user_email
-        : null,
     whatsapp: r.whatsapp || "",
     status: r.status || "",
     createdAt: r.created_at,
@@ -77,7 +96,8 @@ export default async function RegistrationsPage() {
       failed={!!error}
       viewer={user.email}
       workshops={workshops}
-      initialSlug={workshops[0]?.slug || "all"}
+      initialSlug={nextUp?.slug || "all"}
+      since={dateFull(REGISTRATIONS_FROM)}
     />
   );
 }

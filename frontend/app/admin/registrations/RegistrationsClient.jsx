@@ -1,8 +1,9 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import SiteShell from '@/components/community/SiteShell';
 import { StatusChip } from '@/components/community/Bits';
 import styles from './registrations.module.css';
+import { setEnrollmentStatus } from './actions';
 
 /* The list the team works from. Everything here is a view over rows the server
    already decided this person may see — the filtering is convenience, never a
@@ -46,12 +47,15 @@ function csvCell(value) {
   return `"${safe.replace(/"/g, '""')}"`;
 }
 
-export default function RegistrationsClient({ rows, failed, viewer, workshops, initialSlug }) {
+export default function RegistrationsClient({ rows, failed, viewer, workshops, initialSlug, since }) {
   const [q, setQ] = useState('');
   // Opens on the most recent session rather than on everything at once: the
   // question this page gets asked is almost always about the next one.
   const [slug, setSlug] = useState(initialSlug);
   const [status, setStatus] = useState('all');
+  const [busyId, setBusyId] = useState(null);
+  const [problem, setProblem] = useState('');
+  const [, startTransition] = useTransition();
 
   const selected = workshops.find((w) => w.slug === slug) || null;
 
@@ -67,7 +71,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
     return inWorkshop.filter((r) => {
       if (status !== 'all' && r.status !== status) return false;
       if (!needle) return true;
-      return [r.name, r.email, r.whatsapp, r.accountEmail]
+      return [r.name, r.email, r.whatsapp]
         .filter(Boolean)
         .some((v) => v.toLowerCase().includes(needle));
     });
@@ -81,10 +85,25 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
     return c;
   }, [inWorkshop]);
 
+  /* Approve or waitlist one person. The server re-checks who is asking and
+     revalidates the page, so the table redraws from the database rather than
+     from an optimistic guess here — the number of seats is not this component's
+     to decide. */
+  function move(row, next) {
+    if (row.status === next || busyId) return;
+    setProblem('');
+    setBusyId(row.id);
+    startTransition(async () => {
+      const res = await setEnrollmentStatus(row.id, next);
+      setBusyId(null);
+      if (!res.ok) setProblem(res.error || 'Could not save that.');
+    });
+  }
+
   function exportCsv() {
-    const header = ['Registered at (IST)', 'Name', 'Email', 'Account email', 'WhatsApp', 'Status', 'Workshop'];
+    const header = ['Registered at (IST)', 'Name', 'Email', 'WhatsApp', 'Status', 'Workshop'];
     const body = shown.map((r) => [
-      whenExact(r.createdAt), r.name, r.email, r.accountEmail || '', r.whatsapp, r.status, r.workshop,
+      whenExact(r.createdAt), r.name, r.email, r.whatsapp, r.status, r.workshop,
     ]);
     // The BOM is what makes Excel open UTF-8 correctly — without it a name with
     // an accent in it arrives mangled.
@@ -106,12 +125,11 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
       <div className={'wrap page-top ' + styles.page}>
         <header className={styles.head}>
           <div className={styles.picked}>
-            <span className={styles.eyebrow}>Registrations for</span>
+            <span className={styles.eyebrow}>Admin</span>
+            <h1 className={styles.title}>Registrations</h1>
 
-            {/* The heading IS the control. This page's first question is always
-                "which workshop am I looking at", so the answer is the biggest
-                thing on it and changing it is one click, not a filter to hunt
-                for further down. */}
+            {/* Small on purpose. It says which session is on screen and swaps
+                it; it is not the headline. */}
             <div className={styles.pickWrap}>
               <select
                 id="reg-workshop"
@@ -127,11 +145,6 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
                 ))}
                 <option value="all">All workshops</option>
               </select>
-              <svg className={styles.chev} width="18" height="18" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-                   strokeLinejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
             </div>
 
             <p className={styles.sub}>
@@ -146,8 +159,10 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
               {inWorkshop.length} {inWorkshop.length === 1 ? 'person' : 'people'}
               {inWorkshop.length > 0 && (
                 <>
-                  {' · '}{counts.REGISTERED} registered
-                  {counts.WAITLISTED > 0 && <>{' · '}{counts.WAITLISTED} waitlisted</>}
+                  {/* "Approved", matching the button that sets it — one word
+                      for one state, wherever it appears. */}
+                  {' · '}{counts.REGISTERED} approved
+                  {counts.WAITLISTED > 0 && <>{' · '}{counts.WAITLISTED} on the waitlist</>}
                   {counts.ATTENDED > 0 && <>{' · '}{counts.ATTENDED} attended</>}
                 </>
               )}
@@ -175,19 +190,29 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
             onChange={(e) => setQ(e.target.value)}
             aria-label="Search registrations"
           />
-          <select
-            id="reg-status"
-            className={styles.select}
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            aria-label="Filter by status"
-          >
-            <option value="all">Any status</option>
-            <option value="REGISTERED">Registered</option>
-            <option value="WAITLISTED">Waitlisted</option>
-            <option value="ATTENDED">Attended</option>
-          </select>
+          <div className={styles.seg} role="group" aria-label="Filter by status">
+            {[
+              ['all', 'Everyone', inWorkshop.length],
+              ['REGISTERED', 'Approved', counts.REGISTERED],
+              ['WAITLISTED', 'Waitlist', counts.WAITLISTED],
+            ].map(([value, label, n]) => (
+              <button
+                key={value}
+                type="button"
+                className={styles.segBtn}
+                aria-pressed={status === value}
+                onClick={() => setStatus(value)}
+              >
+                {label}
+                <span className={styles.segN}>{n}</span>
+              </button>
+            ))}
+          </div>
         </div>
+
+        {problem && (
+          <div className={styles.warn} role="alert">{problem}</div>
+        )}
 
         {shown.length === 0 ? (
           <div className={styles.empty}>
@@ -220,12 +245,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
                   <tr key={`${r.slug}:${r.email}:${i}`}>
                     <td className={styles.num}>{whenShort(r.createdAt)}</td>
                     <td className={styles.strong}>{r.name}</td>
-                    <td>
-                      <a href={`mailto:${r.email}`}>{r.email}</a>
-                      {r.accountEmail && (
-                        <span className={styles.note}>signed in as {r.accountEmail}</span>
-                      )}
-                    </td>
+                    <td><a href={`mailto:${r.email}`}>{r.email}</a></td>
                     <td className={styles.num}>
                       {/* wa.me wants digits only — no +, spaces or dashes. */}
                       <a
@@ -236,7 +256,30 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
                         {r.whatsapp}
                       </a>
                     </td>
-                    <td><StatusChip status={r.status} /></td>
+                    <td>
+                      <div className={styles.statusCell}>
+                        <StatusChip status={r.status} />
+                        {/* Only the state it is not in is offered — a button
+                            that re-applies the current status is a no-op
+                            dressed up as a choice. */}
+                        {r.status === 'REGISTERED' || r.status === 'WAITLISTED' ? (
+                          <button
+                            type="button"
+                            className={styles.act}
+                            disabled={busyId === r.id}
+                            onClick={() =>
+                              move(r, r.status === 'REGISTERED' ? 'WAITLISTED' : 'REGISTERED')
+                            }
+                          >
+                            {busyId === r.id
+                              ? 'Saving…'
+                              : r.status === 'REGISTERED'
+                                ? 'Move to waitlist'
+                                : 'Approve'}
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
                     {slug === 'all' && <td className={styles.workshop}>{r.workshop}</td>}
                   </tr>
                 ))}
@@ -246,8 +289,10 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
         )}
 
         <p className={styles.foot}>
-          Signed in as {viewer}. This list is visible to named addresses only — set
-          ADMIN_EMAILS to change who.
+          Everyone who registered through a workshop link since {since}. Signing up for
+          an account does not appear here.
+          <br />
+          Signed in as {viewer} · visible to named addresses only.
         </p>
       </div>
     </SiteShell>
