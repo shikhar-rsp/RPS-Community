@@ -3,7 +3,7 @@ import { useMemo, useState, useTransition } from 'react';
 import SiteShell from '@/components/community/SiteShell';
 import { StatusChip } from '@/components/community/Bits';
 import styles from './registrations.module.css';
-import { setEnrollmentStatus, removeEnrollment } from './actions';
+import { setEnrollmentStatus, removeEnrollment, restoreEnrollment } from './actions';
 
 /* The list the team works from. Everything here is a view over rows the server
    already decided this person may see — the filtering is convenience, never a
@@ -47,7 +47,7 @@ function csvCell(value) {
   return `"${safe.replace(/"/g, '""')}"`;
 }
 
-export default function RegistrationsClient({ rows, failed, viewer, workshops, initialSlug, since }) {
+export default function RegistrationsClient({ rows, failed, viewer, workshops, initialSlug, since, trash = [], hasAudit = true }) {
   const [q, setQ] = useState('');
   // Opens on the most recent session rather than on everything at once: the
   // question this page gets asked is almost always about the next one.
@@ -59,6 +59,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
   const [confirmId, setConfirmId] = useState(null);
   const [problem, setProblem] = useState('');
   const [removed, setRemoved] = useState('');
+  const [showTrash, setShowTrash] = useState(false);
   const [, startTransition] = useTransition();
 
   const selected = workshops.find((w) => w.slug === slug) || null;
@@ -96,11 +97,26 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
   function move(row, next) {
     if (row.status === next || busyId) return;
     setProblem('');
+    setRemoved('');
     setBusyId(row.id);
     startTransition(async () => {
       const res = await setEnrollmentStatus(row.id, next);
       setBusyId(null);
       if (!res.ok) setProblem(res.error || 'Could not save that.');
+      else if (res.degraded) setProblem(res.degraded);
+      else if (next === 'REJECTED') setRemoved(`${res.name || 'That registration'} was rejected.`);
+    });
+  }
+
+  function restore(row) {
+    if (busyId) return;
+    setProblem('');
+    setBusyId(row.id);
+    startTransition(async () => {
+      const res = await restoreEnrollment(row.id);
+      setBusyId(null);
+      if (res.ok) setRemoved(`${res.name || 'That registration'} is back on the list, waitlisted.`);
+      else setProblem(res.error || 'Could not restore that.');
     });
   }
 
@@ -112,8 +128,9 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
       const res = await removeEnrollment(row.id);
       setBusyId(null);
       setConfirmId(null);
-      if (res.ok) setRemoved(`${res.name || 'That registration'} is off the list.`);
-      else setProblem(res.error || 'Could not remove that.');
+      if (!res.ok) setProblem(res.error || 'Could not remove that.');
+      else if (res.degraded) setProblem(res.degraded);
+      else setRemoved(`${res.name || 'That registration'} is off the list.`);
     });
   }
 
@@ -185,9 +202,26 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
               )}
             </p>
           </div>
-          <button className="btn go" type="button" onClick={exportCsv} disabled={!shown.length}>
-            Export CSV
-          </button>
+          <div className={styles.headActions}>
+            <button
+              type="button"
+              className={styles.trashBtn}
+              aria-pressed={showTrash}
+              onClick={() => { setShowTrash((v) => !v); setRemoved(''); }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+              </svg>
+              Trash
+              {trash.length > 0 && <span className={styles.segN}>{trash.length}</span>}
+            </button>
+            <button className="btn go" type="button" onClick={exportCsv} disabled={!shown.length}>
+              Export CSV
+            </button>
+          </div>
         </header>
 
         {failed && (
@@ -237,6 +271,67 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
           </div>
         )}
 
+        {showTrash && (
+          <section className={styles.trash}>
+            <h2 className={styles.trashHead}>
+              Removed and rejected
+              <span className={styles.trashSub}>
+                {trash.length
+                  ? 'Nobody is emailed from here, and their seats are free. Put one back and it returns waitlisted.'
+                  : 'Nothing has been taken off the list.'}
+              </span>
+            </h2>
+
+            {!hasAudit && trash.length > 0 && (
+              <p className={styles.trashNote}>
+                Who removed these is not recorded yet — run
+                {' '}<code>supabase/admin-moderation.sql</code>{' '} and it will be from then on.
+              </p>
+            )}
+
+            {trash.length > 0 && (
+              <div className={styles.scroller}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Email</th>
+                      <th scope="col">What happened</th>
+                      <th scope="col">By</th>
+                      <th scope="col"><span className={styles.sr}>Restore</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trash.map((r) => (
+                      <tr key={r.id}>
+                        <td className={styles.strong}>{r.name}</td>
+                        <td>{r.email}</td>
+                        <td>{r.status === 'REJECTED' ? 'Rejected' : 'Removed'}</td>
+                        <td className={styles.num}>
+                          {r.removedBy || <span className={styles.faint}>&mdash;</span>}
+                          {r.removedAt && (
+                            <span className={styles.note}>{whenShort(r.removedAt)}</span>
+                          )}
+                        </td>
+                        <td className={styles.removeCell}>
+                          <button
+                            type="button"
+                            className={styles.act}
+                            disabled={busyId === r.id}
+                            onClick={() => restore(r)}
+                          >
+                            {busyId === r.id ? 'Restoring…' : 'Put back'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
         {shown.length === 0 ? (
           <div className={styles.empty}>
             <h2>
@@ -260,6 +355,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
                   <th scope="col">Email</th>
                   <th scope="col">WhatsApp</th>
                   <th scope="col">Status</th>
+                  <th scope="col">Decision</th>
                   {slug === 'all' && <th scope="col">Workshop</th>}
                   <th scope="col"><span className={styles.sr}>Remove</span></th>
                 </tr>
@@ -280,28 +376,29 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
                         {r.whatsapp}
                       </a>
                     </td>
-                    <td>
-                      <div className={styles.statusCell}>
-                        <StatusChip status={r.status} />
-                        {/* Only the state it is not in is offered — a button
-                            that re-applies the current status is a no-op
-                            dressed up as a choice. */}
-                        {r.status === 'REGISTERED' || r.status === 'WAITLISTED' ? (
-                          <button
-                            type="button"
-                            className={styles.act}
-                            disabled={busyId === r.id}
-                            onClick={() =>
-                              move(r, r.status === 'REGISTERED' ? 'WAITLISTED' : 'REGISTERED')
-                            }
-                          >
-                            {busyId === r.id
-                              ? 'Saving…'
-                              : r.status === 'REGISTERED'
-                                ? 'Move to waitlist'
-                                : 'Approve'}
-                          </button>
-                        ) : null}
+                    <td><StatusChip status={r.status} /></td>
+                    <td className={styles.actionsCell}>
+                      <div className={styles.actions}>
+                        {/* Both decisions are always on screen. The one already
+                            in force is shown as taken rather than hidden, so a
+                            row never looks like it is missing a choice. */}
+                        <button
+                          type="button"
+                          className={styles.approve}
+                          aria-pressed={r.status === 'REGISTERED'}
+                          disabled={busyId === r.id || r.status === 'REGISTERED'}
+                          onClick={() => move(r, 'REGISTERED')}
+                        >
+                          {r.status === 'REGISTERED' ? 'Approved' : 'Approve'}
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.reject}
+                          disabled={busyId === r.id}
+                          onClick={() => move(r, 'REJECTED')}
+                        >
+                          Reject
+                        </button>
                       </div>
                     </td>
                     {slug === 'all' && <td className={styles.workshop}>{r.workshop}</td>}

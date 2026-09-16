@@ -49,12 +49,42 @@ export default async function RegistrationsPage() {
      seat is taken — and the account an address signed in with is deliberately
      not read, because it is not what this list is about. */
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("enrollments")
-    .select("id, workshop_slug, name, email, whatsapp, status, created_at")
-    .neq("status", "CANCELLED")
-    .gte("created_at", REGISTRATIONS_FROM)
-    .order("created_at", { ascending: false });
+
+  /* Two reads: the live list, and the trash. `removed_by` and `removed_at` only
+     exist once supabase/admin-moderation.sql has been run, so the select asks
+     for them and falls back to the columns that have always been there. The
+     page works either way — the trash just cannot say who did it. */
+  const LIVE = ["REGISTERED", "WAITLISTED", "ATTENDED"];
+  const GONE = ["CANCELLED", "REJECTED"];
+
+  async function read(withAudit) {
+    const cols = withAudit
+      ? "id, workshop_slug, name, email, whatsapp, status, created_at, removed_by, removed_at"
+      : "id, workshop_slug, name, email, whatsapp, status, created_at";
+    const live = await admin
+      .from("enrollments")
+      .select(cols)
+      .in("status", LIVE)
+      .gte("created_at", REGISTRATIONS_FROM)
+      .order("created_at", { ascending: false });
+    const gone = await admin
+      .from("enrollments")
+      .select(cols)
+      .in("status", GONE)
+      .gte("created_at", REGISTRATIONS_FROM)
+      .order("updated_at", { ascending: false });
+    return { live, gone };
+  }
+
+  let { live, gone } = await read(true);
+  let hasAudit = true;
+  if (live.error || gone.error) {
+    ({ live, gone } = await read(false));
+    hasAudit = false;
+  }
+
+  const data = live.data;
+  const error = live.error;
 
   // Titles come from the content module rather than the database, which only
   // ever stores the slug.
@@ -79,7 +109,7 @@ export default async function RegistrationsPage() {
   // gone this should follow on to whatever is next rather than staying put.
   const nextUp = workshops.filter((w) => !w.past).pop() || workshops[0];
 
-  const rows = (data || []).map((r) => ({
+  const shape = (r) => ({
     id: r.id,
     slug: r.workshop_slug,
     workshop: titles[r.workshop_slug] || r.workshop_slug,
@@ -88,7 +118,12 @@ export default async function RegistrationsPage() {
     whatsapp: r.whatsapp || "",
     status: r.status || "",
     createdAt: r.created_at,
-  }));
+    removedBy: r.removed_by || null,
+    removedAt: r.removed_at || null,
+  });
+
+  const rows = (data || []).map(shape);
+  const trash = (gone.data || []).map(shape);
 
   return (
     <RegistrationsClient
@@ -98,6 +133,8 @@ export default async function RegistrationsPage() {
       workshops={workshops}
       initialSlug={nextUp?.slug || "all"}
       since={dateFull(REGISTRATIONS_FROM)}
+      trash={trash}
+      hasAudit={hasAudit}
     />
   );
 }

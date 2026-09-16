@@ -130,11 +130,22 @@ status, and **Export CSV** for anything a spreadsheet is genuinely better at.
 Each row links the email to a mail client and the number to WhatsApp, which is
 what sending the Meet link round actually involves.
 
-**Changing a registration.** Each row can be approved or moved to the waitlist,
-and removed from the list. Removing marks the row `CANCELLED` rather than
-deleting it: the seat is freed for whoever is next on the waitlist, the row
-disappears from this page, and the details survive in the database if somebody
-was taken off by mistake. To reinstate one, set its `status` back in Supabase.
+**Changing a registration.** Each row carries **Approve**, **Reject** and
+**Remove**. None of them delete anything: the row is marked, the seat is freed
+for whoever is next on the waitlist, and it moves to **Trash** — the button by
+Export CSV — which lists what was taken off, who did it and when, with **Put
+back** on each. Restoring returns somebody as *waitlisted* rather than approved,
+because the seat they had may well have gone to someone else in the meantime and
+handing it straight back would quietly overbook the room.
+
+Reject and Remove are kept apart on purpose: rejecting is a decision about a
+person, removing is housekeeping (test rows, duplicates). A list that cannot
+tell them apart cannot tell you why a name is missing.
+
+Run [`supabase/admin-moderation.sql`](supabase/admin-moderation.sql) to separate
+the two properly and to record who removed what. **The page works without it** —
+Reject falls back to the same state as Remove and the trash cannot name anyone,
+and it tells you so on screen rather than quietly doing something else.
 
 **Who can open it.** Only the addresses in `ADMIN_EMAILS`; unset, it is the
 three in `lib/admin.js` — dheena@, rishi@ and vivin@. Setting the variable
