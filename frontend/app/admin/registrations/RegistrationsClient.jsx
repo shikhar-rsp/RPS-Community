@@ -3,7 +3,7 @@ import { useMemo, useState, useTransition } from 'react';
 import SiteShell from '@/components/community/SiteShell';
 import { StatusChip } from '@/components/community/Bits';
 import styles from './registrations.module.css';
-import { setEnrollmentStatus } from './actions';
+import { setEnrollmentStatus, removeEnrollment } from './actions';
 
 /* The list the team works from. Everything here is a view over rows the server
    already decided this person may see — the filtering is convenience, never a
@@ -54,7 +54,11 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
   const [slug, setSlug] = useState(initialSlug);
   const [status, setStatus] = useState('all');
   const [busyId, setBusyId] = useState(null);
+  // Which row is asking "remove?" — one at a time, so a second click elsewhere
+  // puts the question away rather than arming two of them.
+  const [confirmId, setConfirmId] = useState(null);
   const [problem, setProblem] = useState('');
+  const [removed, setRemoved] = useState('');
   const [, startTransition] = useTransition();
 
   const selected = workshops.find((w) => w.slug === slug) || null;
@@ -97,6 +101,19 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
       const res = await setEnrollmentStatus(row.id, next);
       setBusyId(null);
       if (!res.ok) setProblem(res.error || 'Could not save that.');
+    });
+  }
+
+  function remove(row) {
+    if (busyId) return;
+    setProblem('');
+    setBusyId(row.id);
+    startTransition(async () => {
+      const res = await removeEnrollment(row.id);
+      setBusyId(null);
+      setConfirmId(null);
+      if (res.ok) setRemoved(`${res.name || 'That registration'} is off the list.`);
+      else setProblem(res.error || 'Could not remove that.');
     });
   }
 
@@ -213,6 +230,12 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
         {problem && (
           <div className={styles.warn} role="alert">{problem}</div>
         )}
+        {removed && !problem && (
+          <div className={styles.note2} role="status">
+            {removed} Their seat is free again, and the row is kept in the database
+            if you need it back.
+          </div>
+        )}
 
         {shown.length === 0 ? (
           <div className={styles.empty}>
@@ -238,6 +261,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
                   <th scope="col">WhatsApp</th>
                   <th scope="col">Status</th>
                   {slug === 'all' && <th scope="col">Workshop</th>}
+                  <th scope="col"><span className={styles.sr}>Remove</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -281,6 +305,39 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
                       </div>
                     </td>
                     {slug === 'all' && <td className={styles.workshop}>{r.workshop}</td>}
+                    <td className={styles.removeCell}>
+                      {confirmId === r.id ? (
+                        <span className={styles.confirm}>
+                          <span className={styles.ask}>Remove?</span>
+                          <button
+                            type="button"
+                            className={styles.danger}
+                            disabled={busyId === r.id}
+                            onClick={() => remove(r)}
+                          >
+                            {busyId === r.id ? 'Removing…' : 'Yes'}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.act}
+                            disabled={busyId === r.id}
+                            onClick={() => setConfirmId(null)}
+                          >
+                            Keep
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.remove}
+                          disabled={!!busyId}
+                          onClick={() => { setRemoved(''); setConfirmId(r.id); }}
+                          aria-label={`Remove ${r.name} from the list`}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

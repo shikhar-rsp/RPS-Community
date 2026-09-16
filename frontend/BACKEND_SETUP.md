@@ -130,6 +130,12 @@ status, and **Export CSV** for anything a spreadsheet is genuinely better at.
 Each row links the email to a mail client and the number to WhatsApp, which is
 what sending the Meet link round actually involves.
 
+**Changing a registration.** Each row can be approved or moved to the waitlist,
+and removed from the list. Removing marks the row `CANCELLED` rather than
+deleting it: the seat is freed for whoever is next on the waitlist, the row
+disappears from this page, and the details survive in the database if somebody
+was taken off by mistake. To reinstate one, set its `status` back in Supabase.
+
 **Who can open it.** Only the addresses in `ADMIN_EMAILS`; unset, it is the
 three in `lib/admin.js` — dheena@, rishi@ and vivin@. Setting the variable
 **replaces** that list rather than adding to it, so name everyone who needs

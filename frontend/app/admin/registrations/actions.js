@@ -56,3 +56,54 @@ export async function setEnrollmentStatus(id, status) {
   revalidatePath("/admin/registrations");
   return { ok: true, status: data.status };
 }
+
+/* Take someone off the list.
+
+   Marks the row CANCELLED rather than deleting it. Three reasons, in order of
+   how much they matter:
+
+   - It is recoverable. Removing the wrong person from a registration list is
+     an easy mistake and an unrecoverable one if the row is gone — the name,
+     the number and when they signed up would all have to be asked for again.
+   - It frees the seat. Capacity counts REGISTERED and ATTENDED only, so a
+     cancelled row lets the next person on the waitlist through, which is what
+     removing somebody should mean.
+   - It matches what the site already does when a registrant releases a seat
+     themselves, so there is one meaning of "not coming" rather than two.
+
+   The list filters CANCELLED out, so the effect is what it says: gone from the
+   page. To bring someone back, set their status in Supabase or have them
+   register again. */
+export async function removeEnrollment(id) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || !isAdminEmail(user.email)) {
+    return { ok: false, error: "Not allowed." };
+  }
+  if (!/^[0-9a-f-]{36}$/i.test(String(id || ""))) {
+    return { ok: false, error: "Missing registration." };
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("enrollments")
+    .update({ status: "CANCELLED", updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("id, name")
+    .maybeSingle();
+
+  if (error) {
+    console.error(`[admin] Could not remove ${id}: ${error.message}`);
+    return { ok: false, error: "Could not remove that. Please try again." };
+  }
+  if (!data) {
+    return { ok: false, error: "That registration is no longer there." };
+  }
+
+  console.warn(`[admin] ${user.email} removed registration ${id} (${data.name}).`);
+  revalidatePath("/admin/registrations");
+  return { ok: true, name: data.name };
+}
