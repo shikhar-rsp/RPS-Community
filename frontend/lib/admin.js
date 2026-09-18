@@ -17,6 +17,7 @@
    ============================================================================= */
 
 const FALLBACK = [
+  "avni@rockpaperscissors.studio",
   "dheena@rockpaperscissors.studio",
   "rishi@rockpaperscissors.studio",
   "vivin@rockpaperscissors.studio",

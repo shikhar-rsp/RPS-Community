@@ -148,7 +148,7 @@ Reject falls back to the same state as Remove and the trash cannot name anyone,
 and it tells you so on screen rather than quietly doing something else.
 
 **Who can open it.** Only the addresses in `ADMIN_EMAILS`; unset, it is the
-three in `lib/admin.js` — dheena@, rishi@ and vivin@. Setting the variable
+four in `lib/admin.js` — avni@, dheena@, rishi@ and vivin@. Setting the variable
 **replaces** that list rather than adding to it, so name everyone who needs
 access, not just the new person. Anyone else — signed in or not — gets a
 404 rather than a refusal, so the page's existence is not advertised. The check
