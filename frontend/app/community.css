@@ -1904,24 +1904,12 @@ footer.site .logo-badge .logo-img{ height:34px; }
   }
 }
 
-/* Alone in a row (.wgrid.one — the homepage's one past workshop, or the
-   next session), the card goes side by side once there's room: artwork left,
-   copy right. The copy decides the height, so the banner sits whole inside
-   the left half at 16:9, and a soft, dimmed copy of itself fills the space
-   around it — the full banner, with no bands of flat colour. */
-@media (min-width:900px){
-  .wgrid.one .wcard{ display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); }
-  .wgrid.one .wcard .media{ aspect-ratio:auto; min-height:320px; height:100%; }
-  .wgrid.one .wcard .media::before{
-    content:""; position:absolute; inset:-30px;
-    background:var(--wc-art, none) center/cover no-repeat;
-    filter:blur(26px) brightness(.55) saturate(1.1);
-  }
-  .wgrid.one .wcard .media .frame{ background:transparent !important; }
-  .wgrid.one .wcard .media .frame.has-photo img{ object-fit:contain; }
-  .wgrid.one .wcard .body{ padding:28px 32px 30px; }
-  .wgrid.one .wcard h3{ font-size:clamp(1.5rem,1.2rem + 1vw,1.9rem); max-width:22ch; }
-  .wgrid.one .wcard .summary{ font-size:1rem; max-width:52ch; }
+/* Alone in a row (.wgrid.one — a single session), the card keeps the same
+   shape as every other one: centred, at the width it would have beside a
+   neighbour. Side by side, the copy set the height and the 16:9 banner could
+   never fill its half at every screen width — so it doesn't try. */
+@media (min-width:901px){
+  .wgrid.one{ grid-template-columns:minmax(0,calc((100% - 20px) / 2)); justify-content:center; }
 }
 
 @media (max-width:600px){

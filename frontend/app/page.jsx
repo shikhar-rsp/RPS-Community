@@ -11,7 +11,7 @@ import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession } from '@/lib/community/hooks';
 import { useSeats } from '@/lib/community/enrollment';
 import {
-  upcoming, featuredPast, testimonials, faqs, seatUrl, workshopUrl, recordingReady,
+  upcoming, past, featuredPast, testimonials, faqs, seatUrl, workshopUrl, recordingReady,
 } from '@/lib/community/workshops';
 
 export default function Page() {
@@ -20,6 +20,9 @@ export default function Page() {
 
   const next = upcoming()[0];
   const last = featuredPast();
+  // With nothing coming up, the two latest sessions, side by side as on the
+  // listing — the same cards, the same full banners.
+  const recent = past().slice(0, 2);
   // "The last room": the latest cohort's featured quotes, and every cohort's
   // if that one has none marked yet.
   const lastQuotes = last ? testimonials(last.id).filter((t) => t.featured) : [];
@@ -197,8 +200,10 @@ export default function Page() {
             {next ? (
               <FeatureCard w={next} mine={seats[next.slug]} />
             ) : (
-              <div className="wgrid one">
-                <PastCard w={last} mine={seats[last.slug]} />
+              <div className={'wgrid' + (recent.length === 1 ? ' one' : '')}>
+                {recent.map((w) => (
+                  <PastCard key={w.id} w={w} mine={seats[w.slug]} />
+                ))}
               </div>
             )}
           </div>

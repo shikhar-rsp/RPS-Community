@@ -60,9 +60,7 @@ export function WorkshopCard({ w, mine }) {
 
   return (
     <article className="wcard reveal">
-      {/* --wc-art feeds the soft fill behind the banner when the card is laid
-          out side by side (.wgrid.one), so the banner shows whole there too. */}
-      <div className="media" style={w.bannerUrl ? { '--wc-art': `url(${w.bannerUrl})` } : undefined}>
+      <div className="media">
         <Link href={url} tabIndex={-1} aria-hidden="true">
           <Frame flat kind={w.bannerArt} src={w.bannerUrl} alt="" />
         </Link>
@@ -109,7 +107,7 @@ export function WorkshopCard({ w, mine }) {
 /* The listing and the homepage still ask for these two by name. They're the
    same card; the state comes from the workshop, not from which one was
    called. `lead` and `wide` no longer do anything — a card alone in a
-   .wgrid.one lays out side-by-side on its own (see community.css). */
+   .wgrid.one is centred at a paired card's width (see community.css). */
 export function UpcomingCard({ w, mine }) {
   return <WorkshopCard w={w} mine={mine} />;
 }

@@ -37,7 +37,7 @@ export const HOSTS = [
   {
     id: 'host_1',
     name: 'Vineet Chopdekar',
-    title: 'Principal Designer, RPS',
+    title: 'Principal Designer and Manager, RPS',
     bio: '14+ years on fintech and enterprise SaaS products people actually trust. Leads design at RPS.',
     photoUrl: '/assets/vineet-avatar.png',
   },
