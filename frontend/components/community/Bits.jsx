@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Avatar } from './Frame';
-import { calParts, dayShort, time, durationLabel } from '@/lib/community/workshops';
+import { calParts, dayShort, time, durationLabel, recordingState } from '@/lib/community/workshops';
 
 /* Status label is always text, never colour alone. */
 export function StatusChip({ status }) {
@@ -84,7 +84,11 @@ export function HostCard({ host }) {
     <div className="blk">
       <span className="eyebrow">Your host</span>
       <div className="hostcard">
-        <span className="face" aria-hidden="true">{initials}</span>
+        {host.photoUrl ? (
+          <img className="face" src={host.photoUrl} alt="" loading="lazy" decoding="async" />
+        ) : (
+          <span className="face" aria-hidden="true">{initials}</span>
+        )}
         <div>
           <b>{host.name}</b>
           <div className="micro">{host.title}</div>
@@ -100,9 +104,9 @@ export function HostCard({ host }) {
 export function seatChipFor(w, past, ready) {
   if (!past) return null;
   if (ready) return <span className="seat done">Recording + files up</span>;
-  // Don't promise an edit that isn't happening. A session with no recording
-  // coming is described by what it does have.
-  if (w && w.recordingComing) return <span className="seat warn">Recording still being cut</span>;
+  // The same words as the workshop page, so the two never disagree.
+  if (recordingState(w) === 'coming') return <span className="seat warn">Recording on its way</span>;
+  // A session that wasn't recorded is described by what it does have.
   if (w && w.resources && w.resources.length) return <span className="seat done">Files up</span>;
   return null;
 }

@@ -26,6 +26,67 @@ export function recordingReady(w) {
   return !!w.recordingUrl;
 }
 
+/* Where a past workshop's recording is up to: 'ready' once there is a link,
+   'none' only when the content says so outright (`recordingUrl: false`), and
+   otherwise 'coming'. Every session is recorded, and the days between it
+   running and the link going up are the normal case, not the exception — so
+   the page says "on its way" on its own, and nobody has to remember to set a
+   flag to stop it saying "not recorded" to the people who just attended. */
+export function recordingState(w) {
+  if (!w || !isPast(w)) return null;
+  if (w.recordingUrl) return 'ready';
+  if (w.recordingUrl === false) return 'none';
+  return 'coming';
+}
+
+/* How a recordingUrl plays on the page. Paste the link as you'd copy it —
+   a YouTube watch/share link (unlisted is fine), a Vimeo link, a Google Drive
+   file link (shared "anyone with the link"), or a direct .mp4/.webm file —
+   and this works out the embeddable form. Returns null for anything else,
+   which the page treats as "open it in a new tab" rather than guessing.
+   Every host here must also be allowed by frame-src in next.config.js. */
+export function recordingEmbed(url) {
+  if (!url) return null;
+  let u;
+  try {
+    u = new URL(url, 'https://cohorts.rockpaperscissors.studio');
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^www\./, '');
+
+  if (/\.(mp4|webm|m4v|mov)$/i.test(u.pathname)) return { kind: 'video', src: u.href };
+
+  let yt = null;
+  if (host === 'youtu.be') yt = u.pathname.slice(1);
+  else if (/(^|\.)youtube\.com$/.test(host)) {
+    yt = u.searchParams.get('v') || (u.pathname.match(/^\/(?:embed|live|shorts)\/([^/?]+)/) || [])[1];
+  }
+  // The player sits on the page ready, not running: nothing autoplays. The
+  // standard YouTube embed keeps the channel and "Watch on YouTube" links, so
+  // anyone can carry on to the channel to like and subscribe.
+  if (yt) {
+    return {
+      kind: 'iframe',
+      provider: 'youtube',
+      src: `https://www.youtube.com/embed/${yt}?rel=0`,
+      watchUrl: `https://www.youtube.com/watch?v=${yt}`,
+    };
+  }
+
+  if (host === 'vimeo.com' || host === 'player.vimeo.com') {
+    const id = (u.pathname.match(/(\d{6,})/) || [])[1];
+    if (id) return { kind: 'iframe', src: `https://player.vimeo.com/video/${id}?dnt=1` };
+  }
+
+  if (host === 'drive.google.com') {
+    const id = (u.pathname.match(/\/file\/d\/([^/]+)/) || [])[1] || u.searchParams.get('id');
+    if (id) return { kind: 'iframe', src: `https://drive.google.com/file/d/${id}/preview` };
+  }
+
+  return null;
+}
+
 export function upcoming() {
   return allWorkshops().filter((w) => !isPast(w));
 }
@@ -167,6 +228,14 @@ export function durationLabel(w) {
     return hrs === 1 ? '1 hour' : `${hrs} hours`;
   }
   return `${mins} minutes`;
+}
+
+/* The same length at card size: "2h", "1h 30m", "45 min". */
+export function durationShort(w) {
+  const mins = Number(w?.durationMins) || 90;
+  if (mins % 60 === 0) return `${mins / 60}h`;
+  if (mins < 60) return `${mins} min`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
 }
 
 export function paragraphs(value) {

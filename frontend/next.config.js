@@ -14,6 +14,11 @@ const csp = [
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  // Workshop recordings play in place, embedded from where they're hosted.
+  // Keep in step with recordingEmbed() in lib/community/workshops.js.
+  "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://drive.google.com",
+  // Direct video files (a recordingUrl ending .mp4/.webm) may live on any https host.
+  "media-src 'self' https:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

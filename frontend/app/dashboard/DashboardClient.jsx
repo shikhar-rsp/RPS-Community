@@ -5,7 +5,7 @@ import SiteShell from '@/components/community/SiteShell';
 import { useReveal, useSession } from '@/lib/community/hooks';
 import { useSeats } from '@/lib/community/enrollment';
 import {
-  bySlug, isPast, recordingReady, dayShort, time, dateFull, workshopUrl,
+  bySlug, isPast, recordingReady, recordingState, dayShort, time, dateFull, workshopUrl,
 } from '@/lib/community/workshops';
 
 /* "My workshops" — every seat you've taken, the Meet links, and every recording
@@ -128,8 +128,8 @@ function Row({ e }) {
       <Link className="linkish" href={`${url}#recording`}>
         Watch it again
       </Link>
-    ) : w.recordingComing ? (
-      <span className="micro">Recording still being cut</span>
+    ) : recordingState(w) === 'coming' ? (
+      <span className="micro">Recording on its way</span>
     ) : (w.resources || []).length ? (
       <Link className="linkish" href={`${url}#files`}>
         Get the files

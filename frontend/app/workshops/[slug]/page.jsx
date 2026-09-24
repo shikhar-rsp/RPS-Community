@@ -3,15 +3,15 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import SiteShell from '@/components/community/SiteShell';
-import Frame from '@/components/community/Frame';
-import { StatusChip, DayBox, QuoteCard, HostCard, seatChipFor } from '@/components/community/Bits';
+import Frame, { Avatar } from '@/components/community/Frame';
+import { StatusChip, DayBox, QuoteCard, HostCard } from '@/components/community/Bits';
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession, identityFrom, useToasts } from '@/lib/community/hooks';
-import { useSeats, validateDetails } from '@/lib/community/enrollment';
+import { useSeats, useSeatCount, validateDetails } from '@/lib/community/enrollment';
 import {
-  bySlug, host, isPast, recordingReady, downloadResource,
-  upcoming, featuredPast, testimonials, dateFull, dayShort, time, workshopUrl,
-  enrollUrl, calendarUrl, paragraphs,
+  bySlug, byId, host, isPast, recordingReady, recordingState, downloadResource,
+  upcoming, past as pastWorkshops, featuredPast, testimonials, dateFull, dayShort, time, workshopUrl,
+  enrollUrl, calendarUrl, paragraphs, durationLabel, initialsFrom, recordingEmbed,
 } from '@/lib/community/workshops';
 
 /* One route, two layouts, branching on derived status. Everything on this page
@@ -47,15 +47,35 @@ const ICON = {
       <circle cx="8" cy="6.5" r="1.8" fill="none" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   ),
-  play: (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-      <path d="M4.5 2.6l9 5.4-9 5.4z" fill="currentColor" />
-    </svg>
-  ),
   host: (
     <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
       <circle cx="8" cy="5.4" r="2.8" fill="none" stroke="currentColor" strokeWidth="1.5" />
       <path d="M2.8 14a5.2 5.2 0 0 1 10.4 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
+};
+
+/* One drawn icon per kind of file in the workshop kit. */
+const KIT_ICON = {
+  figma: (
+    <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+      <path d="M7 2.5h3v5H7a2.5 2.5 0 0 1 0-5zM10 2.5h3a2.5 2.5 0 0 1 0 5h-3zM7 7.5h3v5H7a2.5 2.5 0 0 1 0-5zM13 7.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM7 12.5h3V15a2.5 2.5 0 1 1-3-2.5z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+    </svg>
+  ),
+  pdf: (
+    <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+      <path d="M5 2.5h6.5L15 6v11.5H5z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M11.5 2.5V6H15M7.5 10h5M7.5 12.8h5M7.5 15.4h3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  ),
+  zip: (
+    <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+      <path d="M2.5 5.5a1.5 1.5 0 0 1 1.5-1.5h4l1.6 2H16a1.5 1.5 0 0 1 1.5 1.5v7.5A1.5 1.5 0 0 1 16 16.5H4A1.5 1.5 0 0 1 2.5 15z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+    </svg>
+  ),
+  link: (
+    <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
+      <path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2l-1 1M11.5 8.5a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 0 0 4.2 4.2l1-1" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   ),
 };
@@ -79,6 +99,29 @@ function capPhone(raw) {
     out += ch;
   }
   return (plus ? '+' : '') + out;
+}
+
+/* A story paragraph that opens on a short label — "The problem: …" — gets
+   that label set in bold, so a long description scans as its beats rather
+   than reading as one block. Anything else renders as written. */
+function StoryParagraph({ text }) {
+  const m = /^([A-Z][^:.!?]{2,38}):\s+/.exec(text);
+  if (!m) return <p>{text}</p>;
+  return (
+    <p>
+      <strong>{m[1]}:</strong> {text.slice(m[0].length)}
+    </p>
+  );
+}
+
+/* Every body section opens the same way: a small label, then its title. */
+function SectionHead({ id, label, title }) {
+  return (
+    <header className="wsec-head">
+      <span className="eyebrow">{label}</span>
+      <h2 id={id}>{title}</h2>
+    </header>
+  );
 }
 
 function Meta({ icon, label, value }) {
@@ -109,7 +152,6 @@ function WorkshopDetail() {
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState(null);
   const [raceNotice, setRaceNotice] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const [delivered, setDelivered] = useState(false);
   const [saving, setSaving] = useState(false);
   // Giving up a seat is a real decision, so it asks once before it happens.
@@ -121,6 +163,8 @@ function WorkshopDetail() {
 
   const mine = w ? seats[w.slug] : null;
   const past = w ? isPast(w) : false;
+  // Only a past workshop shows how many seats it filled.
+  const seatCount = useSeatCount(past ? w.slug : null);
   const wantsEnroll = search.get('action') === 'enroll';
   const wantedRes = search.get('res');
 
@@ -196,10 +240,6 @@ function WorkshopDetail() {
 
   const h = host(w.hostId);
   const ready = recordingReady(w);
-  // Whether this workshop has a recording story to tell at all. Without one
-  // there is no player, no "still editing" promise, and no #recording anchor
-  // for anything to point at.
-  const hasRecordingBlock = ready || !!w.recordingComing;
 
   /* ------------------------------------------------------------ enrolment */
   function startEnroll() {
@@ -252,27 +292,16 @@ function WorkshopDetail() {
     );
   }
 
-  /* ------------------------------------------------------------ the hero */
-  const chips = past ? (
-    <>
-      <span className="eyebrow bare">{w.cohortLabel || 'Past cohort'} · Done</span>
-      {/* One rule for this chip, shared with the listing cards. */}
-      {seatChipFor(w, true, ready)}
-    </>
-  ) : (
+  /* ------------------------------------------------- the upcoming hero
+     (A past workshop builds its own — see the PAST layout below.) */
+  const chips = (
     <>
       <span className="eyebrow bare">{w.cohortLabel || 'Cohort'} · Coming up</span>
       {mine && <StatusChip status={mine.status} />}
     </>
   );
 
-  const metaItems = past ? (
-    <>
-      <Meta icon={ICON.date} label="Held" value={dateFull(w.dateTime)} />
-      {w.recordingLength && <Meta icon={ICON.play} label="Recording" value={w.recordingLength} />}
-      {h && <Meta icon={ICON.host} label="Hosted by" value={h.name} />}
-    </>
-  ) : (
+  const metaItems = (
     <>
       <Meta icon={ICON.date} label="Date" value={dayShort(w.dateTime)} />
       <Meta icon={ICON.time} label="Starts" value={time(w.dateTime)} />
@@ -283,7 +312,7 @@ function WorkshopDetail() {
 
   const hero = (cta) => (
     <div className="wrap page-top">
-      <Link className="backlink" href={past ? '/workshops#past' : '/workshops'}>
+      <Link className="backlink" href="/workshops">
         ← All workshops
       </Link>
       <div className="whero">
@@ -628,249 +657,395 @@ function WorkshopDetail() {
     );
   }
 
-  /* ----------------------------------------------------------- PAST layout */
-  const ts = testimonials(w.id);
+
+  /* ----------------------------------------------------------- PAST layout
+     The recording leads. Someone arriving from "Past & recordings" came to
+     watch, so the player is the first thing on the page — the real YouTube
+     player, sitting ready rather than running, with the way on to the
+     channel right under it. Then what the session was, in one strip of facts.
+
+     Below that the page is a single grid of equal cards: two to a row, a lone
+     last card running the full width, and one gap between everything. Cards
+     in a row stretch to the same height, so a short column never leaves dead
+     space beside a long one. On a phone it is one column in reading order. */
+  // The quotes marked `featured` carry the section — the first leads, up to
+  // three sit beside it. A workshop with none of its own borrows earlier
+  // cohorts' and says whose they are, so nobody reads them as this cohort's.
+  const ownTs = testimonials(w.id);
+  const ts = ownTs.length ? ownTs : testimonials();
+  const featuredTs = ts.filter((t) => t.featured);
+  const [leadQuote, ...moreQuotes] = (featuredTs.length >= 2 ? featuredTs : ts).slice(0, 4);
+  const quotedFrom = [...new Set(ts.map((t) => t.workshopId))]
+    .map((id) => byId(id)?.cohortLabel)
+    .filter(Boolean);
+  const saidLabel = ownTs.length
+    ? 'What people said'
+    : quotedFrom.length === 1
+      ? `What ${quotedFrom[0]} said`
+      : 'From earlier cohorts';
   const nextUp = upcoming()[0];
+  // Nothing on the calendar is no reason to end on a dead stop: the archive
+  // is the other thing worth exploring from here.
+  const fromArchive = nextUp ? null : pastWorkshops().find((x) => x.id !== w.id) || null;
+  const kit = w.resources || [];
+  const hasKit = kit.length > 0;
+  const curriculum = w.curriculum || [];
+
+  // The live count when the database answers, the content file's number when
+  // it doesn't — and never past capacity, which would read as an overbooked room.
+  const taken = Math.min(seatCount ?? w.seededEnrollments ?? 0, w.capacity || 0);
+
+  // No link yet is the normal few days after a session, not "not recorded":
+  // the page says it's on its way until the link is pasted in.
+  const coming = !ready && recordingState(w) === 'coming';
+  const embed = ready ? recordingEmbed(w.recordingUrl) : null;
+
+  const facts = [
+    ['Held', dateFull(w.dateTime)],
+    ['Length', durationLabel(w)],
+    w.capacity && taken ? ['Seats filled', `${taken} of ${w.capacity}`] : null,
+    h ? ['Hosted by', h.name] : null,
+    // With the player right there, "recorded" goes without saying.
+    ready ? null : ['Recording', coming ? 'On its way' : 'Not recorded'],
+  ].filter(Boolean);
+
+  // A member who was in the room is told so — in the same words My workshops
+  // uses for the same seat, so the two pages never disagree about it.
+  const wasHere = mine
+    ? {
+        ATTENDED: ['att', 'Been there'],
+        REGISTERED: ['att', 'Been there'],
+        WAITLISTED: ['wait', 'You were waitlisted'],
+      }[mine.status]
+    : null;
+
+  const whatsapp = (cls) => (
+    <a className={cls} href={CONFIG.whatsappUrl} target="_blank" rel="noopener noreferrer">
+      Join the WhatsApp group
+    </a>
+  );
+
+  const headText = (
+    <>
+      <div className="whero-chips">
+        <span className="eyebrow bare">{w.cohortLabel || 'Past cohort'} · Completed</span>
+        {wasHere && <span className={'status ' + wasHere[0]}>{wasHere[1]}</span>}
+        {coming && <span className="status reg">Recording on its way</span>}
+      </div>
+      <h1>{w.title}</h1>
+      <p className="summary">{w.summary}</p>
+      <dl className="wfacts" style={{ '--n': facts.length }}>
+        {facts.map(([k, v]) => (
+          <div key={k}>
+            <dt>{k}</dt>
+            <dd>
+              {/* The host is a person, not a data point: their face beside the name. */}
+              {k === 'Hosted by' && h?.photoUrl && (
+                <img className="face" src={h.photoUrl} alt="" loading="lazy" decoding="async" />
+              )}
+              {v}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </>
+  );
+
+  /* No recording yet: the artwork stands in for the player beside the text,
+     and the hero offers what there is — the kit, and the group that hears
+     first when the recording goes up. */
+  const heroActions = hasKit || coming ? (
+    <div className="cta-row">
+      {hasKit && <a className="btn" href="#files">Get the workshop kit</a>}
+      {coming && whatsapp('btn' + (hasKit ? ' ghost' : ''))}
+    </div>
+  ) : null;
 
   return (
     <SiteShell active="workshops" toasts={toasts}>
-      {hero(
-        <>
-          {hasRecordingBlock && (
-            <a className="btn go" href="#recording">
-              {ready ? 'Watch the recording' : 'See what happened'}
-            </a>
-          )}
-          {!!(w.resources && w.resources.length) && (
-            /* With no recording to lead on, the files are the reason to be here. */
-            <a className={'btn ' + (hasRecordingBlock ? 'ghost' : 'go')} href="#files">
-              Get the files
-            </a>
-          )}
-        </>
-      )}
-
-      {hasRecordingBlock && (
-        <div className="wrap" style={{ paddingTop: 'clamp(40px,5vw,60px)' }}>
-          <div className="blk" id="recording">
-            {Recording()}
-          </div>
-        </div>
-      )}
-
-      <div className="wrap" style={{ paddingBottom: 'clamp(64px,8vw,104px)' }}>
-        {/* The zeroed top padding is only right when the recording block sits
-            above and has already opened the gap. With no recording — a session
-            that only left files — it collapsed the hero's buttons straight onto
-            "What went down". */}
-        <div className="detail" style={hasRecordingBlock ? { paddingTop: 0 } : undefined}>
-          <div>
-            <div className="blk">
-              <span className="eyebrow">What went down</span>
-              {paragraphs(w.description).map((t, k) => (
-                <p key={k}>{t}</p>
-              ))}
+      <div className="wrap page-top">
+        <Link className="backlink" href="/workshops#past">
+          ← All workshops
+        </Link>
+        {ready ? (
+          <>
+            <section className="wrec" id="recording" aria-label={`Recording: ${w.title}`}>
+              {Recording()}
+            </section>
+            <header className="wpast-head">{headText}</header>
+          </>
+        ) : (
+          <div className="whero past">
+            <div>
+              {headText}
+              {heroActions}
             </div>
-
-            {!!(w.resources && w.resources.length) && (
-              <div className="blk" id="files">
-                <span className="eyebrow">Everything from the session</span>
-                <p>
-                  The full session summary, start to finish. Log in once and it&rsquo;s yours.
-                </p>
-                <div style={{ marginTop: 20 }}>
-                  {Resources()}
-                </div>
-              </div>
-            )}
-
-            {!!ts.length && (
-              <div className="blk">
-                <span className="eyebrow">From people who were there</span>
-                <div className="qcards" style={{ marginTop: 24 }}>
-                  {ts.map((t, i) => (
-                    <QuoteCard key={t.id} t={t} i={i} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <HostCard host={h} />
+            <div className="whero-media">
+              <Frame kind={w.bannerArt} src={w.bannerUrl} alt="" />
+            </div>
           </div>
+        )}
+      </div>
 
-          <aside className="side">
-            <div className="sticky">
-              {nextUp ? (
-                <div className="panel">
-                  <span className="kicker">Next session</span>
-                  <DayBox w={nextUp} />
-                  <h4 style={{ marginTop: 0, fontSize: '1.2rem' }}>{nextUp.title}</h4>
-                  <p className="micro" style={{ marginTop: 10 }}>
-                    Same room, new brief.
-                  </p>
+      <div className="wrap wpast-body">
+        <div className="wgrid2">
+          <section className="wcell wstory" aria-labelledby="story-h">
+            <SectionHead
+              id="story-h"
+              label="The session"
+              title={w.recapHeadline || 'What this workshop was'}
+            />
+            {paragraphs(w.recap || w.description).map((t, k) => (
+              <StoryParagraph key={k} text={t} />
+            ))}
+          </section>
+
+          {!!curriculum.length && (
+            <section className="wcell wcovered" aria-labelledby="covered-h">
+              <SectionHead id="covered-h" label="Inside the session" title="What we covered" />
+              <ul className="wlist">
+                {curriculum.map((i, k) => (
+                  <li key={k}>{i}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {h && (
+            <section className="wcell whost" aria-labelledby="host-h">
+              <div>
+                <span className="eyebrow">Hosted by</span>
+                <div className="whost-id">
+                  {h.photoUrl ? (
+                    <img className="face" src={h.photoUrl} alt="" loading="lazy" decoding="async" />
+                  ) : (
+                    <span className="face" aria-hidden="true">{initialsFrom(h.name)}</span>
+                  )}
+                  <div>
+                    <h2 id="host-h">{h.name}</h2>
+                    <small>{h.title}</small>
+                  </div>
+                </div>
+              </div>
+              {h.bio && <p>{h.bio}</p>}
+            </section>
+          )}
+
+          {hasKit && (
+            <section className="wcell wkit" id="files" aria-labelledby="kit-h">
+              <SectionHead id="kit-h" label="Take it with you" title="Workshop kit" />
+              <p className="wkit-lede">
+                Everything from the session, ready to explore.
+                {!user && ' Log in once and it’s yours.'}
+              </p>
+              <div className="wkit-list">{Resources()}</div>
+            </section>
+          )}
+        </div>
+
+        {/* One quote leads; the rest stand beside it at the same height. */}
+        {leadQuote && (
+          <section className={'wsaid' + (moreQuotes.length ? '' : ' solo')} aria-labelledby="said-h">
+            <figure className="wcell wquote-lead">
+              <h2 id="said-h" className="eyebrow">{saidLabel}</h2>
+              <blockquote>&ldquo;{leadQuote.quote}&rdquo;</blockquote>
+              <figcaption>
+                <Avatar i={0} />
+                <span>
+                  <b>{leadQuote.name}</b>
+                  <small>{leadQuote.role}</small>
+                </span>
+              </figcaption>
+            </figure>
+            {!!moreQuotes.length && (
+              <div className="wquotes">
+                {moreQuotes.map((t, i) => (
+                  <QuoteCard key={t.id} t={t} i={i + 1} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        <section className={'wnext' + (nextUp ? '' : ' is-empty')} id="upnext" aria-labelledby="upnext-h">
+          {nextUp ? (
+            <>
+              <div>
+                <span className="eyebrow">Up next · {dayShort(nextUp.dateTime)}</span>
+                <h2 id="upnext-h">{nextUp.title}</h2>
+                <p>{nextUp.summary}</p>
+              </div>
+              <div className="panel">
+                <DayBox w={nextUp} />
+                {seats[nextUp.slug] ? (
+                  <Link className="btn full" href={workshopUrl(nextUp)}>
+                    You&rsquo;re {seats[nextUp.slug].status === 'WAITLISTED' ? 'on the list' : 'in'} →
+                  </Link>
+                ) : (
                   <Link className="btn full go" href={enrollUrl(nextUp)}>
                     Grab a seat
                   </Link>
-                </div>
-              ) : (
-                <div className="panel">
-                  <span className="kicker">Next session</span>
-                  <h4>Not scheduled yet</h4>
-                  <p className="micro">Every few weeks. The group chat finds out first.</p>
-                  <a
-                    className="btn full go"
-                    href={CONFIG.whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Join the WhatsApp group
-                  </a>
-                </div>
-              )}
-              <div className="panel" style={{ boxShadow: 'none', background: 'var(--paper)' }}>
-                <span className="kicker">Between sessions</span>
-                <p style={{ fontSize: '.95rem', marginTop: 8 }}>
-                  Portfolio questions, links, and the next brief before it goes up here.
-                </p>
-                <a
-                  className="btn ghost full go"
-                  href={CONFIG.whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Join the WhatsApp group
-                </a>
+                )}
+                {whatsapp('btn ghost full')}
               </div>
+            </>
+          ) : (
+            /* Nothing scheduled: the invitation and its one action lead; one
+               workshop from the archive follows as a single quiet row. */
+            <div className="wnext-empty">
+              <div className="wnext-main">
+                <div>
+                  <span className="eyebrow">Up next</span>
+                  <h2 id="upnext-h">Not scheduled yet</h2>
+                  <p>Every few weeks. The group chat finds out first.</p>
+                </div>
+                {whatsapp('btn go')}
+              </div>
+              {fromArchive && (
+                <Link className="wnext-archive" href={workshopUrl(fromArchive)}>
+                  {/* Cropped to the illustration — the title is right beside it. */}
+                  <span className="thumb" aria-hidden="true">
+                    <Frame flat kind={fromArchive.bannerArt} src={fromArchive.bannerUrl} alt="" />
+                  </span>
+                  <span className="txt">
+                    <small>Meanwhile, from the archive</small>
+                    <b>{fromArchive.title}</b>
+                    <span className="meta">
+                      {[fromArchive.cohortLabel, `Held ${dateFull(fromArchive.dateTime)}`]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                  </span>
+                  <span className="go" aria-hidden="true">
+                    {recordingReady(fromArchive) ? 'Watch it →' : 'See what happened →'}
+                  </span>
+                </Link>
+              )}
             </div>
-          </aside>
-        </div>
+          )}
+        </section>
       </div>
     </SiteShell>
   );
 
-  /* Recording — gated preview, unlocks in place, player lazy-loads on click. */
+  /* The recording, open to everyone: it's public on YouTube anyway, so a
+     login wall here would only send people round it. The player loads
+     paused; under it, the two things you can only do on YouTube itself. */
   function Recording() {
-    if (!ready) {
-      // Only reachable when a recording is on its way; otherwise the caller
-      // never renders this block.
+    if (!embed) {
+      // A link we can't embed still plays — in a new tab, from the thumbnail.
       return (
-        <div className="callout plain">
-          <h3>Recording&rsquo;s not up yet</h3>
-          <p>Still editing. Few days. We&rsquo;ll email everyone who came.</p>
-        </div>
-      );
-    }
-
-    const player = (interactive) => (
-      <div className="player">
-        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-          {playing ? (
-            <div style={{ textAlign: 'center', color: '#fff', padding: 24 }}>
-              <div
-                style={{
-                  fontSize: '.78rem',
-                  letterSpacing: '.1em',
-                  textTransform: 'uppercase',
-                  opacity: 0.6,
-                }}
-              >
-                Now playing
-              </div>
-              <div
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '1.25rem',
-                  fontWeight: 700,
-                  marginTop: 6,
-                }}
-              >
-                {w.title}
-              </div>
-              <div className="micro" style={{ color: 'rgba(255,255,255,.55)', marginTop: 10 }}>
-                Embed target: {w.recordingUrl}
-              </div>
-            </div>
-          ) : (
-            <button
-              className="play"
-              type="button"
-              aria-label="Play the recording"
-              {...(interactive ? { onClick: () => setPlaying(true) } : { tabIndex: -1, 'aria-hidden': true })}
-            >
-              <svg width="24" height="26" viewBox="0 0 24 26" aria-hidden="true">
+        <div className="wvideo">
+          <a
+            className="wvideo-out"
+            href={w.recordingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Play the recording — ${w.title} (opens in a new tab)`}
+          >
+            {w.bannerUrl && <img className="thumb" src={w.bannerUrl} alt="" />}
+            <span className="play" aria-hidden="true">
+              <svg width="24" height="26" viewBox="0 0 24 26">
                 <path d="M4 2l17 11L4 24z" fill="#C24405" />
               </svg>
-            </button>
-          )}
-        </div>
-        <span className="frame-note" style={{ left: 'auto', right: 14 }}>
-          {w.recordingLength || 'Full session'} · dead air removed
-        </span>
-      </div>
-    );
-
-    if (!user) {
-      return (
-        <div className="gate">
-          <div className="blurred">{player(false)}</div>
-          <div className="overlay">
-            <div className="inner">
-              <div className="lockicon" aria-hidden="true">🔒</div>
-              <h3>Log in to watch</h3>
-              <p>
-                It&rsquo;s free. Google or your email, ten seconds — and the files unlock at the
-                same time.
-              </p>
-              <button
-                className="btn go"
-                type="button"
-                onClick={() => goSignIn(`${workshopUrl(w)}#recording`)}
-              >
-                Log in to watch
-              </button>
-            </div>
-          </div>
+            </span>
+          </a>
         </div>
       );
     }
-
-    return player(true);
-  }
-
-  /* Resources — rows always visible, the download is what's gated. */
-  function Resources() {
-    const icons = { figma: '🎛', pdf: '📄', zip: '🗂', link: '🔗' };
-    const kinds = { figma: 'Figma file', pdf: 'PDF', zip: 'Zip archive', link: 'Link list' };
 
     return (
       <>
-        {w.resources.map((r) => (
-          <div className="resrow" key={r.id}>
-            <span className="name">
-              <span className="type" aria-hidden="true">{icons[r.type] || '📄'}</span>
-              <span>
-                {r.title}
-                <small>{kinds[r.type] || 'File'}</small>
-              </span>
+        <div className="wvideo">
+          {embed.kind === 'video' ? (
+            <video src={embed.src} controls playsInline preload="metadata" />
+          ) : (
+            <iframe
+              src={embed.src}
+              title={`Recording: ${w.title}`}
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          )}
+        </div>
+        {embed.provider === 'youtube' && (
+          <div className="wyt">
+            <span className="wyt-by">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path
+                  d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8z"
+                  fill="#FF0000"
+                />
+                <path d="M9.8 15.1 15.6 12 9.8 8.9z" fill="#fff" />
+              </svg>
+              Full workshop · Rock Paper Scissors Studio on YouTube
             </span>
-            <button
-              className={'btn sm ' + (user ? '' : 'is-locked')}
-              type="button"
-              onClick={() => {
-                if (!user) {
-                  // Remember which file they wanted; hand it over on the way back.
-                  goSignIn(`${workshopUrl(w)}?res=${encodeURIComponent(r.id)}#files`);
-                  return;
-                }
-                if (downloadResource(r)) toast(`Downloading “${r.title}”.`, 'good');
-                else toast('That file isn’t up yet — try again shortly.', 'bad');
-              }}
-            >
-              {user ? 'Download' : 'Log in to download'}
-            </button>
+            <span className="wyt-acts">
+              <a className="btn sm ghost" href={embed.watchUrl} target="_blank" rel="noopener noreferrer">
+                Like it on YouTube
+              </a>
+              {CONFIG.youtubeChannelUrl && (
+                <a
+                  className="btn sm go"
+                  href={`${CONFIG.youtubeChannelUrl}?sub_confirmation=1`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Subscribe
+                </a>
+              )}
+            </span>
           </div>
-        ))}
+        )}
       </>
     );
+  }
+
+  /* Each file is its own small card: what it is, a line on what's inside, and
+     one full-width action. The download is what login gates, not the list —
+     anyone can see what the kit holds. */
+  function Resources() {
+    const kinds = { figma: 'Figma file', pdf: 'PDF', zip: 'Zip archive', link: 'Links' };
+
+    return kit.map((r) => {
+      // What you're about to get, before you get it: the kind, and for files,
+      // how long and how heavy — a 5 MB PDF is worth knowing on a phone plan.
+      const meta = [kinds[r.type] || 'File', r.pages && `${r.pages} pages`, r.size]
+        .filter(Boolean)
+        .join(' · ');
+      const isLink = r.type === 'link';
+
+      return (
+        <article className="wres" key={r.id}>
+          <div className="wres-head">
+            <span className={'wres-icon ' + (r.type || 'file')} aria-hidden="true">
+              {KIT_ICON[r.type] || KIT_ICON.pdf}
+            </span>
+            <div>
+              <h3>{r.title}</h3>
+              <p>{r.description || meta}</p>
+              {r.description && <small>{meta}</small>}
+            </div>
+          </div>
+          <button
+            className="btn quiet full sm"
+            type="button"
+            aria-label={`${isLink ? 'View' : 'Download'} ${r.title}`}
+            onClick={() => {
+              if (!user) {
+                // Remember which file they wanted; hand it over on the way back.
+                goSignIn(`${workshopUrl(w)}?res=${encodeURIComponent(r.id)}#files`);
+                return;
+              }
+              if (downloadResource(r)) toast(`${isLink ? 'Opening' : 'Downloading'} “${r.title}”.`, 'good');
+              else toast('That file isn’t up yet — try again shortly.', 'bad');
+            }}
+          >
+            {isLink ? (user ? 'View all' : 'Log in to view') : user ? 'Download' : 'Log in to download'}
+          </button>
+        </article>
+      );
+    });
   }
 }

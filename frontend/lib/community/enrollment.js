@@ -121,3 +121,30 @@ export function useSeats(userId) {
   return { seats, loading, enroll, cancel, refresh };
 }
 
+
+/* ------------------------------------------------------------ seat count
+   How many seats a workshop filled: the seeded number plus every live
+   REGISTERED/ATTENDED row, from the public workshop_seat_counts() function
+   (supabase/enrollments.sql) — aggregate only, readable signed in or not.
+   null until it answers, and null for good if it can't; callers fall back to
+   the content file's seededEnrollments. */
+export function useSeatCount(slug) {
+  const [taken, setTaken] = useState(null);
+
+  useEffect(() => {
+    if (!slug) return;
+    let alive = true;
+    createClient()
+      .rpc('workshop_seat_counts')
+      .then(({ data, error }) => {
+        if (!alive || error || !Array.isArray(data)) return;
+        const row = data.find((r) => r.slug === slug);
+        if (row) setTaken(Number(row.taken));
+      });
+    return () => {
+      alive = false;
+    };
+  }, [slug]);
+
+  return taken;
+}

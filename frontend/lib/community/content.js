@@ -14,6 +14,8 @@ export const CONFIG = {
   footerTagline:
     'By RPS, a design studio that works with Fortune 500 teams and can’t stop teaching.',
   whatsappUrl: 'https://chat.whatsapp.com/DTkop0ZD0FH8oAEpVsFTIP',
+  // Where every recording lives. The workshop page links here to subscribe.
+  youtubeChannelUrl: 'https://www.youtube.com/@rockpaperscissors.studio',
   aboutRpsUrl: 'https://rockpaperscissors.studio',
   sayHiUrl: 'mailto:cohorts@rockpaperscissors.studio',
 
@@ -37,14 +39,14 @@ export const HOSTS = [
     name: 'Vineet Chopdekar',
     title: 'Principal Designer, RPS',
     bio: '14+ years on fintech and enterprise SaaS products people actually trust. Leads design at RPS.',
-    photoUrl: null,
+    photoUrl: '/assets/vineet-avatar.png',
   },
   {
     id: 'host_2',
     name: 'Vivin Richard',
     title: 'Principal Designer and Manager, RPS',
     bio: 'Has mentored 10,000+ designers and builds AI-native design workflows for enterprise fintech at RPS. Thinks designers who learn to direct AI will outrun the ones who fear it.',
-    photoUrl: null,
+    photoUrl: '/assets/vivin-avatar.png',
   },
 ];
 
@@ -62,8 +64,17 @@ export const WORKSHOPS = [
     description: [
       'Building a website with AI is easy. Building a consistent product flow with AI is not. This session is about the gap between design intent and what actually ships — a complete pipeline where AI understands a design system and generates consistent, production-ready screens, turning weeks in design tools into minutes without losing design system integrity or the real-world edge cases.',
       'The problem: design output today looks generic. Design systems are documented, but never truly understood by the tools we use. Designers spend weeks in Figma on screens, components, variants and states — and even with the best system, scaling that work is slow, inconsistent and error-prone.',
-      'The solution is an AI-native design pipeline. Instead of describing a design system through documentation, you feed the AI the actual artifacts: user journey maps, screenshots, user flows, the real UX patterns already in your product, and your design system’s constraints and tokens.',
+      'The solution: an AI-native design pipeline. Instead of describing a design system through documentation, you feed the AI the actual artifacts: user journey maps, screenshots, user flows, the real UX patterns already in your product, and your design system’s constraints and tokens.',
       'What happens next: the AI understands your design language at a semantic level. It generates screens that carry your design system automatically. You get production-ready output in minutes, not weeks.',
+    ],
+    /* Written after the session, for its page as a past workshop: a one-line
+       headline and a short recap of what actually happened in the room (a
+       string, or an array for several paragraphs). Leave them null and the
+       page falls back to `description`, which was written before it ran. */
+    recapHeadline: null,
+    recap: [
+      'Building a website with AI is easy. Building a consistent product flow with AI is not. This session closed that gap: a pipeline where AI understands a design system and generates consistent, production-ready screens.',
+      'The solution: stop describing the system in documentation and feed the AI the real artifacts — journey maps, user flows, the UX patterns already in your product, its tokens and constraints. Output that carries your design system, in minutes, not weeks.',
     ],
     whoItsFor: [
       'You’re a student or fresher who’s never had a real design brief, system or user story — and you want to see how real products are actually built',
@@ -91,7 +102,9 @@ export const WORKSHOPS = [
        together or the number rings into a meeting nobody is in. */
     meetPhone: { number: '+1 470-268-2152', pin: '411 984 325#', country: 'US' },
     meetPhoneUrl: 'https://tel.meet/dfb-caiq-ciq?pin=9417822559100',
-    recordingUrl: null,
+    /* The full session on YouTube. It plays at the top of the workshop page
+       (YouTube, Vimeo, Drive or an .mp4 all work — see recordingEmbed()). */
+    recordingUrl: 'https://youtu.be/WytaYAW3lPE',
     hostId: 'host_2',
     resources: [],
     cohortLabel: 'Cohort 02',
@@ -105,6 +118,12 @@ export const WORKSHOPS = [
     summary: 'One B2B SaaS landing page, built live and shipped to a real URL.',
     description:
       '90 minutes, one B2B SaaS landing page, live. netpulse-sol.com was built this way in 9 hours flat — not by prompting harder, but by following a method.',
+    /* Written after the session, for its page as a past workshop: a one-line
+       headline and a short recap of what actually happened in the room (a
+       string, or an array for several paragraphs). Leave them null and the
+       page falls back to `description`, which was written before it ran. */
+    recapHeadline: null,
+    recap: null,
     whoItsFor: [
       'Product designers who hand the landing page off and wait a sprint for it',
       'UI and visual designers who want a live responsive page with no dev in the loop',
@@ -125,11 +144,10 @@ export const WORKSHOPS = [
     capacity: 45,
     seededEnrollments: 45,
     meetLink: null,
-    /* No recording exists for this one, and none is coming — so every recording
-       surface (player, "Watch it", the hero CTA, the chips) stays hidden. Set
-       `recordingUrl` on a future workshop and they all come back; set
-       `recordingComing: true` to show the "still editing" note in the meantime. */
-    recordingUrl: null,
+    /* The full session on YouTube. Leave recordingUrl null on a past workshop
+       and the page says the recording is on its way; `false` says it wasn't
+       recorded — see recordingState() in lib/community/workshops.js. */
+    recordingUrl: 'https://youtu.be/yzfwgVn4_Xc',
     hostId: 'host_1',
     cohortLabel: 'Cohort 01',
     featured: true,
@@ -138,10 +156,15 @@ export const WORKSHOPS = [
     resources: [
       {
         id: 'r1',
-        title: 'From a client brief to a page you would ship — the workshop summary',
+        title: 'The workshop summary',
+        // One line on what's inside, under the title in the kit.
+        description: 'From a client brief to a page you would ship',
         type: 'pdf',
         fileUrl: '/assets/resources/rps-cohorts-workshop-summary.pdf',
         fileName: 'RPS-Cohorts-Workshop-Summary.pdf',
+        // Shown beside the download. Update both if the file is replaced.
+        pages: 44,
+        size: '4.9 MB',
       },
     ],
   },

@@ -3,117 +3,116 @@ import React from 'react';
 import Link from 'next/link';
 import Frame from './Frame';
 import { artHTML } from '@/lib/community/art';
-import { StatusChip, seatChipFor } from './Bits';
 import {
-  workshopUrl, enrollUrl, recordingReady, dayShort, time, host, metaLine,
+  workshopUrl, enrollUrl, recordingReady, recordingState, isPast, host,
+  dayShort, dateFull, time, durationShort, initialsFrom,
 } from '@/lib/community/workshops';
 
-/* The cards carry everything the decision needs — when, who with, and whether
-   you're already in. The first upcoming session gets the dark treatment: on a
-   listing, "which one is next" should be obvious before you read a word. */
+/* The workshop card. One component for every state — upcoming, recorded,
+   completed — so the listing reads the same whether it holds two workshops
+   or thirty. Top to bottom it answers, in order: what is this (artwork, then
+   the title), what do I get (summary), who ran it (host), when and what
+   state (the small line), and what can I do (one action).
 
-export function UpcomingCard({ w, lead, mine }) {
+   The artwork is a hook, not the information: the banners carry the title
+   lettered into their left third, so the card shows only the illustration
+   on the right (see .wcard .media in community.css) and the title is read
+   once, in type. The cohort mark in the banner is cropped out with the rest
+   and set again as a small label, so it's the same for every card. */
+
+const STATUS = {
+  upcoming: ['up', 'Upcoming'],
+  ready: ['ok', 'Recorded'],
+  coming: ['ok', 'Completed'],
+  none: ['ok', 'Completed'],
+};
+
+const SEAT = {
+  REGISTERED: ['Registered', 'Been there'],
+  ATTENDED: ['Registered', 'Been there'],
+  WAITLISTED: ['Waitlisted', 'Waitlisted'],
+};
+
+export function WorkshopCard({ w, mine }) {
   const url = workshopUrl(w);
   const h = host(w.hostId);
+  const past = isPast(w);
+  const state = past ? recordingState(w) : 'upcoming';
+  const [statusCls, statusText] = STATUS[state] || STATUS.none;
 
-  const cta = mine ? (
-    <Link className={lead ? 'btn onDark' : 'btn quiet'} href={url}>
-      You&rsquo;re {mine.status === 'WAITLISTED' ? 'on the list' : 'in'} →
-    </Link>
-  ) : (
-    <Link className={lead ? 'btn onDark go' : 'btn go'} href={enrollUrl(w)}>
-      Grab a seat
-    </Link>
-  );
+  // The seat someone holds, in the words My workshops uses for the same seat.
+  const seat = mine && SEAT[mine.status] ? SEAT[mine.status][past ? 1 : 0] : null;
+
+  const when = past
+    ? `${dateFull(w.dateTime)} · ${w.recordingLength || durationShort(w)}`
+    : `${dayShort(w.dateTime)} · ${time(w.dateTime)} · ${durationShort(w)}`;
+
+  // One action, and it follows the state: a seat, the recording, or the page.
+  let cta;
+  if (!past) {
+    cta = mine
+      ? [url, mine.status === 'WAITLISTED' ? 'You’re on the list' : 'You’re in']
+      : [enrollUrl(w), 'Grab a seat'];
+  } else if (recordingReady(w)) {
+    cta = [`${url}#recording`, 'Watch recording'];
+  } else {
+    cta = [url, 'View workshop'];
+  }
 
   return (
-    <article className={'wcard reveal' + (lead ? ' dark wide' : '')}>
+    <article className="wcard reveal">
       <div className="media">
         <Link href={url} tabIndex={-1} aria-hidden="true">
-          <Frame
-            flat
-            kind={w.bannerArt}
-            src={w.bannerUrl}
-            alt={w.title}
-            style={{ height: lead ? 260 : 220 }}
-          />
+          <Frame flat kind={w.bannerArt} src={w.bannerUrl} alt="" />
         </Link>
+        {w.cohortLabel && <span className="wc-cohort">{w.cohortLabel}</span>}
       </div>
       <div className="body">
+        <div className="wc-state">
+          <span className={'wc-status ' + statusCls}>{statusText}</span>
+          {state === 'coming' && <span className="wc-tag">Recording on its way</span>}
+          {/* The kit is the other thing a past session leaves behind. */}
+          {past && !!(w.resources || []).length && <span className="wc-tag">Files up</span>}
+          {seat && <span className="wc-seat">{seat}</span>}
+        </div>
         <h3>
           <Link href={url}>{w.title}</Link>
         </h3>
         <p className="summary">{w.summary}</p>
-        <div className="facts">
-          <span className={'fact ' + (lead ? 'mint' : '')}>
-            {w.cohortLabel || 'Upcoming'}
-            {lead ? ' · Next up' : ''}
-          </span>
-          <span className="fact">
-            {dayShort(w.dateTime)} · {time(w.dateTime)}
-          </span>
-          {h && <span className="fact">with {h.name}</span>}
-        </div>
-        <div className="foot">
-          {cta}
-          {mine && (
-            <span className="note">
-              <StatusChip status={mine.status} />
+        {h && (
+          <div className="wc-host">
+            {h.photoUrl ? (
+              <img className="face" src={h.photoUrl} alt="" loading="lazy" decoding="async" />
+            ) : (
+              <span className="face" aria-hidden="true">{initialsFrom(h.name)}</span>
+            )}
+            <span className="wc-host-id">
+              <b>{h.name}</b>
+              <small>{h.title}</small>
             </span>
-          )}
+          </div>
+        )}
+        <div className="foot">
+          <span className="wc-when">{when}</span>
+          <Link className="wc-cta" href={cta[0]}>
+            {cta[1]}
+          </Link>
         </div>
       </div>
     </article>
   );
 }
 
-export function PastCard({ w, wide, mine }) {
-  const url = workshopUrl(w);
-  const ready = recordingReady(w);
-  const files = (w.resources || []).length;
+/* The listing and the homepage still ask for these two by name. They're the
+   same card; the state comes from the workshop, not from which one was
+   called. `lead` and `wide` no longer do anything — a card alone in a
+   .wgrid.one lays out side-by-side on its own (see community.css). */
+export function UpcomingCard({ w, mine }) {
+  return <WorkshopCard w={w} mine={mine} />;
+}
 
-  return (
-    <article className={'wcard reveal' + (wide ? ' wide' : '')}>
-      <div className="media">
-        <Link href={url} tabIndex={-1} aria-hidden="true">
-          <Frame
-            flat
-            kind={w.bannerArt}
-            src={w.bannerUrl}
-            alt={w.title}
-            style={{ height: wide ? 300 : 220 }}
-          />
-        </Link>
-        {ready && <span className="playbadge" aria-hidden="true" />}
-      </div>
-      <div className="body">
-        <h3>
-          <Link href={url}>{w.title}</Link>
-        </h3>
-        <p className="summary">{w.summary}</p>
-        <div className="facts">
-          <span className="fact">{w.cohortLabel || 'Past'} · Done</span>
-          <span className="fact">{metaLine(w, host(w.hostId))}</span>
-          {w.recordingLength && <span className="fact">{w.recordingLength}</span>}
-          {!!files && (
-            <span className="fact">
-              {files} file{files > 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-        <div className="foot">
-          {/* No recording means no #recording to jump to — the page itself is
-              the destination. */}
-          <Link className={'btn ' + (ready ? 'go' : 'quiet')} href={ready ? `${url}#recording` : url}>
-            {ready ? 'Watch it' : 'See what happened'}
-          </Link>
-          <span className="note">
-            {mine ? <StatusChip status={mine.status} /> : seatChipFor(w, true, ready)}
-          </span>
-        </div>
-      </div>
-    </article>
-  );
+export function PastCard({ w, mine }) {
+  return <WorkshopCard w={w} mine={mine} />;
 }
 
 /* The homepage's lead: the next session on a tablet screen — one thing to look

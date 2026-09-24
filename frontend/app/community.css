@@ -1451,7 +1451,6 @@ footer.site .logo-badge .logo-img{ height:34px; }
    supplied (.has-photo, set by mountArt) the frame holds 16:9 and lets its
    height follow the column. Scoped to the banner slots on purpose: the vector
    fallbacks and the 4:3.2 team photo keep the heights they were drawn for. */
-.wcard .media .frame.has-photo{ height:auto !important; min-height:0; aspect-ratio:16/9; }
 .whero-media .frame.has-photo{ aspect-ratio:16/9; }
 .frame-note{
   position:absolute; left:14px; bottom:14px; z-index:2;
@@ -1533,36 +1532,15 @@ footer.site .logo-badge .logo-img{ height:34px; }
   50%    { transform:translateY(-11px); }
 }
 
-/* Workshop and feedback cards take the same ember ground as the gap tiles and
-   the About-us bento, so there is one card material across the whole site:
-   flat black at the top, warming to orange at the foot, no gloss, no edge.
-   Everything that sits low on a card has to be relit for that orange — copy
-   goes near-white, chips get a stronger scrim, and buttons take a ring,
-   because --btn-fill is the same red-orange the card ends on. */
-[data-theme="dark"] .wcard{
-  background-color:#0B0705;
-  background-image:var(--ember);
-  border:0; box-shadow:none;
-  backdrop-filter:none; -webkit-backdrop-filter:none;
-}
-/* The bubbles stay glass, not ember: they float over the page rather than
+/* The feedback bubbles stay glass: they float over the page rather than
    sitting on it, so they want the frosted pane the FAQ rows use, with the
-   diagonal sheen across the top. */
+   diagonal sheen across the top. (The workshop cards are a flat neutral
+   surface of their own — see "Workshop card" further down.) */
 [data-theme="dark"] .qcard{
   background-color:rgba(14,9,6,.72);
   background-image:var(--sheen);
 }
-[data-theme="dark"] .wcard.dark{ background-color:#0B0705; border-color:transparent; }
-[data-theme="dark"] .wcard h3, [data-theme="dark"] .wcard h3 a,
-[data-theme="dark"] .wcard.dark h3, [data-theme="dark"] .wcard.dark h3 a,
 [data-theme="dark"] .qcard blockquote{ color:#FFF3EC; }
-[data-theme="dark"] .wcard .summary,
-[data-theme="dark"] .wcard.dark .summary{ color:rgba(255,243,236,.92); }
-[data-theme="dark"] .wcard .foot .note,
-[data-theme="dark"] .wcard.dark .foot .note{ color:#FFF3EC; }
-[data-theme="dark"] .wcard .fact,
-[data-theme="dark"] .wcard.dark .fact{ background:rgba(255,255,255,.16); color:#FFF3EC; }
-[data-theme="dark"] .wcard .btn{ border-color:rgba(255,243,236,.5); }
 /* a deeper, softer cast under each one — that shadow is what sells the float */
 [data-theme="dark"] .qcard{
   box-shadow:var(--gloss-edge), 0 26px 54px rgba(0,0,0,.52), 0 6px 14px rgba(0,0,0,.32);
@@ -1794,75 +1772,165 @@ footer.site .logo-badge .logo-img{ height:34px; }
 .wgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:20px; margin-top:44px; align-items:stretch; }
 .wgrid.one{ grid-template-columns:1fr; }
 
-/* The banner runs full-bleed to the card's edges: the card drops its padding
-   and clips with its own radius, so the artwork reads as one clean rectangle
-   rather than a smaller picture floating on the card. The cohort and the date
-   used to sit on the image as pills; they're chips in .facts now, which keeps
-   the artwork unobstructed. */
+/* ---------- Workshop card ----------
+   A flat, neutral surface: near-black warmed a touch, a hairline edge, and
+   nothing else lit. The only colour on the card is the artwork and the one
+   action, so those are what the eye lands on. Top to bottom: artwork, state,
+   title, summary, host, then when and what to do — the title the strongest
+   thing on the card, everything under it a step quieter. */
 .wcard{
+  --wc-bg:#17110F; --wc-line:rgba(255,255,255,.08); --wc-line-2:rgba(255,255,255,.14);
   display:flex; flex-direction:column; min-width:0; overflow:hidden;
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius-l);
+  background:var(--wc-bg); border:1px solid var(--wc-line); border-radius:var(--radius-l);
+  box-shadow:none;
   transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
-.wcard:hover{ transform:translateY(-3px); box-shadow:var(--shadow-md); border-color:var(--line-2); }
-.wcard .media{ position:relative; overflow:hidden; }
-.wcard .media > a{ display:block; height:100%; }
-.wcard .media .frame{ height:260px; border-radius:0; border:0; box-shadow:none; }
-.wcard .body{ flex:1; display:flex; flex-direction:column; padding:24px; }
-.wcard h3{ margin:0; font-size:1.4rem; line-height:1.15; letter-spacing:-.032em; }
+:root:not([data-theme="dark"]) .wcard{ --wc-bg:var(--card); --wc-line:var(--line); --wc-line-2:var(--line-2); }
+
+/* The artwork: a 3:2 window onto the right side of the banner. The banners
+   are 16:9 with the workshop's name lettered into their left third and the
+   cohort mark at the top right; the window is placed so both are outside it
+   and only the illustration shows, at a size that makes it the hook without
+   it being most of the card. The numbers fix the window at the right 62% and
+   the middle-to-lower 73% of the image — change both together. */
+.wcard .media{ position:relative; overflow:hidden; aspect-ratio:3/2; background:#20140D; }
+.wcard .media > a{ position:absolute; inset:0; display:block; }
+.wcard .media .frame{
+  position:absolute; inset:0; height:auto !important; min-height:0; aspect-ratio:auto;
+  border-radius:0; border:0; box-shadow:none; overflow:hidden;
+}
+.wcard .media .frame.has-photo img{
+  position:absolute; right:0; top:-28.6%; width:161.3%; height:auto; max-width:none;
+  transform-origin:70% 60%;
+  transition:transform .5s var(--ease), filter .5s var(--ease);
+}
+.wcard .media .frame > svg{ position:absolute; inset:0; width:100%; height:100%; }
+.wc-cohort{
+  position:absolute; top:14px; right:14px; z-index:2; pointer-events:none;
+  padding:6px 10px; border-radius:999px;
+  background:rgba(12,7,4,.62); color:rgba(255,246,240,.88);
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; line-height:1;
+}
+
+.wcard .body{ flex:1; display:flex; flex-direction:column; padding:22px 24px 24px; min-width:0; }
+
+/* State: a word with a dot, muted green for done, muted amber for coming up.
+   It says which it is without being louder than anything under it. */
+.wc-state{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; min-height:22px; }
+.wc-status + .wc-tag{ margin-left:4px; }
+.wc-status{
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; line-height:1;
+}
+.wc-status::before{ content:""; width:7px; height:7px; border-radius:50%; background:currentColor; flex:none; }
+.wc-status.ok{ color:#8FC9A0; }
+.wc-status.up{ color:#E2B15C; }
+:root:not([data-theme="dark"]) .wc-status.ok{ color:#2E7D4F; }
+:root:not([data-theme="dark"]) .wc-status.up{ color:#A66A00; }
+/* What a past session left behind — the recording on its way, the files up —
+   as small neutral tags beside the state: read as chips at a glance, a step
+   below the state word, and never in the accent. */
+.wc-tag{
+  display:inline-flex; align-items:center; padding:5px 9px; border-radius:999px;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09);
+  color:var(--ink-2); font-size:.72rem; font-weight:600; line-height:1; letter-spacing:.01em;
+}
+:root:not([data-theme="dark"]) .wc-tag{ background:var(--paper-2); border-color:var(--line); }
+.wc-seat{ margin-left:auto; font-size:.78rem; font-weight:600; color:var(--faint); line-height:1; }
+
+.wcard h3{ margin:14px 0 0; font-size:clamp(1.3rem,1.15rem + .55vw,1.6rem); line-height:1.15; letter-spacing:-.03em; color:var(--heading); }
 .wcard h3 a{ color:inherit; text-decoration:none; }
-.wcard h3 a:hover{ color:var(--accent); }
-.wcard .summary{ margin:12px 0 0; font-size:.98rem; line-height:1.62; color:var(--muted); }
-.wcard .foot{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:auto; padding-top:24px; }
-.wcard .foot .note{ font-size:.86rem; color:var(--faint); }
-
-.wcard.dark{ background:var(--deep); border-color:var(--deep); }
-.wcard.dark:hover{ box-shadow:0 18px 44px rgba(90,34,4,.34); border-color:var(--deep); }
-.wcard.dark h3{ color:#fff; }
-.wcard.dark h3 a{ color:#fff; }
-.wcard.dark .summary{ color:rgba(255,255,255,.76); }
-.wcard.dark .foot .note{ color:rgba(255,255,255,.66); }
-.wcard.dark .media{ background:#FFF1E8; }
-.wcard.dark .fact{ background:rgba(255,255,255,.12); color:#fff; }
-/* the cohort chip leads the row, so it lifts a step out of the others */
-.wcard.dark .fact.mint{ background:rgba(255,255,255,.22); color:#fff; }
-.wcard.dark .seat{ background:rgba(255,255,255,.14); color:#fff; }
-.wcard.dark .seat.warn{ background:#EDF2FA; color:#2C4368; }
-
-.playbadge{
-  position:absolute; left:16px; bottom:16px; z-index:2; pointer-events:none;
-  display:grid; place-items:center; width:58px; height:58px; border-radius:50%;
-  background:#fff; box-shadow:0 10px 28px rgba(36,23,19,.3);
-}
-.playbadge::before{
-  content:""; width:0; height:0; margin-left:4px;
-  border-left:15px solid #C24405; border-top:10px solid transparent; border-bottom:10px solid transparent;
+.wcard h3 a::after{ content:""; position:absolute; inset:0; }  /* the whole card is the link */
+.wcard{ position:relative; }
+.wcard .summary{
+  margin:10px 0 0; font-size:.95rem; line-height:1.55; color:var(--muted);
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
 }
 
-/* The lead card on the listing goes side-by-side once there's room for it */
+/* The host: a small real face and a name, recognisable, and clearly below the
+   title in weight. */
+.wc-host{ display:flex; align-items:center; gap:12px; margin-top:18px; }
+.wc-host .face{
+  width:36px; height:36px; flex:none; border-radius:50%; object-fit:cover;
+  border:1px solid var(--wc-line-2);
+  background:var(--accent-soft); color:var(--accent); display:grid; place-items:center;
+  font-family:var(--font-display); font-weight:700; font-size:.78rem;
+}
+.wc-host-id{ display:flex; flex-direction:column; min-width:0; }
+.wc-host-id b{ font-size:.9rem; font-weight:700; color:var(--ink-2); letter-spacing:-.01em; line-height:1.25; }
+.wc-host-id small{ margin-top:2px; font-size:.78rem; color:var(--faint); line-height:1.3; }
+
+/* The foot: when on the left, the one action on the right. The action sits
+   above the card-wide link so it stays its own target. */
+.wcard .foot{
+  display:flex; align-items:center; justify-content:space-between; gap:12px 16px; flex-wrap:wrap;
+  margin-top:auto; padding-top:20px; border-top:1px solid var(--wc-line);
+  position:relative; z-index:1;
+}
+/* Whatever sits above the foot keeps 22px off it, even when the foot is
+   pushed to the bottom of a taller neighbour's row. */
+.wcard .body > :nth-last-child(2){ margin-bottom:22px; }
+.wc-when{ font-size:.82rem; font-weight:600; color:var(--faint); letter-spacing:.01em; white-space:nowrap; }
+.wc-cta{
+  display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:10px 0; margin:-10px 0 -10px auto;
+  color:var(--accent); font-size:.92rem; font-weight:700; text-decoration:none; white-space:nowrap;
+  transition:color var(--dur) var(--ease);
+}
+.wc-cta::after{
+  content:""; width:13px; height:13px; flex:none; background:currentColor;
+  -webkit-mask:var(--arrow-mask) center/contain no-repeat; mask:var(--arrow-mask) center/contain no-repeat;
+  transition:transform var(--dur) var(--ease);
+}
+.wc-cta:hover, .wcard:hover .wc-cta{ color:var(--accent-ink); }
+.wc-cta:hover::after, .wcard:hover .wc-cta::after{ transform:translate(2px,-2px); }
+.wc-cta:focus-visible{ outline:2px solid var(--accent); outline-offset:4px; border-radius:4px; }
+
+/* Hover: a small lift, the edge a touch brighter, the artwork a breath
+   larger and lighter, the action warmer. No colour wash. */
+.wcard:hover{
+  transform:translateY(-2px); border-color:var(--wc-line-2);
+  box-shadow:0 16px 36px rgba(0,0,0,.34), 0 0 0 1px rgba(233,146,92,.10);
+}
+.wcard:hover .media .frame.has-photo img{ transform:scale(1.02); filter:brightness(1.06); }
+.wcard:focus-within{ border-color:var(--wc-line-2); }
+
+/* Alone in a row (.wgrid.one — the next session, or the one past workshop),
+   the card goes side-by-side once there's room: artwork left, copy right.
+   The window onto the banner is now as tall as the copy, so it's set by
+   height instead: 130% tall, top-cropped past the cohort mark, still
+   ending at the image's right edge. */
 @media (min-width:900px){
-  /* The banner shows whole — 16:9, nothing cropped. That fixes the card's
-     height, so the copy on the lead card is cut to fit it rather than the
-     image being cut to fit the copy: short summary, two points, one chip row.
-     The media column runs slightly wide of half so the two sides come out
-     close to level. */
-  /* The banner sets the card's height and fills the left column corner to
-     corner — uncropped, flush on all three edges. That only holds while the
-     text column stays shorter than the image, so the lead card carries the
-     title, the one-line summary, the chips and the CTA, and leaves the
-     curriculum to the detail page. The media column runs wide of half to give
-     the 16:9 image the height the copy needs. */
-  .wcard.wide{ display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr); gap:0; align-items:stretch; }
-  /* height:auto + the ratio is what makes the image the height driver: the row
-     takes the banner's height, and the media stretches to fill it exactly. */
-  .wcard.wide .media{ height:100%; background:transparent; }
-  .wcard.wide .media > a{ display:block; width:100%; height:100%; }
-  .wcard.wide .media .frame{ width:100%; height:auto !important; min-height:100%; aspect-ratio:16/9; }
-  .wcard.wide .body{ padding:28px 30px; }
-  .wcard.wide h3{ font-size:1.6rem; }
-  .wcard.wide .summary{ margin-top:10px; }
-  .wcard.wide .facts{ margin-top:14px; }
-  .wcard.wide .foot{ padding-top:18px; }
+  .wgrid.one .wcard{ display:grid; grid-template-columns:minmax(0,.46fr) minmax(0,.54fr); }
+  .wgrid.one .wcard .media{ aspect-ratio:auto; min-height:320px; height:100%; }
+  .wgrid.one .wcard .media .frame.has-photo img{ right:0; top:-22%; width:auto; height:130%; }
+  .wgrid.one .wcard .body{ padding:28px 32px 30px; }
+  .wgrid.one .wcard h3{ font-size:clamp(1.5rem,1.2rem + 1vw,1.9rem); max-width:18ch; }
+  .wgrid.one .wcard .summary{ font-size:1rem; max-width:52ch; }
+}
+
+/* Tablet: one column, so every card goes side-by-side rather than stacking
+   a banner-wide artwork over each one. The media is a tall box here, so the
+   window onto the banner is cut by cover-and-zoom instead: fitted to the
+   height, held at three-quarters across (the illustration's middle), and
+   zoomed just enough to clear the cohort mark at the top. */
+@media (min-width:601px) and (max-width:899px){
+  .wcard{ display:grid; grid-template-columns:minmax(0,.42fr) minmax(0,.58fr); }
+  .wcard .media{ aspect-ratio:auto; min-height:300px; height:100%; }
+  .wcard .media .frame.has-photo img{
+    position:static; width:100%; height:100%; object-fit:cover; object-position:75% 62%;
+    transform:scale(1.35); transform-origin:75% 62%;
+  }
+  .wcard:hover .media .frame.has-photo img{ transform:scale(1.37); }
+  .wcard .body{ padding:24px 26px 26px; }
+}
+
+@media (max-width:600px){
+  .wcard .body{ padding:18px 18px 20px; }
+  .wcard .media{ aspect-ratio:16/10; }
+  /* A shorter window: the same right 62%, starting at the same height. */
+  .wcard .media .frame.has-photo img{ top:-30.5%; }
+  .wc-when{ white-space:normal; }
 }
 
 /* ---------- Featured workshop, shown on a tablet ----------
@@ -2218,6 +2286,241 @@ footer.site .logo-badge .logo-img{ height:34px; }
 .resrow .name small{ display:block; font-size:.78rem; font-weight:500; color:var(--faint); margin-top:2px; }
 .resrow .type{ width:42px; height:42px; border-radius:12px; flex:none; display:grid; place-items:center; background:var(--accent-soft); font-size:1rem; }
 
+/* ---------- Past workshop ----------
+   Recorded: the player first, then the title and one strip of facts, then a
+   grid of equal cards. One gap (--wgap) runs between every card and every
+   row, so nothing on the page floats in space of its own. */
+.wpast-body{
+  --wgap:20px;
+  display:flex; flex-direction:column; gap:var(--wgap);
+  padding-top:clamp(28px,3.5vw,44px); padding-bottom:clamp(64px,8vw,104px);
+}
+
+/* The player. As wide as the page, unless the screen is too short to show
+   all of it — then it narrows, centred, so the whole player is always in the
+   first view without scrolling. */
+.wrec{
+  width:min(100%, max(640px, calc((100svh - var(--nav-h) - 170px) * 16 / 9)));
+  margin:18px auto 0;
+  scroll-margin-top:calc(var(--nav-h) + 16px);
+}
+.wvideo{
+  position:relative; aspect-ratio:16/9; overflow:hidden;
+  border-radius:var(--radius-l); border:1px solid var(--line); background:#000;
+  box-shadow:var(--shadow-md);
+}
+.wvideo iframe, .wvideo video{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#000; }
+.wvideo-out{ position:absolute; inset:0; display:grid; place-items:center; }
+.wvideo-out .thumb{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.55; }
+.wvideo-out .play{
+  position:relative; width:78px; height:78px; border-radius:50%;
+  background:#fff; display:grid; place-items:center; box-shadow:var(--shadow-lg);
+  transition:transform var(--dur) var(--ease);
+}
+.wvideo-out:hover .play{ transform:scale(1.06); }
+
+/* Under the player: whose channel it is, and the two things only YouTube
+   itself can do — a like, and a subscribe. */
+.wyt{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 20px;
+  margin-top:14px;
+}
+.wyt-by{ display:inline-flex; align-items:center; gap:10px; font-size:.9rem; font-weight:600; color:var(--muted); }
+.wyt-acts{ display:flex; flex-wrap:wrap; gap:10px; }
+.wyt-acts .btn{ margin:0; }
+
+/* The title block under the player: chips, title, summary, then the facts
+   as one strip of equal cells. */
+.wpast-head{ padding-top:clamp(28px,3.5vw,44px); }
+.wpast-head h1{ margin:18px 0 0; font-size:clamp(1.9rem,3.6vw,2.9rem); max-width:24ch; }
+.wpast-head .summary{ margin:14px 0 0; font-size:1.06rem; line-height:1.6; color:var(--muted); max-width:72ch; }
+.whero-chips{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+
+.wfacts{
+  display:grid; grid-template-columns:repeat(var(--n,4),minmax(0,1fr));
+  margin:26px 0 0; overflow:hidden;
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius-l);
+}
+.wfacts > div{ padding:16px 22px; border-left:1px solid var(--line); min-width:0; }
+.wfacts > div:first-child{ border-left:0; }
+.wfacts dt{ font-size:.74rem; font-weight:600; letter-spacing:.02em; color:var(--faint); }
+.wfacts dd{ margin:5px 0 0; display:flex; align-items:center; gap:8px; font-size:.95rem; font-weight:700; color:var(--ink-2); letter-spacing:-.01em; }
+.wfacts dd .face{ width:22px; height:22px; flex:none; border-radius:50%; object-fit:cover; border:1px solid var(--line-2); }
+
+/* Not recorded yet: the artwork sits beside the text in place of the player,
+   cropped square to its illustration (the banner letters the title into its
+   left third). */
+.whero.past{ grid-template-columns:minmax(0,1.35fr) minmax(0,.65fr); align-items:center; }
+.whero.past h1{ max-width:none; }
+.whero.past .summary{ max-width:60ch; }
+.whero.past .whero-media{ order:0; margin:0; }
+.whero.past .whero-media .frame{ aspect-ratio:1/1; }
+.whero.past .whero-media .frame.has-photo img{ object-position:95% 50%; }
+.whero.past .wfacts{ grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
+
+/* The grid: two equal columns, a lone last card across both. Cards in a row
+   stretch to the same height. */
+.wgrid2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--wgap); }
+.wgrid2 > :last-child:nth-child(odd){ grid-column:1 / -1; }
+.wcell{
+  min-width:0; padding:clamp(24px,3vw,32px);
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius-l);
+}
+
+/* Every card opens the same way: a small label, then its title. */
+.wsec-head h2{ margin-top:14px; font-size:clamp(1.35rem,2vw,1.7rem); letter-spacing:-.03em; line-height:1.15; }
+.wsec-head + *{ margin-top:18px; }
+
+.wstory p{ margin:14px 0 0; font-size:1rem; line-height:1.7; color:var(--muted); }
+.wstory .wsec-head + p{ margin-top:18px; }
+.wstory strong{ color:var(--ink-2); font-weight:700; }
+
+/* What was covered: a light arrow list — scannable at a glance. */
+.wlist{ list-style:none; padding:0; margin-bottom:0; }
+.wlist li{
+  position:relative; padding:11px 0 11px 30px; border-top:1px solid var(--line);
+  font-size:.98rem; line-height:1.5; color:var(--ink-2);
+}
+.wlist li:first-child{ border-top:0; padding-top:0; }
+.wlist li:first-child::before{ top:0; }
+.wlist li::before{ content:"→"; position:absolute; left:2px; top:11px; color:var(--accent); font-weight:700; }
+
+/* The host. */
+.whost-id{ display:flex; align-items:center; gap:14px; margin-top:18px; }
+.whost-id .face{
+  width:64px; height:64px; border-radius:50%; flex:none; object-fit:cover;
+  background:var(--accent-soft); color:var(--accent); display:grid; place-items:center;
+  font-family:var(--font-display); font-weight:700; font-size:1.05rem;
+  border:1px solid var(--line-2);
+}
+.whost-id h2{ margin:0; font-size:1.2rem; letter-spacing:-.02em; line-height:1.2; }
+.whost-id small{ display:block; margin-top:4px; font-size:.86rem; color:var(--faint); line-height:1.4; }
+.whost p{ margin:16px 0 0; font-size:.95rem; line-height:1.65; color:var(--muted); }
+/* Alone on its row, the host splits the same way the rows above do: who on
+   the left, the bio on the right. */
+.wgrid2 > .whost:last-child:nth-child(odd){
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px var(--wgap); align-items:center;
+}
+.wgrid2 > .whost:last-child:nth-child(odd) p{ margin:0; }
+
+/* Workshop kit: each file its own card — icon, title, what's inside, and one
+   full-width action. */
+.wkit-lede{ margin:0 0 16px; font-size:.95rem; line-height:1.55; color:var(--muted); }
+.wkit-list{ display:flex; flex-direction:column; gap:12px; }
+.wres{
+  padding:18px; border-radius:16px;
+  background:var(--paper); border:1px solid var(--line);
+  transition:border-color var(--dur) var(--ease);
+}
+.wres:hover{ border-color:var(--line-2); }
+.wres-head{ display:flex; align-items:flex-start; gap:14px; }
+.wres-icon{
+  width:44px; height:44px; flex:none; border-radius:12px;
+  display:grid; place-items:center;
+  background:var(--accent-soft); color:var(--accent);
+}
+.wres-icon.pdf{ background:var(--hold-soft); color:var(--hold-ink); }
+.wres-icon.link, .wres-icon.zip{ background:var(--paper-2); color:var(--ink-2); }
+.wres h3{ margin:1px 0 0; font-size:1rem; line-height:1.3; letter-spacing:-.015em; }
+.wres p{ margin:4px 0 0; font-size:.86rem; line-height:1.45; color:var(--muted); }
+.wres small{ display:block; margin-top:4px; font-size:.78rem; color:var(--faint); }
+.wres .btn{ margin-top:14px; }
+.wkit[id]{ scroll-margin-top:calc(var(--nav-h) + 28px); }
+
+/* What people said: two equal halves — the lead quote, and the rest stacked
+   beside it at the same height. */
+.wsaid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--wgap); align-items:stretch; }
+.wsaid.solo{ grid-template-columns:minmax(0,1fr); }
+.wquote-lead{ margin:0; display:flex; flex-direction:column; justify-content:space-between; gap:24px; }
+.wquote-lead h2.eyebrow{ align-self:flex-start; margin:0; font-family:var(--font-body); font-size:.78rem; letter-spacing:.01em; line-height:1; }
+.wquote-lead blockquote{
+  margin:0; max-width:24ch;
+  font-family:var(--font-display); font-weight:700; letter-spacing:-.02em;
+  font-size:clamp(1.5rem,2.6vw,2.2rem); line-height:1.2; color:var(--heading);
+}
+.wquote-lead figcaption{ display:flex; align-items:center; gap:12px; }
+.wquote-lead .face{ width:44px; height:44px; flex:none; border-radius:50%; overflow:hidden; }
+.wquote-lead .face svg{ width:100%; height:100%; display:block; }
+.wquote-lead b{ display:block; font-size:.95rem; color:var(--heading); }
+.wquote-lead small{ display:block; margin-top:2px; font-size:.82rem; color:var(--faint); }
+/* The quotes share the lead's height evenly. The right padding leaves room for
+   each bubble's avatar, which hangs off its bottom-right corner. */
+.wquotes{ display:grid; grid-auto-rows:1fr; gap:var(--wgap); padding:0 14px 14px 0; }
+.wquotes .qcard{ animation:none; min-height:0; margin:0; }
+
+/* Up next: the last band, the full width. */
+.wnext{
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(24px,3vw,40px); align-items:center;
+  padding:clamp(24px,3vw,36px); border-radius:var(--radius-l);
+  background:var(--accent-soft); border:1px solid var(--tint);
+  scroll-margin-top:calc(var(--nav-h) + 28px);
+}
+.wnext.is-empty{ display:block; }
+/* The band is accent-soft, the eyebrow's own fill — lift the pill a step so
+   it reads as a pill instead of loose text sitting off the heading's edge. */
+.wnext .eyebrow{ background:var(--tint); }
+.wnext h2{ margin-top:14px; font-size:clamp(1.4rem,2.4vw,1.9rem); max-width:24ch; }
+.wnext p{ max-width:52ch; margin-top:10px; font-size:1rem; line-height:1.6; }
+.wnext .panel{ margin:0; box-shadow:none; }
+.wnext .panel .btn + .btn{ margin-top:10px; }
+
+/* Nothing scheduled: the invitation and its one action on a single line, then
+   one workshop from the archive as a quiet row beneath a hairline. */
+.wnext-main{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:20px 40px; }
+.wnext-main p{ margin-bottom:0; }
+.wnext-main .btn{ flex:none; }
+.wnext-archive{
+  display:flex; align-items:center; gap:18px;
+  margin-top:clamp(20px,2.5vw,26px); padding-top:clamp(18px,2.2vw,22px);
+  border-top:1px solid var(--tint); color:inherit; text-decoration:none;
+}
+/* Square, and pinned right: the banner's lettered title sits in its left
+   third, so this shows only the illustration. */
+.wnext-archive .thumb{ width:76px; flex:none; }
+.wnext-archive .thumb .frame{ aspect-ratio:1/1; border-radius:14px; box-shadow:none; }
+.wnext-archive .thumb .frame img{ object-position:95% 50%; }
+.wnext-archive .txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.wnext-archive small{ font-size:.78rem; font-weight:700; color:var(--faint); letter-spacing:.02em; }
+.wnext-archive b{ font-family:var(--font-display); font-size:1.02rem; line-height:1.3; color:var(--heading); letter-spacing:-.015em; transition:color var(--dur) var(--ease); }
+.wnext-archive .meta{ font-size:.86rem; color:var(--muted); }
+.wnext-archive .go{ flex:none; font-size:.92rem; font-weight:600; color:var(--accent); }
+.wnext-archive:hover b{ color:var(--accent); }
+.wnext-archive:hover{ color:inherit; }
+
+@media (min-width:901px) and (max-width:1179px){
+  .whero.past{ grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); }
+  .whero.past .whero-media{ justify-self:end; width:100%; max-width:380px; }
+}
+
+/* One column: every card in reading order, the same gap throughout. */
+@media (max-width:900px){
+  .wgrid2, .wsaid, .wnext{ grid-template-columns:minmax(0,1fr); }
+  .wgrid2 > .whost:last-child:nth-child(odd){ display:block; }
+  .wgrid2 > .whost:last-child:nth-child(odd) p{ margin-top:16px; }
+  .wquotes{ grid-auto-rows:auto; }
+  .whero.past{ grid-template-columns:minmax(0,1fr); }
+  .whero.past .whero-media{ display:none; }
+  .wrec{ width:100%; }
+}
+
+/* The facts strip: two to a row on a phone, the hairlines following. */
+@media (max-width:640px){
+  .wpast-body{ --wgap:14px; }
+  .wfacts{ grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+  .wfacts > div{ padding:14px 16px; border-left:0; border-top:1px solid var(--line); }
+  .wfacts > div:nth-child(-n+2){ border-top:0; }
+  .wfacts > div:nth-child(even){ border-left:1px solid var(--line); }
+  .wyt{ flex-direction:column; align-items:stretch; }
+  .wyt-acts .btn{ flex:1; }
+  .wnext-main .btn{ width:100%; }
+  .wnext-archive{ flex-wrap:wrap; }
+  .wnext-archive .thumb{ width:64px; }
+  .wnext-archive .go{ width:100%; padding-left:82px; }
+}
+
+.hostcard img.face{ object-fit:cover; }
+
 /* ---------- Callouts ---------- */
 .callout{
   border-radius:var(--radius-l); padding:clamp(30px,4vw,48px); text-align:center;
@@ -2534,7 +2837,6 @@ footer.site .base a{ font-weight:600; color:var(--accent); text-decoration:none;
   .logo{ font-size:1.05rem; }
   .nav-in{ gap:6px; }
   .nav-right{ gap:6px; }
-  .wcard .media .frame{ height:200px; }
   .quote{ padding:24px; }
   .modal{ padding:32px 22px 22px; }
   .arow{ padding:18px 20px; }
