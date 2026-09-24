@@ -106,7 +106,22 @@ export const WORKSHOPS = [
        (YouTube, Vimeo, Drive or an .mp4 all work — see recordingEmbed()). */
     recordingUrl: 'https://youtu.be/WytaYAW3lPE',
     hostId: 'host_2',
-    resources: [],
+    /* The watch-along notes, served from /public. As on Cohort 01, the row is
+       always visible; the download is what login gates. */
+    resources: [
+      {
+        id: 'notes',
+        title: 'The workshop notes',
+        // One line on what's inside, under the title in the kit.
+        description: 'The three-layer design system and the live Figma-to-screen build',
+        type: 'pdf',
+        fileUrl: '/assets/resources/rps-cohort-02-workshop-notes.pdf',
+        fileName: 'RPS-Cohort-02-Workshop-Notes.pdf',
+        // Shown beside the download. Update both if the file is replaced.
+        pages: 18,
+        size: '3.7 MB',
+      },
+    ],
     cohortLabel: 'Cohort 02',
   },
 
