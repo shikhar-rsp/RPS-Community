@@ -575,7 +575,10 @@ function WorkshopDetail() {
   /* ------------------------------------------------------ UPCOMING layout */
   if (!past) {
     const featured = featuredPast();
-    const socialProof = featured ? testimonials(featured.id).slice(0, 1) : [];
+    // The last session's own words when it has some; otherwise the featured
+    // quotes from any cohort, labelled as coming from an earlier room.
+    const lastTs = featured ? testimonials(featured.id) : [];
+    const socialProof = (lastTs.length ? lastTs : testimonials()).slice(0, 1);
 
     return (
       <SiteShell active="workshops" toasts={toasts}>
@@ -613,7 +616,9 @@ function WorkshopDetail() {
 
               {!!socialProof.length && (
                 <div className="blk">
-                  <span className="eyebrow">From the last one</span>
+                  <span className="eyebrow">
+                    {lastTs.length ? 'From the last one' : 'From an earlier cohort'}
+                  </span>
                   <div style={{ marginTop: 24 }}>
                     {socialProof.map((t, i) => (
                       <QuoteCard key={t.id} t={t} i={i} />
@@ -626,7 +631,10 @@ function WorkshopDetail() {
                 <div className="callout plain">
                   <h3>Want to see how one of these actually goes?</h3>
                   {recordingReady(featured) ? (
-                    <p>Cohort 01 is up in full, dead air removed, with the file we built.</p>
+                    <p>
+                      {featured.cohortLabel || 'The last session'} is up in full on YouTube, with
+                      the notes from the room.
+                    </p>
                   ) : (
                     <p>The last session is written up in full, with the file we built.</p>
                   )}

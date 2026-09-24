@@ -165,7 +165,8 @@ export const WORKSHOPS = [
     recordingUrl: 'https://youtu.be/yzfwgVn4_Xc',
     hostId: 'host_1',
     cohortLabel: 'Cohort 01',
-    featured: true,
+    /* No `featured` flag: "the last one" on the homepage is simply the most
+       recent past workshop. Set `featured: true` on one to pin it instead. */
     /* The real thing, not placeholders: the session summary PDF, served from
        /public. The row is always visible; the download is what login gates. */
     resources: [
