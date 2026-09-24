@@ -187,6 +187,76 @@ export const WORKSHOPS = [
 ];
 
 export const TESTIMONIALS = [
+  /* ---------------- Cohort 02 ----------------
+     From the Session 2 feedback form (19 Sep 2026). Lightly tidied for
+     spelling, never reworded. Every one of the 12 responses rated it 4 or 5
+     out of 5 — eleven gave it a 5. The first `featured` leads the section. */
+  {
+    id: 'c2-1',
+    workshopId: 'w_ai_product',
+    name: 'Bharati Kamble',
+    role: 'Working professional · Cohort 02',
+    quote: 'Learning how to effectively prompt and integrate AI tools into the product design workflow.',
+    featured: true,
+  },
+  {
+    id: 'c2-2',
+    workshopId: 'w_ai_product',
+    name: 'T. Mehajabeen',
+    role: 'Student · Cohort 02',
+    quote: 'Seeing this workflow makes it much easier to collaborate with developers, and to make sure the final product actually matches the original design vision.',
+    featured: true,
+  },
+  {
+    id: 'c2-3',
+    workshopId: 'w_ai_product',
+    name: 'Rohan Das',
+    role: 'Student · Cohort 02',
+    quote: 'The whole AI and design system pipeline.',
+    featured: true,
+  },
+  {
+    id: 'c2-4',
+    workshopId: 'w_ai_product',
+    name: 'Harshit Sinha',
+    role: 'Student · Cohort 02',
+    quote: 'This was the best session.',
+    featured: true,
+  },
+  {
+    id: 'c2-5',
+    workshopId: 'w_ai_product',
+    name: 'Kanika Yadav',
+    role: 'Working professional · Cohort 02',
+    quote: 'How we can leverage AI best for product design.',
+    featured: false,
+  },
+  {
+    id: 'c2-6',
+    workshopId: 'w_ai_product',
+    name: 'Navya Gupta',
+    role: 'Student · Cohort 02',
+    quote: 'Understanding the design-to-code workflow with AI.',
+    featured: false,
+  },
+  {
+    id: 'c2-7',
+    workshopId: 'w_ai_product',
+    name: 'Sachin Ballari',
+    role: 'Student · Cohort 02',
+    quote: 'It’s very engaging. It was really amazing to attend.',
+    featured: false,
+  },
+  {
+    id: 'c2-8',
+    workshopId: 'w_ai_product',
+    name: 'Jeyanthi K M',
+    role: 'Working professional · Cohort 02',
+    quote: 'How to use AI in design, and implement it in an IDE.',
+    featured: false,
+  },
+
+  /* ---------------- Cohort 01 ---------------- */
   {
     id: 't1',
     workshopId: 'w_landing',

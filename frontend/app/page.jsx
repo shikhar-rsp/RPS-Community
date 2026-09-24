@@ -20,7 +20,11 @@ export default function Page() {
 
   const next = upcoming()[0];
   const last = featuredPast();
-  const quotes = testimonials();
+  // "The last room": the latest cohort's featured quotes, and every cohort's
+  // if that one has none marked yet.
+  const lastQuotes = last ? testimonials(last.id).filter((t) => t.featured) : [];
+  const quotes = lastQuotes.length ? lastQuotes : testimonials();
+  const quotedCohort = lastQuotes.length && last.cohortLabel ? last.cohortLabel.toLowerCase() : null;
   const allFaqs = faqs();
   const homeFaqs = allFaqs.filter((f) => f.home);
 
@@ -210,8 +214,8 @@ export default function Page() {
               <h2 className="reveal">What the last room said afterwards</h2>
             </div>
             <p className="aside reveal">
-              Their words, from the cohort 01 feedback form. Every attendee who rated the session
-              gave it 4 or 5 out of 5.
+              Their words, from the {quotedCohort || 'cohort'} feedback form. Every attendee who
+              rated the session gave it 4 or 5 out of 5.
             </p>
           </header>
           <div className="qcards">

@@ -1787,21 +1787,17 @@ footer.site .logo-badge .logo-img{ height:34px; }
 }
 :root:not([data-theme="dark"]) .wcard{ --wc-bg:var(--card); --wc-line:var(--line); --wc-line-2:var(--line-2); }
 
-/* The artwork: a 3:2 window onto the right side of the banner. The banners
-   are 16:9 with the workshop's name lettered into their left third and the
-   cohort mark at the top right; the window is placed so both are outside it
-   and only the illustration shows, at a size that makes it the hook without
-   it being most of the card. The numbers fix the window at the right 62% and
-   the middle-to-lower 73% of the image — change both together. */
-.wcard .media{ position:relative; overflow:hidden; aspect-ratio:3/2; background:#20140D; }
+/* The artwork: the whole banner at its own ratio. The banners are 1920×1080,
+   so the box is 16:9 and the image fills it exactly — nothing cropped, the
+   lettered title and the cohort mark shown as designed. */
+.wcard .media{ position:relative; overflow:hidden; aspect-ratio:16/9; background:#20140D; }
 .wcard .media > a{ position:absolute; inset:0; display:block; }
 .wcard .media .frame{
   position:absolute; inset:0; height:auto !important; min-height:0; aspect-ratio:auto;
   border-radius:0; border:0; box-shadow:none; overflow:hidden;
 }
 .wcard .media .frame.has-photo img{
-  position:absolute; right:0; top:-28.6%; width:161.3%; height:auto; max-width:none;
-  transform-origin:70% 60%;
+  position:absolute; inset:0; width:100%; height:100%; max-width:none; object-fit:cover;
   transition:transform .5s var(--ease), filter .5s var(--ease);
 }
 .wcard .media .frame > svg{ position:absolute; inset:0; width:100%; height:100%; }
@@ -1895,41 +1891,41 @@ footer.site .logo-badge .logo-img{ height:34px; }
 .wcard:hover .media .frame.has-photo img{ transform:scale(1.02); filter:brightness(1.06); }
 .wcard:focus-within{ border-color:var(--wc-line-2); }
 
-/* Alone in a row (.wgrid.one — the next session, or the one past workshop),
-   the card goes side-by-side once there's room: artwork left, copy right.
-   The window onto the banner is now as tall as the copy, so it's set by
-   height instead: 130% tall, top-cropped past the cohort mark, still
-   ending at the image's right edge. */
-@media (min-width:900px){
-  .wgrid.one .wcard{ display:grid; grid-template-columns:minmax(0,.46fr) minmax(0,.54fr); }
-  .wgrid.one .wcard .media{ aspect-ratio:auto; min-height:320px; height:100%; }
-  .wgrid.one .wcard .media .frame.has-photo img{ right:0; top:-22%; width:auto; height:130%; }
-  .wgrid.one .wcard .body{ padding:28px 32px 30px; }
-  .wgrid.one .wcard h3{ font-size:clamp(1.5rem,1.2rem + 1vw,1.9rem); max-width:18ch; }
-  .wgrid.one .wcard .summary{ font-size:1rem; max-width:52ch; }
+/* Cards side by side share their rows (subgrid): artwork, state, title,
+   summary, host and footer each sit on one line across every card in the
+   row, so a one-line summary next to a three-line one doesn't knock its
+   host out of line. The footer keeps to the bottom of its row. */
+@supports (grid-template-rows:subgrid){
+  @media (min-width:901px){
+    .wgrid:not(.one) > .wcard{ display:grid; grid-template-rows:subgrid; grid-row:span 6; row-gap:0; }
+    .wgrid:not(.one) > .wcard > .body{ display:grid; grid-template-rows:subgrid; grid-row:span 5; row-gap:0; }
+    .wgrid:not(.one) > .wcard .wc-host{ align-self:start; }
+    .wgrid:not(.one) > .wcard .foot{ align-self:end; margin-top:0; }
+  }
 }
 
-/* Tablet: one column, so every card goes side-by-side rather than stacking
-   a banner-wide artwork over each one. The media is a tall box here, so the
-   window onto the banner is cut by cover-and-zoom instead: fitted to the
-   height, held at three-quarters across (the illustration's middle), and
-   zoomed just enough to clear the cohort mark at the top. */
-@media (min-width:601px) and (max-width:899px){
-  .wcard{ display:grid; grid-template-columns:minmax(0,.42fr) minmax(0,.58fr); }
-  .wcard .media{ aspect-ratio:auto; min-height:300px; height:100%; }
-  .wcard .media .frame.has-photo img{
-    position:static; width:100%; height:100%; object-fit:cover; object-position:75% 62%;
-    transform:scale(1.35); transform-origin:75% 62%;
+/* Alone in a row (.wgrid.one — the homepage's one past workshop, or the
+   next session), the card goes side by side once there's room: artwork left,
+   copy right. The copy decides the height, so the banner sits whole inside
+   the left half at 16:9, and a soft, dimmed copy of itself fills the space
+   around it — the full banner, with no bands of flat colour. */
+@media (min-width:900px){
+  .wgrid.one .wcard{ display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); }
+  .wgrid.one .wcard .media{ aspect-ratio:auto; min-height:320px; height:100%; }
+  .wgrid.one .wcard .media::before{
+    content:""; position:absolute; inset:-30px;
+    background:var(--wc-art, none) center/cover no-repeat;
+    filter:blur(26px) brightness(.55) saturate(1.1);
   }
-  .wcard:hover .media .frame.has-photo img{ transform:scale(1.37); }
-  .wcard .body{ padding:24px 26px 26px; }
+  .wgrid.one .wcard .media .frame{ background:transparent !important; }
+  .wgrid.one .wcard .media .frame.has-photo img{ object-fit:contain; }
+  .wgrid.one .wcard .body{ padding:28px 32px 30px; }
+  .wgrid.one .wcard h3{ font-size:clamp(1.5rem,1.2rem + 1vw,1.9rem); max-width:22ch; }
+  .wgrid.one .wcard .summary{ font-size:1rem; max-width:52ch; }
 }
 
 @media (max-width:600px){
   .wcard .body{ padding:18px 18px 20px; }
-  .wcard .media{ aspect-ratio:16/10; }
-  /* A shorter window: the same right 62%, starting at the same height. */
-  .wcard .media .frame.has-photo img{ top:-30.5%; }
   .wc-when{ white-space:normal; }
 }
 

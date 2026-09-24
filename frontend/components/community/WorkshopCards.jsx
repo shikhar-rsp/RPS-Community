@@ -14,11 +14,10 @@ import {
    the title), what do I get (summary), who ran it (host), when and what
    state (the small line), and what can I do (one action).
 
-   The artwork is a hook, not the information: the banners carry the title
-   lettered into their left third, so the card shows only the illustration
-   on the right (see .wcard .media in community.css) and the title is read
-   once, in type. The cohort mark in the banner is cropped out with the rest
-   and set again as a small label, so it's the same for every card. */
+   The banner shows whole, at its own 16:9 — lettering, cohort mark and all —
+   so it reads exactly as it was designed (see .wcard .media in community.css).
+   Side by side in a grid, the cards share their rows, so the titles, the
+   hosts and the footers line up across them however long each summary is. */
 
 const STATUS = {
   upcoming: ['up', 'Upcoming'],
@@ -61,11 +60,15 @@ export function WorkshopCard({ w, mine }) {
 
   return (
     <article className="wcard reveal">
-      <div className="media">
+      {/* --wc-art feeds the soft fill behind the banner when the card is laid
+          out side by side (.wgrid.one), so the banner shows whole there too. */}
+      <div className="media" style={w.bannerUrl ? { '--wc-art': `url(${w.bannerUrl})` } : undefined}>
         <Link href={url} tabIndex={-1} aria-hidden="true">
           <Frame flat kind={w.bannerArt} src={w.bannerUrl} alt="" />
         </Link>
-        {w.cohortLabel && <span className="wc-cohort">{w.cohortLabel}</span>}
+        {/* The banners carry their own cohort mark; only the drawn fallback
+            needs one set over it. */}
+        {w.cohortLabel && !w.bannerUrl && <span className="wc-cohort">{w.cohortLabel}</span>}
       </div>
       <div className="body">
         <div className="wc-state">
