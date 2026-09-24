@@ -123,6 +123,9 @@ export const WORKSHOPS = [
       },
     ],
     cohortLabel: 'Cohort 02',
+    // Average of the feedback form's ratings (59 across 12 responses), shown
+    // under the homepage quotes while this is the latest cohort.
+    rating: 4.9,
   },
 
   /* ---------------- Past ---------------- */

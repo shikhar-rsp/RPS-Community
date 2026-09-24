@@ -214,8 +214,10 @@ export default function Page() {
               <h2 className="reveal">What the last room said afterwards</h2>
             </div>
             <p className="aside reveal">
-              Their words, from the {quotedCohort || 'cohort'} feedback form. Every attendee who
-              rated the session gave it 4 or 5 out of 5.
+              Their words, from the {quotedCohort || 'cohort'} feedback form.{' '}
+              {quotedCohort && last.rating
+                ? `Attendees rated the session ${last.rating} out of 5.`
+                : 'Every attendee who rated the session gave it 4 or 5 out of 5.'}
             </p>
           </header>
           <div className="qcards">
