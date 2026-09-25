@@ -432,3 +432,33 @@
 }
 
 .faint { color: var(--faint); }
+
+/* --------------------------------------------------- the admin tabs */
+/* The two lists — workshop registrations and logins — one click apart. */
+.tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: .86rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-current="page"] {
+  background: var(--card);
+  color: var(--heading);
+  box-shadow: var(--shadow-sm);
+}

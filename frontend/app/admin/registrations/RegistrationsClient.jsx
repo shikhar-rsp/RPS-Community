@@ -2,6 +2,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import SiteShell from '@/components/community/SiteShell';
 import { StatusChip } from '@/components/community/Bits';
+import AdminTabs from '../AdminTabs';
 import styles from './registrations.module.css';
 import { setEnrollmentStatus, removeEnrollment, restoreEnrollment } from './actions';
 
@@ -157,6 +158,8 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
   return (
     <SiteShell active="">
       <div className={'wrap page-top ' + styles.page}>
+        <AdminTabs current="registrations" />
+
         <header className={styles.head}>
           <div className={styles.picked}>
             <span className={styles.eyebrow}>Admin</span>
