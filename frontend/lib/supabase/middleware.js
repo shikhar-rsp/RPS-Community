@@ -68,14 +68,21 @@ function isReturnable(target) {
 // source of truth (user_metadata is user-writable, so it can't be trusted on
 // its own to say someone IS onboarded — but it's fine as a fast path because a
 // forged one only sends them somewhere they could reach anyway).
+//
+// Finished means the signup form was sent: `terms_accepted_at` is stamped by
+// it (and `onboarded` set in user_metadata alongside). Signup used to have a
+// second step whose `role` answer was the marker; it's gone, so a role on file
+// still counts — every account made before now has one — but is no longer
+// asked for.
 async function hasCompletedOnboarding(supabase, user) {
-  if (user.user_metadata?.role) return true;
+  const meta = user.user_metadata || {};
+  if (meta.onboarded || meta.role) return true;
   const { data } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, terms_accepted_at")
     .eq("id", user.id)
     .single();
-  return !!data?.role;
+  return !!(data?.role || data?.terms_accepted_at);
 }
 
 export async function updateSession(request) {

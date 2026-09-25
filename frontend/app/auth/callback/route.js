@@ -18,23 +18,25 @@ export async function GET(request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       // First-time OAuth users have a profile row (created by the DB trigger)
-      // but no role/goals/tools yet. Send them through onboarding first —
+      // but haven't sent the signup form yet. Send them through it first —
       // unless they were on their way to a workshop, where the seat form asks
       // for the name, email and number it needs and nothing is waiting on a
-      // profile. Matches ONBOARDING_EXEMPT in lib/supabase/middleware.js.
+      // profile. Same rule as hasCompletedOnboarding in
+      // lib/supabase/middleware.js, and ONBOARDING_EXEMPT there.
       const {
         data: { user },
       } = await supabase.auth.getUser();
       const nextPath = next.split(/[?#]/)[0];
       const skipOnboarding =
         nextPath === "/workshops" || nextPath.startsWith("/workshops/");
-      if (user && !skipOnboarding) {
+      const meta = user?.user_metadata || {};
+      if (user && !skipOnboarding && !meta.onboarded && !meta.role) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role")
+          .select("role, terms_accepted_at")
           .eq("id", user.id)
           .single();
-        if (!profile?.role) {
+        if (!profile?.role && !profile?.terms_accepted_at) {
           return NextResponse.redirect(
             `${origin}/onboarding?mode=complete&next=${encodeURIComponent(next)}`
           );

@@ -4,9 +4,10 @@ import { isValidEmail, suggestEmail } from '@/lib/email';
 import { passwordError, passwordScore, isValidPassword, PASSWORD_RULES, STRENGTH_LABELS } from '@/lib/password';
 import { phoneError, isValidPhone, DEFAULT_DIAL_CODE } from '@/lib/phone';
 
-/* Signup, in two steps.
-   Step 1 is everything we need to create the account. Step 2 is who they are.
-   Step 3 is the confirmation screen, not a form.
+/* Signup, in one step: everything we need to create the account, then the
+   confirmation screen (step 3), which is not a form. The old step 2 — role,
+   goals, tools — is gone: it stood between logging in and the thing people
+   came to do. Its state and lists stay so existing profiles keep their shape.
 
    Errors surface on BLUR, not only on submit, and nothing the user typed is
    ever wiped by a failed submit — the whole state lives here and the fields
@@ -121,7 +122,6 @@ class Component extends DCLogic {
       }
       return;
     }
-    if (this.state.step < 2) { this.setState((s) => ({ step: s.step + 1, error: '' })); return; }
     this.finish();
   };
   back = () => this.setState((s) => ({ step: Math.max(1, s.step - 1), error: '' }));
@@ -165,16 +165,12 @@ class Component extends DCLogic {
   renderVals() {
     this.maybeSeedName();
     const s = this.state;
-    const roleLabel = (this.roles.find((r) => r.id === s.role) || {}).title || 'your path';
-    const summary =
-      "We'll set up your home around " + roleLabel.toLowerCase() +
-      (s.goals.length ? ` · ${s.goals.length} goal${s.goals.length === 1 ? '' : 's'}` : '') +
-      (s.tools.length ? ` · ${s.tools.length} tool${s.tools.length === 1 ? '' : 's'}` : '') + '.';
+    const summary = 'Your seats, the recordings and the workshop files all live in one place now.';
 
     return {
       step: s.step,
       isStep1: s.step === 1, isStep2: s.step === 2, isDone: s.step === 3,
-      totalSteps: 2,
+      totalSteps: 1,
 
       // values + handlers
       name: s.name, onName: this.onName,

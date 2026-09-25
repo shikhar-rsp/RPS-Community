@@ -26,13 +26,18 @@ export default async function DashboardPage() {
   // NOT user_metadata (which the user can edit).
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, avatar_url, role")
+    .select("name, avatar_url, role, terms_accepted_at")
     .eq("id", user.id)
     .single();
 
-  // Users who signed in (e.g. via Google) but never completed onboarding have
-  // no role yet — send them to finish it before seeing the dashboard.
-  if (!profile?.role) redirect("/onboarding?mode=complete");
+  // Users who signed in (e.g. via Google) but never sent the signup form go to
+  // finish it before seeing the dashboard. Same rule as the middleware's
+  // hasCompletedOnboarding: the form's terms stamp, the `onboarded` flag it
+  // sets, or a role from before signup lost its second step.
+  const onboarded =
+    !!(profile?.role || profile?.terms_accepted_at) ||
+    !!(user.user_metadata?.onboarded || user.user_metadata?.role);
+  if (!onboarded) redirect("/onboarding?mode=complete");
 
   const fullName = profile?.name || user.user_metadata?.name || "";
   const firstName = fullName ? fullName.split(" ")[0] : "there";

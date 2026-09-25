@@ -27,14 +27,6 @@ function safeNext(raw) {
   return wanted;
 }
 
-const ROLE_ICON = {
-  student: (<><path d="M22 10L12 5 2 10l10 5 10-5z" /><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5" /></>),
-  switcher: (<><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></>),
-  junior: (<><path d="M12 22V12" /><path d="M12 12C12 8 9 5 5 5c0 4 3 7 7 7z" /><path d="M12 10c0-3.3 2.7-6 6-6 0 3.3-2.7 6-6 6z" /></>),
-  senior: (<><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></>),
-  lead: (<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>),
-};
-
 function OnboardingInner() {
   const router = useRouter();
   const supabase = createClient();
@@ -60,27 +52,27 @@ function OnboardingInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  /* Where the new fields land. `role`, `goals` and `tools` keep their existing
-     meaning; the rest are the nullable columns from profile-fields.sql. */
+  /* Where the answers land: the nullable columns from profile-fields.sql.
+     `role`, `goals` and `tools` came from the old second step and are left
+     alone — not written as nulls over anything an older account already has.
+
+     `terms_accepted_at` is what marks the account as done signing up (see
+     hasCompletedOnboarding in lib/supabase/middleware.js); `onboarded` in the
+     auth metadata is the same fact, readable without a query. */
   const profileRow = (d) => ({
     name: d.name,
-    role: d.role,
-    goals: d.goals,
-    tools: d.tools,
     mobile: d.mobile,
     organisation: d.organisation,
-    year_of_study: d.yearOfStudy || null,
-    department: d.department || null,
-    how_heard: d.howHeard || null,
     terms_accepted_at: d.termsAcceptedAt,
   });
+  const authMeta = (d) => ({ name: d.name, onboarded: true });
 
   const onSignup = async (d) => {
     const { data, error } = await supabase.auth.signUp({
       email: d.email,
       password: d.password,
       options: {
-        data: { name: d.name, role: d.role, goals: d.goals, tools: d.tools },
+        data: authMeta(d),
         emailRedirectTo: siteUrl('/auth/callback'),
       },
     });
@@ -124,11 +116,12 @@ function OnboardingInner() {
   const onComplete = async (d) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { ok: false, error: 'Your session expired. Please log in again.' };
-    await supabase.auth.updateUser({ data: { name: d.name, role: d.role, goals: d.goals, tools: d.tools } });
+    await supabase.auth.updateUser({ data: authMeta(d) });
     // upsert, not update: the profiles row is normally made by the
     // on_auth_user_created trigger, but if it is ever missing an UPDATE matches
-    // zero rows and returns no error — reporting success while leaving `role`
-    // unset, which the onboarding gate then bounces straight back here forever.
+    // zero rows and returns no error — reporting success while leaving the
+    // profile unfinished, which the onboarding gate then bounces straight back
+    // here forever.
     const { data: rows, error } = await supabase
       .from('profiles')
       .upsert({ id: user.id, ...profileRow(d) }, { onConflict: 'id' })
@@ -162,18 +155,9 @@ function OnboardingInner() {
   return (
     <SiteShell active="login">
       <div className="wrap ob-wrap">
-        {!v.isDone && (
-          <div className="ob-rail" aria-hidden="true">
-            {[1, 2].map((n) => (
-              <i key={n}><b style={{ width: v.step >= n ? '100%' : '0%' }} /></i>
-            ))}
-          </div>
-        )}
-
-        {/* ---------------------------------------------------- step 1 */}
+        {/* One step: the account, then straight on to where they were going. */}
         {v.isStep1 && (
           <div className="ob-card">
-            <span className="eyebrow bare">Step 1 of {v.totalSteps}</span>
             <h1>{v.isComplete ? 'Finish your profile' : 'Create your RPS account'}</h1>
             <p>
               {v.isComplete
@@ -322,7 +306,9 @@ function OnboardingInner() {
               </div>
 
               <div className="ob-actions end">
-                <button className="btn go" type="submit" disabled={v.continueDisabled}>Continue</button>
+                <button className="btn go" type="submit" disabled={v.continueDisabled}>
+                  {v.submitting ? (v.isComplete ? 'Saving…' : 'Creating your account…') : v.submitLabel}
+                </button>
               </div>
             </form>
 
@@ -331,85 +317,6 @@ function OnboardingInner() {
                 Already have an account? <Link href={loginHref}>Log in</Link>
               </p>
             )}
-          </div>
-        )}
-
-        {/* ---------------------------------------------------- step 2 */}
-        {v.isStep2 && (
-          <div className="ob-card">
-            <span className="eyebrow bare">Step 2 of {v.totalSteps}</span>
-            <h1>A bit about you</h1>
-            <p>So we can point you at the right sessions. Only the first one is required.</p>
-
-            <form noValidate onSubmit={(e) => { e.preventDefault(); v.onNext(); }}>
-              <span className="eyebrow bare">I am a…</span>
-              <div className="ob-roles">
-                {v.roles.map((r) => (
-                  <button key={r.id} className="ob-role" type="button"
-                    aria-pressed={v.role === r.id} onClick={() => v.selectRole(r.id)}>
-                    <span className="ico">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{ROLE_ICON[r.id]}</svg>
-                    </span>
-                    <span><b>{r.title}</b><small>{r.desc}</small></span>
-                  </button>
-                ))}
-              </div>
-
-              {v.isStudent && (
-                <div className="form-grid" style={{ marginTop: 22 }}>
-                  <div className="field">
-                    <label htmlFor="ob-year">Year of study <span className="opt">optional</span></label>
-                    <input id="ob-year" type="text" value={v.yearOfStudy} onChange={v.onYearOfStudy}
-                      placeholder="e.g. 3rd year" />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="ob-dept">Department <span className="opt">optional</span></label>
-                    <input id="ob-dept" type="text" value={v.department} onChange={v.onDepartment}
-                      placeholder="e.g. Design" />
-                  </div>
-                </div>
-              )}
-
-              <span className="eyebrow bare" style={{ marginTop: 26 }}>
-                What are you here for? <span className="opt">optional</span>
-              </span>
-              <div className="ob-chips">
-                {v.goalsList.map((g) => (
-                  <button key={g} className="ob-chip" type="button"
-                    aria-pressed={v.goals.includes(g)} onClick={() => v.toggleGoal(g)}>{g}</button>
-                ))}
-              </div>
-
-              <span className="eyebrow bare" style={{ marginTop: 26 }}>
-                Tools you use <span className="opt">optional</span>
-              </span>
-              <div className="ob-chips">
-                {v.toolsList.map((t) => (
-                  <button key={t} className="ob-chip" type="button"
-                    aria-pressed={v.tools.includes(t)} onClick={() => v.toggleTool(t)}>{t}</button>
-                ))}
-              </div>
-
-              <div className="field" style={{ marginTop: 26 }}>
-                <label htmlFor="ob-heard">How did you hear about us? <span className="opt">optional</span></label>
-                <select id="ob-heard" value={v.howHeard} onChange={v.onHowHeard}>
-                  <option value="">Choose one</option>
-                  {v.howHeardList.map((h) => <option key={h} value={h}>{h}</option>)}
-                </select>
-              </div>
-
-              {v.error && (
-                <div className="banner" role="alert" style={{ textAlign: 'left', marginTop: 18 }}>{v.error}</div>
-              )}
-
-              <div className="ob-actions">
-                <button className="btn quiet" type="button" onClick={v.onBack} disabled={v.submitting}>Back</button>
-                <button className="btn go" type="submit" disabled={v.continueDisabled || !v.role}>
-                  {v.submitting ? 'Creating your account…' : v.submitLabel}
-                </button>
-              </div>
-            </form>
           </div>
         )}
 

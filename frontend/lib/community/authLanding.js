@@ -69,21 +69,24 @@ export function skipsOnboarding(target) {
 }
 
 /* true / false, or null when there's no session to judge yet.
-   `profiles.role` is the source of truth; user_metadata is only a fast path,
-   and is never used to conclude someone has NOT onboarded. */
+   The profile is the source of truth — the signup form's terms stamp, or a
+   role from before signup lost its second step. user_metadata is only a fast
+   path, and is never used to conclude someone has NOT onboarded. Same rule as
+   hasCompletedOnboarding in lib/supabase/middleware.js. */
 export async function hasOnboarded(supabase) {
   const client = supabase || createClient();
   const {
     data: { user },
   } = await client.auth.getUser();
   if (!user) return null;
-  if (user.user_metadata?.role) return true;
+  const meta = user.user_metadata || {};
+  if (meta.onboarded || meta.role) return true;
   const { data } = await client
     .from('profiles')
-    .select('role')
+    .select('role, terms_accepted_at')
     .eq('id', user.id)
     .single();
-  return !!data?.role;
+  return !!(data?.role || data?.terms_accepted_at);
 }
 
 /* The one call every sign-in form makes instead of pushing `next` blindly.
