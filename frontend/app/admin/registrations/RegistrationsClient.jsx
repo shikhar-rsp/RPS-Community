@@ -5,6 +5,7 @@ import { StatusChip } from '@/components/community/Bits';
 import AdminTabs from '../AdminTabs';
 import styles from './registrations.module.css';
 import { setEnrollmentStatus, removeEnrollment, restoreEnrollment } from './actions';
+import EmailBox from './EmailBox';
 
 /* The list the team works from. Everything here is a view over rows the server
    already decided this person may see — the filtering is convenience, never a
@@ -61,6 +62,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
   const [problem, setProblem] = useState('');
   const [removed, setRemoved] = useState('');
   const [showTrash, setShowTrash] = useState(false);
+  const [showMail, setShowMail] = useState(false);
   const [, startTransition] = useTransition();
 
   const selected = workshops.find((w) => w.slug === slug) || null;
@@ -206,6 +208,21 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
             </p>
           </div>
           <div className={styles.headActions}>
+            {slug !== 'all' && (
+              <button
+                type="button"
+                className={styles.trashBtn}
+                aria-pressed={showMail}
+                onClick={() => setShowMail((v) => !v)}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="M3 7l9 6 9-6" />
+                </svg>
+                Email everyone
+              </button>
+            )}
             <button
               type="button"
               className={styles.trashBtn}
@@ -264,6 +281,15 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
             ))}
           </div>
         </div>
+
+        {showMail && slug !== 'all' && (
+          <EmailBox
+            key={slug}
+            slug={slug}
+            approved={counts.REGISTERED + counts.ATTENDED}
+            viewer={viewer}
+          />
+        )}
 
         {problem && (
           <div className={styles.warn} role="alert">{problem}</div>

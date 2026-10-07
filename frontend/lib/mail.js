@@ -34,9 +34,13 @@ export function mailConfigured() {
   return !!process.env.RESEND_API_KEY;
 }
 
-/* Send one email. Resolves to { ok, id } or { ok: false, error, skipped? }.
-   Never throws, never rejects. */
-export async function sendEmail({ to, subject, html, text, replyTo }) {
+/* Send one email. Resolves to { ok, id } or { ok: false, error, status?,
+   skipped? }. Never throws, never rejects.
+
+   `idempotencyKey`: Resend remembers a key for 24 hours and sends a second
+   request with the same one only once — so a message to a list can be sent
+   again after a timeout or a double click without anyone getting it twice. */
+export async function sendEmail({ to, subject, html, text, replyTo, idempotencyKey }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     // Loud enough to find in a production log, quiet enough not to be noise in
@@ -57,6 +61,7 @@ export async function sendEmail({ to, subject, html, text, replyTo }) {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
       },
       body: JSON.stringify({
         from: FROM,
@@ -76,7 +81,7 @@ export async function sendEmail({ to, subject, html, text, replyTo }) {
       // of "unverified domain" / "bad key" / "invalid address" it was.
       const detail = await res.text().catch(() => "");
       console.error(`[mail] Resend rejected "${subject}" (${res.status}): ${detail.slice(0, 500)}`);
-      return { ok: false, error: `Mail provider returned ${res.status}.` };
+      return { ok: false, status: res.status, error: `Mail provider returned ${res.status}.` };
     }
 
     const data = await res.json().catch(() => ({}));

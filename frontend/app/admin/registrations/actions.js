@@ -177,3 +177,128 @@ export async function restoreEnrollment(id) {
   revalidatePath("/admin/registrations");
   return { ok: true, name: data.name };
 }
+
+/* ------------------------------------------------------- email everyone */
+
+const SENDABLE = ["REGISTERED", "ATTENDED"];
+const SPACING_MS = 550; // Resend allows about two requests a second
+const BUDGET_MS = 50_000; // stop short of the function's 60s limit
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* Send one message to everyone approved on a workshop's list, or — with
+   `test` — only to the admin pressing the button, so it can be checked in a
+   real inbox first.
+
+   Each person's copy carries an idempotency key made from the workshop, the
+   exact subject and body, and their address. Resend sends a key once per 24
+   hours, so pressing Send twice, or again after a timeout, reaches only the
+   people who have not had it yet. Change a word and it is a new message.
+
+   Long lists are sent at Resend's pace and stopped before the server's time
+   limit; the reply says how many are left, and pressing Send again finishes
+   them without repeating anyone. */
+export async function sendWorkshopEmail({ slug, subject, body, test = false, testTo = "" }) {
+  const user = await requireAdmin();
+  if (!user) return { ok: false, error: "Not allowed." };
+
+  const { bySlug } = await import("@/lib/community/workshops");
+  const { PLACEHOLDER } = await import("@/lib/emails/templates");
+  const { buildBroadcastEmail } = await import("@/lib/emails/broadcast");
+  const { sendEmail, mailConfigured } = await import("@/lib/mail");
+  const { createHash } = await import("crypto");
+
+  const w = bySlug(String(slug || ""));
+  if (!w) return { ok: false, error: "Pick a workshop first." };
+
+  const subj = String(subject || "").trim();
+  const text = String(body || "").replace(/\r\n/g, "\n").trim();
+  if (subj.length < 3 || subj.length > 200) return { ok: false, error: "Give it a subject." };
+  if (text.length < 10 || text.length > 10000) return { ok: false, error: "The message is empty." };
+  const left = (subj + "\n" + text).match(PLACEHOLDER);
+  if (left) return { ok: false, error: `Fill in ${left[0]} before sending.` };
+
+  if (!mailConfigured()) {
+    return { ok: false, error: "Email isn’t set up on the server yet (RESEND_API_KEY is missing in Vercel)." };
+  }
+
+  let people;
+  if (test) {
+    const to = testAddress(testTo, user.email);
+    if (!to) return { ok: false, error: "That test address doesn’t look right." };
+    people = [{ name: to.split("@")[0], email: to }];
+  } else {
+    const { data, error } = await createAdminClient()
+      .from("enrollments")
+      .select("name, email, status")
+      .eq("workshop_slug", w.slug)
+      .in("status", SENDABLE);
+    if (error) return { ok: false, error: "Could not read the list. Please try again." };
+    const seen = new Set();
+    people = (data || []).filter((r) => {
+      const e = String(r.email || "").trim().toLowerCase();
+      if (!e || seen.has(e)) return false;
+      seen.add(e);
+      return true;
+    });
+  }
+  if (!people.length) return { ok: false, error: "Nobody approved on this list yet." };
+
+  const started = Date.now();
+  let sent = 0;
+  const failed = [];
+  let remaining = 0;
+
+  for (let i = 0; i < people.length; i++) {
+    if (Date.now() - started > BUDGET_MS) {
+      remaining = people.length - i;
+      break;
+    }
+    const r = people[i];
+    const email = String(r.email).trim();
+    const msg = buildBroadcastEmail({ name: r.name, workshop: w, subject: subj, body: text });
+    const key =
+      "rps-" +
+      createHash("sha256")
+        .update([w.slug, subj, text, email.toLowerCase(), test ? `test-${started}` : ""].join("\u0000"))
+        .digest("hex")
+        .slice(0, 48);
+
+    let res;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await sendEmail({ to: email, ...msg, idempotencyKey: key });
+      if (res.ok || res.status !== 429) break;
+      await sleep(1200 * (attempt + 1));
+    }
+    if (res.ok) sent += 1;
+    else failed.push(email);
+    if (i < people.length - 1) await sleep(SPACING_MS);
+  }
+
+  return { ok: true, test, total: people.length, sent, failed, remaining };
+}
+
+/* Where a test goes: the address typed in the test box, or the admin's own. */
+function testAddress(typed, fallback) {
+  const to = String(typed || fallback || "").trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to) ? to : null;
+}
+
+/* The "Congratulations, you're in" mail exactly as a registrant gets it, sent
+   to a test address — so it can be checked in a real inbox without
+   registering for the workshop. */
+export async function sendConfirmationTest({ slug, testTo = "" }) {
+  const user = await requireAdmin();
+  if (!user) return { ok: false, error: "Not allowed." };
+
+  const { mailConfigured } = await import("@/lib/mail");
+  const { sendEnrollmentEmail } = await import("@/lib/emails/enrollment");
+  if (!mailConfigured()) {
+    return { ok: false, error: "Email isn’t set up on the server yet (RESEND_API_KEY is missing in Vercel)." };
+  }
+  const to = testAddress(testTo, user.email);
+  if (!to) return { ok: false, error: "That test address doesn’t look right." };
+
+  const res = await sendEnrollmentEmail({ to, name: to.split("@")[0], slug: String(slug || "") });
+  return res.ok ? { ok: true, to } : { ok: false, error: res.error || "Could not send it." };
+}

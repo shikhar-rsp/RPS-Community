@@ -17,6 +17,10 @@ import RegistrationsClient from "./RegistrationsClient";
 const REGISTRATIONS_FROM =
   process.env.REGISTRATIONS_FROM || "2026-09-15T00:00:00+05:30";
 
+// Sending a message to a whole list runs at the mail provider's pace, which
+// for a full cohort is longer than the default function time limit.
+export const maxDuration = 60;
+
 export const metadata = {
   title: "Registrations — RPS Cohorts",
   // This page lists real people's contact details. Keep it out of every index

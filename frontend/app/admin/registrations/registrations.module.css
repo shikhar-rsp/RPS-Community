@@ -462,3 +462,42 @@
   color: var(--heading);
   box-shadow: var(--shadow-sm);
 }
+
+/* --------------------------------------------------- email everyone */
+/* Same panel as the trash: a quiet box under the header, opened on demand. */
+.mailBox {
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  background: var(--paper-2);
+  padding: clamp(18px, 4vw, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mailHead { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
+.mailTitle { margin: 0; font-size: 1.05rem; }
+.mailLabel { margin-top: 6px; font-size: .84rem; font-weight: 600; color: var(--muted); }
+.mailLabelInline { font-size: .84rem; font-weight: 600; color: var(--muted); }
+.mailBody {
+  font: inherit;
+  font-size: .94rem;
+  line-height: 1.55;
+  padding: 12px 13px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line-2);
+  background: var(--card);
+  color: var(--ink);
+  resize: vertical;
+  min-height: 220px;
+}
+.mailBody:focus { outline: none; border-color: var(--accent); }
+.mailHint { margin: 0; font-size: .82rem; color: var(--muted); line-height: 1.5; }
+.mailHint code {
+  font-size: .8rem;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--soft-fill);
+}
+.mailNeed { color: var(--accent); font-weight: 600; }
+.mailRow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
+.mailRow .search { flex: 1 1 220px; }

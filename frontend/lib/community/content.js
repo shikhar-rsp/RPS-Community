@@ -111,6 +111,8 @@ export const WORKSHOPS = [
       'Live Q&A to resolve doubts',
     ],
     bannerUrl: '/assets/workshops/shortlist-ready-portfolio.png',
+    // A small JPG of the same art, for the top of emails.
+    emailBannerUrl: '/assets/email/shortlist-ready-portfolio.jpg',
     bannerArt: 'portfolio',
     dateTime: '2026-10-17T15:00:00+05:30',
     durationMins: 120,
@@ -167,6 +169,8 @@ export const WORKSHOPS = [
       'A PDF guide and prompt library to run the method on your own brief',
     ],
     bannerUrl: '/assets/workshops/design-products-with-ai.png',
+    // A small JPG of the same art, for the top of emails.
+    emailBannerUrl: '/assets/email/design-products-with-ai.jpg',
     bannerArt: 'proto',
     dateTime: '2026-09-19T15:00:00+05:30',
     durationMins: 120,
@@ -231,6 +235,8 @@ export const WORKSHOPS = [
       'Deployed on Vercel, so the session ended at a URL',
     ],
     bannerUrl: '/assets/workshops/ship-client-ready-websites.png',
+    // A small JPG of the same art, for the top of emails.
+    emailBannerUrl: '/assets/email/ship-client-ready-websites.jpg',
     bannerArt: 'landing',
     dateTime: '2026-08-01T18:00:00+05:30',
     durationMins: 90,
