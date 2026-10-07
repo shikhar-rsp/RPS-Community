@@ -40,6 +40,11 @@ export const HOSTS = [
     title: 'Principal Designer and Manager, RPS',
     bio: '14+ years on fintech and enterprise SaaS products people actually trust. Leads design at RPS.',
     photoUrl: '/assets/vineet-avatar.png',
+    /* The mentor tile: the portrait from the Cohort 03 poster, and the
+       headline role and experience printed under it there. */
+    portraitUrl: '/assets/mentors/vineet.jpg',
+    role: 'Principal Designer',
+    years: 13,
   },
   {
     id: 'host_2',
@@ -47,6 +52,27 @@ export const HOSTS = [
     title: 'Principal Designer and Manager, RPS',
     bio: 'Has mentored 10,000+ designers and builds AI-native design workflows for enterprise fintech at RPS. Thinks designers who learn to direct AI will outrun the ones who fear it.',
     photoUrl: '/assets/vivin-avatar.png',
+    portraitUrl: '/assets/mentors/vivin.jpg',
+    role: 'Principal Designer',
+    years: 14,
+  },
+  {
+    id: 'host_3',
+    name: 'Vishal Kumar',
+    title: 'Design Craft Lead, RPS',
+    photoUrl: '/assets/mentors/vishal-avatar.jpg',
+    portraitUrl: '/assets/mentors/vishal.jpg',
+    role: 'Design Craft Lead',
+    years: 11,
+  },
+  {
+    id: 'host_4',
+    name: 'Nikhil Gadkar',
+    title: 'Design Craft Lead, RPS',
+    photoUrl: '/assets/mentors/nikhil-avatar.jpg',
+    portraitUrl: '/assets/mentors/nikhil.jpg',
+    role: 'Design Craft Lead',
+    years: 6,
   },
 ];
 
@@ -61,9 +87,11 @@ export const WORKSHOPS = [
     title: 'Build a portfolio that gets you shortlisted. Not just admired.',
     summary:
       'Senior designers show you how to build a shortlist-ready UX/UI portfolio, with AI tools to speed up the work.',
+    /* The poster's line, used as the title of "The session" card. */
+    pitch: 'Your portfolio is your first round of interview. Make it count.',
     description: [
       'Most portfolios get admired and then closed. The people hiring look at hundreds of them, and the ones that make the shortlist are not the prettiest — they are the ones that make the case for the designer fastest.',
-      'In this session, senior designers who hire for RPS walk through what a shortlist-ready UX/UI portfolio actually looks like: which projects to lead with, how to tell a case study so the decisions show, and what gets a portfolio passed over in the first minute.',
+      'In this session, four senior designers from RPS walk through what a shortlist-ready UX/UI portfolio actually looks like: which projects to lead with, how to tell a case study so the decisions show, and what gets a portfolio passed over in the first minute.',
       'Then we put AI to work on the slow parts — structuring case studies, tightening the writing and building the pages — so the time goes into the thinking, not the formatting.',
     ],
     recapHeadline: null,
@@ -74,12 +102,13 @@ export const WORKSHOPS = [
       'You’re a working designer whose portfolio is a few years and a few projects out of date',
       'You want to use AI to speed up the portfolio work without it reading like everyone else’s',
     ],
+    // "What's in it for you?", as on the poster.
+    curriculumTitle: 'What’s in it for you?',
     curriculum: [
-      'What gets a portfolio shortlisted — and what gets it closed in the first minute',
-      'Choosing and ordering your projects so the strongest case comes first',
-      'Writing case studies that show your decisions, not just your screens',
-      'Using AI tools to structure, write and build the portfolio faster',
-      'A review of real portfolios, live',
+      'Mentorship from senior UX/UI industry experts',
+      'Case studies that get you shortlisted',
+      'Use AI tools to build your portfolio faster',
+      'Live Q&A to resolve doubts',
     ],
     bannerUrl: '/assets/workshops/shortlist-ready-portfolio.png',
     bannerArt: 'portfolio',
@@ -92,9 +121,9 @@ export const WORKSHOPS = [
        added, replace meetPhone and meetPhoneUrl together with it. */
     meetLink: null,
     recordingUrl: null,
-    // No single host named yet: the page, cards and email all leave the host
-    // line out until this is set to 'host_1' or 'host_2'.
-    hostId: null,
+    /* Four mentors, in the poster's order. `hostIds` takes the place of
+       `hostId` wherever a session has more than one; see hostsOf(). */
+    hostIds: ['host_2', 'host_1', 'host_3', 'host_4'],
     cohortLabel: 'Cohort 03',
   },
 

@@ -7,7 +7,7 @@ import { DayBox, QuoteCard, HostCard } from '@/components/community/Bits';
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useToasts } from '@/lib/community/hooks';
 import {
-  upcoming, featuredPast, host, isPast, recordingReady, testimonials,
+  upcoming, featuredPast, isPast, recordingReady, testimonials, hostsOf, hostNames,
   dateFull, dayShort, time, workshopUrl, downloadResource, paragraphs,
 } from '@/lib/community/workshops';
 
@@ -25,7 +25,8 @@ export default function WorkshopClient({ name, email, avatarUrl, initials }) {
   // The session a member is here for: the next one if there is one, otherwise
   // the last cohort, which is where the recording and the files live.
   const w = upcoming()[0] || featuredPast();
-  const h = w ? host(w.hostId) : null;
+  const hs = hostsOf(w);
+  const h = hs.length ? { name: hostNames(hs) } : null;
   const past = w ? isPast(w) : false;
   const ready = w ? recordingReady(w) : false;
   const ts = w ? testimonials(w.id) : [];
@@ -105,7 +106,7 @@ export default function WorkshopClient({ name, email, avatarUrl, initials }) {
                     </svg>
                   </span>
                   <span>
-                    <small>{past ? 'Hosted by' : 'Host'}</small>
+                    <small>{past ? 'Hosted by' : hs.length > 1 ? 'Mentors' : 'Host'}</small>
                     {h.name}
                   </span>
                 </div>
@@ -262,7 +263,13 @@ export default function WorkshopClient({ name, email, avatarUrl, initials }) {
               </div>
             )}
 
-            <HostCard host={h} />
+            {hs.map((x, i) => (
+              <HostCard
+                key={x.id}
+                host={x}
+                label={i === 0 ? (hs.length > 1 ? 'Your mentors' : 'Your host') : null}
+              />
+            ))}
           </div>
 
           <aside className="side">

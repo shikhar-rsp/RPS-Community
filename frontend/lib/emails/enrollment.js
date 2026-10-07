@@ -13,7 +13,7 @@
 
 import { sendEmail } from '@/lib/mail';
 import { siteUrl } from '@/lib/site-url';
-import { bySlug, host, dayShort, time, dateFull, calendarUrl, durationLabel } from '@/lib/community/workshops';
+import { bySlug, hostsOf, hostNames, dayShort, time, dateFull, calendarUrl, durationLabel } from '@/lib/community/workshops';
 
 const ACCENT = '#FF630B';
 const INK = '#13100E';
@@ -76,7 +76,9 @@ function sub(textValue) {
 export function buildEnrollmentEmail({ name, workshop, status }) {
   const w = workshop;
   const waitlisted = status === 'WAITLISTED';
-  const h = host(w.hostId);
+  const hs = hostsOf(w);
+  // One host reads as name and title; several as their first names together.
+  const h = hs.length === 1 ? hs[0] : hs.length ? { name: hostNames(hs), title: 'Senior designers at RPS' } : null;
   const meet = realMeetLink(w);
   // Only offered alongside a real room — a PIN for a placeholder link is worse
   // than no PIN, because someone would sit on hold in an empty meeting.

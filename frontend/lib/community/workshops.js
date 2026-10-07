@@ -269,3 +269,21 @@ export function downloadResource(r) {
   a.remove();
   return true;
 }
+
+/* Everyone running a session, in order. A workshop names one host with
+   `hostId` or several with `hostIds`; every renderer goes through here so
+   neither shape is a special case anywhere else. */
+export function hostsOf(w) {
+  if (!w) return [];
+  const ids = Array.isArray(w.hostIds) && w.hostIds.length ? w.hostIds : w.hostId ? [w.hostId] : [];
+  return ids.map(host).filter(Boolean);
+}
+
+/* "Vivin Richard" for one; first names for several — "Vivin, Vineet,
+   Vishal and Nikhil" — which is how a line of four full names fits. */
+export function hostNames(list) {
+  if (!list || !list.length) return '';
+  if (list.length === 1) return list[0].name;
+  const firsts = list.map((h) => h.name.split(' ')[0]);
+  return firsts.slice(0, -1).join(', ') + ' and ' + firsts[firsts.length - 1];
+}

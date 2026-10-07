@@ -7,9 +7,9 @@ import Frame, { Avatar } from '@/components/community/Frame';
 import { StatusChip, DayBox, QuoteCard } from '@/components/community/Bits';
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession, identityFrom, useToasts } from '@/lib/community/hooks';
-import { useSeats, useSeatCount, validateDetails } from '@/lib/community/enrollment';
+import { useSeats, useSeatCount, validateDetails, enrollSignedOut } from '@/lib/community/enrollment';
 import {
-  bySlug, byId, host, isPast, recordingReady, recordingState, downloadResource,
+  bySlug, byId, hostsOf, isPast, recordingReady, recordingState, downloadResource,
   upcoming, past as pastWorkshops, featuredPast, testimonials, dateFull, dayShort, time, workshopUrl,
   enrollUrl, calendarUrl, paragraphs, durationLabel, initialsFrom, recordingEmbed,
 } from '@/lib/community/workshops';
@@ -87,6 +87,19 @@ function StoryParagraph({ text }) {
   );
 }
 
+/* Overlapping faces for a session with several hosts, beside the count. */
+function FacesRow({ list }) {
+  return (
+    <span className="faces">
+      {list.map((x) =>
+        x.photoUrl ? (
+          <img key={x.id} className="face" src={x.photoUrl} alt="" loading="lazy" decoding="async" />
+        ) : null
+      )}
+    </span>
+  );
+}
+
 /* Every body section opens the same way: a small label, then its title. */
 function SectionHead({ id, label, title }) {
   return (
@@ -109,7 +122,8 @@ function WorkshopDetail() {
   const slug = String(params?.slug || '');
   const w = useMemo(() => bySlug(slug), [slug]);
 
-  const [panelMode, setPanelMode] = useState('default'); // 'default' | 'confirm'
+  // 'default' | 'confirm' (signed in) | 'guest' (signed out, same three fields)
+  const [panelMode, setPanelMode] = useState('default');
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState(null);
   const [raceNotice, setRaceNotice] = useState(false);
@@ -121,8 +135,11 @@ function WorkshopDetail() {
   // Just let a seat go: the panel says so, instead of silently reverting to the
   // pitch card a logged-out visitor sees.
   const [released, setReleased] = useState(false);
+  // A seat taken while signed out. There is no session to read it back
+  // through, so the panel holds on to the one the server just handed over.
+  const [guestSeat, setGuestSeat] = useState(null);
 
-  const mine = w ? seats[w.slug] : null;
+  const mine = (w ? seats[w.slug] : null) || (guestSeat && guestSeat.slug === w?.slug ? guestSeat : null);
   const past = w ? isPast(w) : false;
   // Only a past workshop shows how many seats it filled.
   const seatCount = useSeatCount(past ? w.slug : null);
@@ -135,18 +152,14 @@ function WorkshopDetail() {
   useEffect(() => {
     if (!w || past || loading) return;
     if (!wantsEnroll || mine) return;
-    if (!user) {
-      goSignIn(`${workshopUrl(w)}?action=enroll`);
-    } else {
-      setPanelMode('confirm');
-    }
+    setPanelMode(user ? 'confirm' : 'guest');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w?.id, wantsEnroll, user?.id, loading, past]);
 
   /* The seat form sits in the card grid rather than a sticky sidebar, so
      arriving with intent brings it into view instead of leaving it below. */
   useEffect(() => {
-    if (panelMode !== 'confirm' || !wantsEnroll) return;
+    if ((panelMode !== 'confirm' && panelMode !== 'guest') || !wantsEnroll) return;
     document.getElementById('seat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [panelMode, wantsEnroll]);
 
@@ -206,7 +219,15 @@ function WorkshopDetail() {
     );
   }
 
-  const h = host(w.hostId);
+  // One host keeps the single-host card and facts it always had; several get
+  // the mentors strip instead (see Mentors() below).
+  const hs = hostsOf(w);
+  const h = hs.length === 1 ? hs[0] : null;
+  const many = hs.length > 1;
+  // Every name in full, on a row of its own across the facts strip.
+  const mentorLine = many
+    ? hs.slice(0, -1).map((x) => x.name).join(', ') + ' and ' + hs[hs.length - 1].name
+    : '';
   const ready = recordingReady(w);
 
   /* ------------------------------------------------------------ enrolment */
@@ -216,14 +237,49 @@ function WorkshopDetail() {
       toast('You’re already in. Meet link’s in My workshops.');
       return;
     }
-    if (!user) {
-      goSignIn(`${workshopUrl(w)}?action=enroll`);
-      return;
-    }
     setForm(null);
     setErrors(null);
     setReleased(false);
-    setPanelMode('confirm');
+    // Signed out is no longer a detour to the login page: the same form opens
+    // here, and only an email with no account behind it is sent to sign up.
+    setPanelMode(user ? 'confirm' : 'guest');
+  }
+
+  /* Signed out: the seat goes on the account the email belongs to. An email
+     we have never seen is somebody new, who signs up and comes straight back
+     here with the form open again. */
+  async function confirmGuestSeat(details) {
+    const bad = validateDetails(details);
+    if (bad) {
+      setErrors(bad);
+      setForm(details);
+      return;
+    }
+
+    setSaving(true);
+    const res = await enrollSignedOut(w.slug, details);
+    setSaving(false);
+
+    if (res?.needsAccount) {
+      setForm(details);
+      toast('New here? Create your account and you’ll come straight back to your seat.');
+      router.push('/onboarding?next=' + encodeURIComponent(enrollUrl(w)));
+      return;
+    }
+    if (!res?.ok) {
+      setForm(details);
+      toast(res?.error || 'Could not save your seat.', 'warn');
+      return;
+    }
+
+    setGuestSeat(res.enrollment || { slug: w.slug, status: res.status, whatsapp: details.whatsapp });
+    setErrors(null);
+    setForm(null);
+    setPanelMode('default');
+    toast(
+      res.status === 'REGISTERED' ? 'You’re in. See you Saturday.' : 'You’re on the waitlist.',
+      res.status === 'REGISTERED' ? 'good' : 'warn'
+    );
   }
 
   async function confirmSeat(details) {
@@ -347,7 +403,9 @@ function WorkshopDetail() {
           <Link className="btn quiet full" href="/dashboard" style={{ marginBottom: 6 }}>
             My workshops
           </Link>
-          <ReleaseControl label="Leave the waitlist" prompt="Come off the waitlist? You’d go to the back of it if you change your mind." />
+          {user && (
+            <ReleaseControl label="Leave the waitlist" prompt="Come off the waitlist? You’d go to the back of it if you change your mind." />
+          )}
         </div>
       );
     }
@@ -355,8 +413,14 @@ function WorkshopDetail() {
     /* Back from login — who's coming. Name and email come pre-filled from the
        account; the WhatsApp number is the one thing we can't already know, and
        it's where the reminder and the Meet link go. */
-    if (panelMode === 'confirm' && me) {
-      const v = form || { name: me.name || '', email: me.email || '', whatsapp: me.phone || '+91 ' };
+    const guest = panelMode === 'guest' && !user;
+    if ((panelMode === 'confirm' && me) || guest) {
+      const v =
+        form ||
+        (guest
+          ? { name: '', email: '', whatsapp: '+91 ' }
+          : { name: me.name || '', email: me.email || '', whatsapp: me.phone || '+91 ' });
+      const submit = guest ? confirmGuestSeat : confirmSeat;
       const err = (k) =>
         errors && errors[k] ? (
           <div className="hint err" role="alert">
@@ -366,11 +430,13 @@ function WorkshopDetail() {
 
       return (
         <div className="panel">
-          <span className="kicker">Step 2 of 2</span>
+          <span className="kicker">{guest ? 'Take a seat' : 'Step 2 of 2'}</span>
           <h4>Nearly in</h4>
           <DayBox w={w} />
           <p className="micro" style={{ marginTop: -8 }}>
-            Three things and we&rsquo;ll see you there.
+            {guest
+              ? 'Been to one before? Use the same email — no password needed. New here? We’ll set up your account next.'
+              : 'Three things and we’ll see you there.'}
           </p>
 
           <form
@@ -379,7 +445,7 @@ function WorkshopDetail() {
             onSubmit={(e) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
-              confirmSeat({
+              submit({
                 name: fd.get('name'),
                 email: fd.get('email'),
                 whatsapp: fd.get('whatsapp'),
@@ -529,6 +595,7 @@ function WorkshopDetail() {
       ['Length', durationLabel(w)],
       ['Where', 'Google Meet'],
       h ? ['Hosted by', h.name] : null,
+      many ? ['Mentors', mentorLine] : null,
     ].filter(Boolean);
 
     // Straight to the form when signed in, with the seat card brought into view.
@@ -553,9 +620,10 @@ function WorkshopDetail() {
               <p className="summary">{w.summary}</p>
               <dl className="wfacts" style={{ '--n': upFacts.length }}>
                 {upFacts.map(([k, v]) => (
-                  <div key={k}>
+                  <div key={k} className={k === 'Mentors' ? 'wide' : undefined}>
                     <dt>{k}</dt>
                     <dd>
+                      {k === 'Mentors' && <FacesRow list={hs} />}
                       {k === 'Hosted by' && h?.photoUrl && (
                         <img className="face" src={h.photoUrl} alt="" loading="lazy" decoding="async" />
                       )}
@@ -581,7 +649,7 @@ function WorkshopDetail() {
         <div className="wrap wpast-body">
           <div className="wgrid2">
             <section className="wcell wstory" aria-labelledby="story-h">
-              <SectionHead id="story-h" label="The session" title="What we’re building" />
+              <SectionHead id="story-h" label="The session" title={w.pitch || 'What we’re building'} />
               {paragraphs(w.description).map((t, k) => (
                 <StoryParagraph key={k} text={t} />
               ))}
@@ -593,7 +661,7 @@ function WorkshopDetail() {
 
             {!!(w.curriculum || []).length && (
               <section className="wcell wcovered" aria-labelledby="covered-h">
-                <SectionHead id="covered-h" label="Inside the session" title="What you’ll walk out with" />
+                <SectionHead id="covered-h" label="Inside the session" title={w.curriculumTitle || 'What you’ll walk out with'} />
                 <ul className="wlist">
                   {w.curriculum.map((i, k) => (
                     <li key={k}>{i}</li>
@@ -633,6 +701,8 @@ function WorkshopDetail() {
               </section>
             )}
           </div>
+
+          {many && Mentors()}
 
           {leadQuote && (
             <section className={'wsaid' + (moreQuotes.length ? '' : ' solo')} aria-labelledby="said-h">
@@ -734,6 +804,7 @@ function WorkshopDetail() {
     h ? ['Hosted by', h.name] : null,
     // With the player right there, "recorded" goes without saying.
     ready ? null : ['Recording', coming ? 'On its way' : 'Not recorded'],
+    many ? ['Mentors', mentorLine] : null,
   ].filter(Boolean);
 
   // A member who was in the room is told so — in the same words My workshops
@@ -763,10 +834,11 @@ function WorkshopDetail() {
       <p className="summary">{w.summary}</p>
       <dl className="wfacts" style={{ '--n': facts.length }}>
         {facts.map(([k, v]) => (
-          <div key={k}>
+          <div key={k} className={k === 'Mentors' ? 'wide' : undefined}>
             <dt>{k}</dt>
             <dd>
               {/* The host is a person, not a data point: their face beside the name. */}
+              {k === 'Mentors' && <FacesRow list={hs} />}
               {k === 'Hosted by' && h?.photoUrl && (
                 <img className="face" src={h.photoUrl} alt="" loading="lazy" decoding="async" />
               )}
@@ -870,6 +942,8 @@ function WorkshopDetail() {
           )}
         </div>
 
+        {many && Mentors()}
+
         {/* One quote leads; the rest stand beside it at the same height. */}
         {leadQuote && (
           <section className={'wsaid' + (moreQuotes.length ? '' : ' solo')} aria-labelledby="said-h">
@@ -954,6 +1028,34 @@ function WorkshopDetail() {
       </div>
     </SiteShell>
   );
+
+  /* Everyone running the session, as on the poster: the portrait, the name,
+     the role at RPS and the years behind it. One card, full width. */
+  function Mentors() {
+    return (
+      <section className="wcell wmentors" aria-labelledby="mentors-h">
+        <SectionHead
+          id="mentors-h"
+          label="Meet the mentors"
+          title={past ? 'Who ran the room' : 'Who you’ll learn from'}
+        />
+        <ul className="wmentor-list">
+          {hs.map((m) => (
+            <li key={m.id} className="wmentor">
+              {m.portraitUrl ? (
+                <img src={m.portraitUrl} alt="" loading="lazy" decoding="async" />
+              ) : (
+                <span className="wmentor-ph" aria-hidden="true">{initialsFrom(m.name)}</span>
+              )}
+              <b>{m.name}</b>
+              <small>{m.role || m.title}</small>
+              {m.years ? <span className="wmentor-exp">{m.years}+ yrs exp</span> : null}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
 
   /* The recording, open to everyone: it's public on YouTube anyway, so a
      login wall here would only send people round it. The player loads

@@ -42,6 +42,187 @@ async function ensureSeatRow(slug) {
   }
 }
 
+/* Everything that follows a seat being taken, the same for both ways in.
+
+   Tell them it worked. Awaited rather than left running, because a serverless
+   function stops executing the moment it returns a response — a floating
+   promise here would be cancelled about as often as it completed. It cannot
+   fail the enrolment: the seat is already saved, sendEnrollmentEmail never
+   throws, and its result is logged rather than returned. Someone who is in
+   and never got the mail is a support question; someone told their seat
+   failed when it did not would try again and take a second one.
+
+   The sheet, unlike the email, is written on every successful enrol, not
+   only a new one: it keys on workshop + email and updates in place, so a
+   repeat is a no-op that also repairs a row which failed to write. */
+async function afterSeat({ slug, row, isNew, typed }) {
+  const name = row?.name || typed.name;
+  const email = row?.email || typed.email;
+  const whatsapp = row?.whatsapp || typed.whatsapp;
+  const status = row?.status || "REGISTERED";
+
+  if (isNew) {
+    const sent = await sendEnrollmentEmail({ to: email, name, slug, status });
+    if (!sent.ok && !sent.skipped) {
+      console.error(`[enroll] Seat saved for ${slug}, but the confirmation did not send.`);
+    }
+  }
+
+  await recordRegistration({
+    slug,
+    workshopTitle: bySlug(slug)?.title || slug,
+    name,
+    email,
+    whatsapp,
+    status,
+  });
+
+  return {
+    ok: true,
+    status,
+    enrollment: row
+      ? {
+          slug: row.workshop_slug,
+          status: row.status,
+          name: row.name,
+          email: row.email,
+          whatsapp: row.whatsapp,
+          enrolledAt: row.created_at,
+        }
+      : null,
+  };
+}
+
+/* The account an email belongs to, or null. Profiles first — one indexed
+   read — then the auth list for an account whose profile row never got
+   written. Matched case-insensitively, and exactly: the address is escaped
+   so `_` and `%` in it are not read as wildcards. */
+async function accountIdForEmail(admin, email) {
+  const e = String(email || "").trim().toLowerCase();
+  if (!e) return null;
+
+  const escaped = e.replace(/[\\%_]/g, (c) => "\\" + c);
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id")
+    .ilike("email", escaped)
+    .limit(1)
+    .maybeSingle();
+  if (profile?.id) return profile.id;
+
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) return null;
+    const hit = (data?.users || []).find((u) => String(u.email || "").toLowerCase() === e);
+    if (hit) return hit.id;
+    if (!data?.users || data.users.length < 1000) break;
+  }
+  return null;
+}
+
+/* Take a seat without signing in — for someone who already has an account.
+
+   The workshop page lets a signed-out visitor fill in the same three fields as
+   everyone else. If the email belongs to an account, the seat goes on that
+   account and they never see a password box: people who registered for an
+   earlier cohort come back months later, and making them dig up a password
+   to sit in a free session is where most of them used to stop. An email with
+   no account behind it gets { needsAccount: true }, and the page sends them
+   to sign up, which brings them back to finish here.
+
+   What this does NOT do is sign anyone in, or hand anything back about the
+   account: the reply is the seat that was just taken, built from what was
+   typed. The confirmation goes to the address on the account (the one that
+   was matched), so a seat taken in someone's name always tells them so.
+
+   The capacity decision mirrors enroll_in_workshop(): taken seats are the
+   seeded number plus every REGISTERED/ATTENDED row. It runs here rather than
+   in the database function because that function reads auth.uid(), which a
+   signed-out request does not have. The unique (user_id, workshop_slug)
+   constraint still guarantees one row per person. */
+export async function enrollWithEmail(input) {
+  const parsed = enrollmentSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message || "Invalid input." };
+  }
+  const { slug, name, email, whatsapp } = parsed.data;
+
+  const w = bySlug(slug);
+  if (!w || isPast(w)) return { ok: false, error: "That workshop isn’t taking seats." };
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { ok: false, error: "Could not save your seat. Please try again." };
+  }
+
+  const userId = await accountIdForEmail(admin, email);
+  if (!userId) return { ok: false, needsAccount: true };
+
+  // Already on the list? Hand back what they have; no second email.
+  const { data: existing } = await admin
+    .from("enrollments")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("workshop_slug", slug)
+    .maybeSingle();
+  if (existing) {
+    return afterSeat({ slug, row: existing, isNew: false, typed: { name, email, whatsapp } });
+  }
+
+  let { data: seatRow } = await admin
+    .from("workshop_seats")
+    .select("capacity, seeded_enrollments")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!seatRow && (await ensureSeatRow(slug))) {
+    seatRow = { capacity: w.capacity || 45, seeded_enrollments: w.seededEnrollments || 0 };
+  }
+  if (!seatRow) return { ok: false, error: "Could not save your seat. Please try again." };
+
+  const { count } = await admin
+    .from("enrollments")
+    .select("id", { count: "exact", head: true })
+    .eq("workshop_slug", slug)
+    .in("status", ["REGISTERED", "ATTENDED"]);
+  const taken = (seatRow.seeded_enrollments || 0) + (count || 0);
+  const status = taken >= seatRow.capacity ? "WAITLISTED" : "REGISTERED";
+
+  const { data: accountUser } = await admin.auth.admin.getUserById(userId);
+
+  const { data: row, error } = await admin
+    .from("enrollments")
+    .insert({
+      user_id: userId,
+      workshop_slug: slug,
+      status,
+      name: name.trim(),
+      email,
+      whatsapp: whatsapp.trim(),
+      user_email: accountUser?.user?.email || email,
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    // Two submits at once: the other one won, so hand back its row.
+    if (error.code === "23505") {
+      const { data: again } = await admin
+        .from("enrollments")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("workshop_slug", slug)
+        .maybeSingle();
+      if (again) return afterSeat({ slug, row: again, isNew: false, typed: { name, email, whatsapp } });
+    }
+    console.error(`[enroll] Signed-out seat for ${slug} failed: ${error.message}`);
+    return { ok: false, error: "Could not save your seat. Please try again." };
+  }
+
+  return afterSeat({ slug, row, isNew: true, typed: { name, email, whatsapp } });
+}
+
 export async function enrollInWorkshop(input) {
   const parsed = enrollmentSchema.safeParse(input);
   if (!parsed.success) {
@@ -110,52 +291,7 @@ export async function enrollInWorkshop(input) {
   // person was already enrolled, in which case nothing new was written.
   const row = Array.isArray(data) ? data[0] : data;
 
-  // Tell them it worked. Awaited rather than left running, because a serverless
-  // function stops executing the moment it returns a response — a floating
-  // promise here would be cancelled about as often as it completed. It cannot
-  // fail the enrolment: the seat is already saved, sendEnrollmentEmail never
-  // throws, and its result is logged rather than returned. Someone who is in
-  // and never got the mail is a support question; someone told their seat
-  // failed when it did not would try again and take a second one.
-  if (!existing) {
-    const sent = await sendEnrollmentEmail({
-      to: row?.email || email,
-      name: row?.name || name,
-      slug,
-      status: row?.status || "REGISTERED",
-    });
-    if (!sent.ok && !sent.skipped) {
-      console.error(`[enroll] Seat saved for ${slug}, but the confirmation did not send.`);
-    }
-  }
-
-  // Mirror into the team's sheet. Unlike the email this runs on every
-  // successful enrol, not only a new one: the sheet keys on workshop + email
-  // and updates in place, so a repeat is a no-op that also repairs a row which
-  // failed to write the first time.
-  await recordRegistration({
-    slug,
-    workshopTitle: bySlug(slug)?.title || slug,
-    name: row?.name || name,
-    email: row?.email || email,
-    whatsapp: row?.whatsapp || whatsapp,
-    status: row?.status || "REGISTERED",
-  });
-
-  return {
-    ok: true,
-    status: row?.status || "REGISTERED",
-    enrollment: row
-      ? {
-          slug: row.workshop_slug,
-          status: row.status,
-          name: row.name,
-          email: row.email,
-          whatsapp: row.whatsapp,
-          enrolledAt: row.created_at,
-        }
-      : null,
-  };
+  return afterSeat({ slug, row, isNew: !existing, typed: { name, email, whatsapp } });
 }
 
 export async function cancelEnrollment(slug) {

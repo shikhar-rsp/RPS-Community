@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { enrollInWorkshop, cancelEnrollment } from '@/app/workshops/actions';
+import { enrollInWorkshop, enrollWithEmail, cancelEnrollment } from '@/app/workshops/actions';
 
 /* =============================================================================
    Seat state.
@@ -147,4 +147,16 @@ export function useSeatCount(slug) {
   }, [slug]);
 
   return taken;
+}
+
+/* Take a seat while signed out. Returns { ok, status, enrollment } when the
+   email belongs to an account, or { needsAccount: true } when it doesn't —
+   see enrollWithEmail() in app/workshops/actions.js. */
+export function enrollSignedOut(slug, details) {
+  return enrollWithEmail({
+    slug,
+    name: String(details.name || '').trim(),
+    email: String(details.email || '').trim(),
+    whatsapp: normalisePhone(details.whatsapp),
+  });
 }

@@ -77,12 +77,12 @@ export function Faq({ items, className = 'faq' }) {
 }
 
 /* The host block on a workshop page. */
-export function HostCard({ host }) {
+export function HostCard({ host, label = 'Your host' }) {
   if (!host) return null;
   const initials = host.name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join('');
   return (
     <div className="blk">
-      <span className="eyebrow">Your host</span>
+      {label && <span className="eyebrow">{label}</span>}
       <div className="hostcard">
         {host.photoUrl ? (
           <img className="face" src={host.photoUrl} alt="" loading="lazy" decoding="async" />
@@ -92,7 +92,7 @@ export function HostCard({ host }) {
         <div>
           <b>{host.name}</b>
           <div className="micro">{host.title}</div>
-          <p>{host.bio}</p>
+          {host.bio && <p>{host.bio}</p>}
         </div>
       </div>
     </div>

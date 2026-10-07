@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Frame from './Frame';
 import { artHTML } from '@/lib/community/art';
 import {
-  workshopUrl, enrollUrl, recordingReady, recordingState, isPast, host,
+  workshopUrl, enrollUrl, recordingReady, recordingState, isPast, hostsOf, hostNames,
   dayShort, dateFull, time, durationShort, initialsFrom,
 } from '@/lib/community/workshops';
 
@@ -34,7 +34,7 @@ const SEAT = {
 
 export function WorkshopCard({ w, mine }) {
   const url = workshopUrl(w);
-  const h = host(w.hostId);
+  const hs = hostsOf(w);
   const past = isPast(w);
   const state = past ? recordingState(w) : 'upcoming';
   const [statusCls, statusText] = STATUS[state] || STATUS.none;
@@ -80,16 +80,20 @@ export function WorkshopCard({ w, mine }) {
           <Link href={url}>{w.title}</Link>
         </h3>
         <p className="summary">{w.summary}</p>
-        {h && (
+        {!!hs.length && (
           <div className="wc-host">
-            {h.photoUrl ? (
-              <img className="face" src={h.photoUrl} alt="" loading="lazy" decoding="async" />
-            ) : (
-              <span className="face" aria-hidden="true">{initialsFrom(h.name)}</span>
-            )}
+            <span className="faces">
+              {hs.map((h) =>
+                h.photoUrl ? (
+                  <img key={h.id} className="face" src={h.photoUrl} alt="" loading="lazy" decoding="async" />
+                ) : (
+                  <span key={h.id} className="face" aria-hidden="true">{initialsFrom(h.name)}</span>
+                )
+              )}
+            </span>
             <span className="wc-host-id">
-              <b>{h.name}</b>
-              <small>{h.title}</small>
+              <b>{hostNames(hs)}</b>
+              <small>{hs.length === 1 ? hs[0].title : 'Senior designers at RPS'}</small>
             </span>
           </div>
         )}
