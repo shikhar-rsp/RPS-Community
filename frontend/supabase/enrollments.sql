@@ -154,10 +154,10 @@ begin
   where workshop_slug = p_slug
     and status in ('REGISTERED', 'ATTENDED');
 
-  v_status := case
-                when v_seeded + v_taken >= v_capacity then 'WAITLISTED'
-                else 'REGISTERED'
-              end;
+  -- There is no waitlist: everyone who registers is in. (The app no longer
+  -- calls this function — app/workshops/actions.js writes the seat — but it
+  -- says the same thing in case anything else does.)
+  v_status := 'REGISTERED';
 
   select email into v_user_email from auth.users where id = v_user;
 

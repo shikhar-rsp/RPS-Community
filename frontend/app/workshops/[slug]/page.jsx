@@ -563,7 +563,7 @@ function WorkshopDetail() {
     setReleased(true);
     setPanelMode('default');
     setRaceNotice(false);
-    toast('Seat released. Someone on the waitlist just got lucky.');
+    toast('Seat released. Change your mind and you can take it again.');
   }
 
   // The quotes marked `featured` carry the section — the first leads, up to

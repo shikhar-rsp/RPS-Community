@@ -403,6 +403,6 @@ export const FAQS = [
   { id: 'f6', order: 6, home: true, question: 'Which AI tool?', answer: 'Whichever you already use. Claude, Cursor, Codex, Antigravity — the method holds. Hit your usage limit mid-session? Keep watching and finish on the recording.' },
   { id: 'f7', order: 7, question: 'Will this replace learning design?', answer: 'No. It removes the drawing, not the deciding. The deciding is design.' },
   { id: 'f8', order: 8, home: true, question: 'Do I get the recording?', answer: 'Yes, with all the files. Log in and it’s yours.' },
-  { id: 'f9', order: 9, question: 'What if it’s full?', answer: 'Waitlist. 150 people wanted 45 seats last time, so — likely. Seats do open up.' },
+  { id: 'f9', order: 9, question: 'Is there a waitlist?', answer: 'No. Register and you’re in — every seat is confirmed the moment you sign up.' },
   { id: 'f10', order: 10, question: 'When’s the next one?', answer: 'Every few weeks. The WhatsApp group finds out first.' },
 ];

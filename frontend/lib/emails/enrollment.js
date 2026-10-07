@@ -173,7 +173,7 @@ export function buildEnrollmentEmail({ name, workshop, status }) {
       ? ''
       : '<p style="margin:0 0 6px;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;' +
         'color:' + MUTED + ';">Can’t make it? <a href="' + esc(siteUrl('/dashboard')) + '" ' +
-        'style="color:' + MUTED + ';">Release your seat</a> so someone on the waitlist can have it.</p>') +
+        'style="color:' + MUTED + ';">Release your seat</a> so we know not to expect you.</p>') +
     '<p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;' +
     'color:' + MUTED + ';">You’re getting this because you registered for a workshop at RPS Cohorts.</p>' +
     '</td></tr>' +
@@ -211,7 +211,7 @@ export function buildEnrollmentEmail({ name, workshop, status }) {
       ? null
       // Trailing newline rather than a separate '' entry, so dropping this
       // whole line on the waitlist mail doesn't leave a double gap behind it.
-      : 'Can’t make it? Release your seat so someone on the waitlist can have it: ' +
+      : 'Can’t make it? Release your seat so we know not to expect you: ' +
         siteUrl('/dashboard') + '\n',
     'You’re getting this because you registered for a workshop at RPS Cohorts.',
   ];

@@ -81,9 +81,9 @@ export async function setEnrollmentStatus(id, status) {
   if (!user) return { ok: false, error: "Not allowed." };
   if (!validId(id)) return { ok: false, error: "Missing registration." };
 
-  // The three an admin decides. ATTENDED is a record of what happened, and
-  // CANCELLED belongs to the registrant — neither is set from a list of names.
-  if (!["REGISTERED", "WAITLISTED", "REJECTED"].includes(status)) {
+  // The two an admin decides. There is no waitlist; ATTENDED is a record of
+  // what happened, and CANCELLED belongs to the registrant.
+  if (!["REGISTERED", "REJECTED"].includes(status)) {
     return { ok: false, error: "That is not a status you can set here." };
   }
 
@@ -153,16 +153,15 @@ export async function removeEnrollment(id) {
 
 /* ------------------------------------------------------------- restore */
 
-/* Back onto the list, as waitlisted rather than approved. The seat it had may
-   well have gone to somebody else in the meantime, and handing it back
-   automatically would quietly overbook the room. */
+/* Back onto the list, approved. There is no waitlist and no cap on the room,
+   so a restored registration is simply in again. */
 export async function restoreEnrollment(id) {
   const user = await requireAdmin();
   if (!user) return { ok: false, error: "Not allowed." };
   if (!validId(id)) return { ok: false, error: "Missing registration." };
 
   const { data, error } = await writeStatus(id, {
-    status: "WAITLISTED",
+    status: "REGISTERED",
     updated_at: new Date().toISOString(),
     removed_by: null,
     removed_at: null,

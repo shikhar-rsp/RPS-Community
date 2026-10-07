@@ -91,7 +91,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
     return c;
   }, [inWorkshop]);
 
-  /* Approve or waitlist one person. The server re-checks who is asking and
+  /* Approve or reject one person. The server re-checks who is asking and
      revalidates the page, so the table redraws from the database rather than
      from an optimistic guess here — the number of seats is not this component's
      to decide. */
@@ -116,7 +116,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
     startTransition(async () => {
       const res = await restoreEnrollment(row.id);
       setBusyId(null);
-      if (res.ok) setRemoved(`${res.name || 'That registration'} is back on the list, waitlisted.`);
+      if (res.ok) setRemoved(`${res.name || 'That registration'} is back on the list, approved.`);
       else setProblem(res.error || 'Could not restore that.');
     });
   }
@@ -248,8 +248,9 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
             {[
               ['all', 'Everyone', inWorkshop.length],
               ['REGISTERED', 'Approved', counts.REGISTERED],
-              ['WAITLISTED', 'Waitlist', counts.WAITLISTED],
-            ].map(([value, label, n]) => (
+              // Only while old waitlisted rows still exist; nobody new is waitlisted.
+              counts.WAITLISTED > 0 ? ['WAITLISTED', 'Waitlist', counts.WAITLISTED] : null,
+            ].filter(Boolean).map(([value, label, n]) => (
               <button
                 key={value}
                 type="button"
@@ -280,7 +281,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
               Removed and rejected
               <span className={styles.trashSub}>
                 {trash.length
-                  ? 'Nobody is emailed from here, and their seats are free. Put one back and it returns waitlisted.'
+                  ? 'Nobody is emailed from here, and their seats are free. Put one back and they’re approved again.'
                   : 'Nothing has been taken off the list.'}
               </span>
             </h2>

@@ -3,6 +3,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
 import { WORKSHOPS } from "@/lib/community/content";
 import { allWorkshops, isPast, dateFull } from "@/lib/community/workshops";
+import { promoteWaitlisted } from "@/lib/seats";
 import RegistrationsClient from "./RegistrationsClient";
 
 /* Everything before this is test data from building the thing, so the list
@@ -49,6 +50,11 @@ export default async function RegistrationsPage() {
      seat is taken — and the account an address signed in with is deliberately
      not read, because it is not what this list is about. */
   const admin = createAdminClient();
+
+  // There is no waitlist: anyone still on one for an upcoming workshop is moved
+  // onto the list (and emailed that they're in) before the list is read, so
+  // this page never shows somebody waiting.
+  await promoteWaitlisted(admin);
 
   /* Two reads: the live list, and the trash. `removed_by` and `removed_at` only
      exist once supabase/admin-moderation.sql has been run, so the select asks
