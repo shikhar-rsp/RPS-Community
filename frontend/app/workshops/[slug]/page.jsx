@@ -7,7 +7,7 @@ import Frame, { Avatar } from '@/components/community/Frame';
 import { StatusChip, DayBox, QuoteCard } from '@/components/community/Bits';
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession, identityFrom, useToasts } from '@/lib/community/hooks';
-import { useSeats, useSeatCount, validateDetails, enrollSignedOut } from '@/lib/community/enrollment';
+import { useSeats, useSeatCount, validateDetails } from '@/lib/community/enrollment';
 import {
   bySlug, byId, hostsOf, isPast, recordingReady, recordingState, downloadResource,
   upcoming, past as pastWorkshops, featuredPast, testimonials, dateFull, dayShort, time, workshopUrl,
@@ -122,8 +122,7 @@ function WorkshopDetail() {
   const slug = String(params?.slug || '');
   const w = useMemo(() => bySlug(slug), [slug]);
 
-  // 'default' | 'confirm' (signed in) | 'guest' (signed out, same three fields)
-  const [panelMode, setPanelMode] = useState('default');
+  const [panelMode, setPanelMode] = useState('default'); // 'default' | 'confirm'
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState(null);
   const [raceNotice, setRaceNotice] = useState(false);
@@ -135,11 +134,7 @@ function WorkshopDetail() {
   // Just let a seat go: the panel says so, instead of silently reverting to the
   // pitch card a logged-out visitor sees.
   const [released, setReleased] = useState(false);
-  // A seat taken while signed out. There is no session to read it back
-  // through, so the panel holds on to the one the server just handed over.
-  const [guestSeat, setGuestSeat] = useState(null);
-
-  const mine = (w ? seats[w.slug] : null) || (guestSeat && guestSeat.slug === w?.slug ? guestSeat : null);
+  const mine = w ? seats[w.slug] : null;
   const past = w ? isPast(w) : false;
   // Only a past workshop shows how many seats it filled.
   const seatCount = useSeatCount(past ? w.slug : null);
@@ -152,14 +147,20 @@ function WorkshopDetail() {
   useEffect(() => {
     if (!w || past || loading) return;
     if (!wantsEnroll || mine) return;
-    setPanelMode(user ? 'confirm' : 'guest');
+    // Registering needs an account: signed out goes to log in (or sign up)
+    // first, and comes straight back here with the form open.
+    if (!user) {
+      goSignIn(`${workshopUrl(w)}?action=enroll`);
+    } else {
+      setPanelMode('confirm');
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w?.id, wantsEnroll, user?.id, loading, past]);
 
   /* The seat form sits in the card grid rather than a sticky sidebar, so
      arriving with intent brings it into view instead of leaving it below. */
   useEffect(() => {
-    if ((panelMode !== 'confirm' && panelMode !== 'guest') || !wantsEnroll) return;
+    if (panelMode !== 'confirm' || !wantsEnroll) return;
     document.getElementById('seat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [panelMode, wantsEnroll]);
 
@@ -237,49 +238,14 @@ function WorkshopDetail() {
       toast('You’re already in. Meet link’s in My workshops.');
       return;
     }
+    if (!user) {
+      goSignIn(`${workshopUrl(w)}?action=enroll`);
+      return;
+    }
     setForm(null);
     setErrors(null);
     setReleased(false);
-    // Signed out is no longer a detour to the login page: the same form opens
-    // here, and only an email with no account behind it is sent to sign up.
-    setPanelMode(user ? 'confirm' : 'guest');
-  }
-
-  /* Signed out: the seat goes on the account the email belongs to. An email
-     we have never seen is somebody new, who signs up and comes straight back
-     here with the form open again. */
-  async function confirmGuestSeat(details) {
-    const bad = validateDetails(details);
-    if (bad) {
-      setErrors(bad);
-      setForm(details);
-      return;
-    }
-
-    setSaving(true);
-    const res = await enrollSignedOut(w.slug, details);
-    setSaving(false);
-
-    if (res?.needsAccount) {
-      setForm(details);
-      toast('New here? Create your account and you’ll come straight back to your seat.');
-      router.push('/onboarding?next=' + encodeURIComponent(enrollUrl(w)));
-      return;
-    }
-    if (!res?.ok) {
-      setForm(details);
-      toast(res?.error || 'Could not save your seat.', 'warn');
-      return;
-    }
-
-    setGuestSeat(res.enrollment || { slug: w.slug, status: res.status, whatsapp: details.whatsapp });
-    setErrors(null);
-    setForm(null);
-    setPanelMode('default');
-    toast(
-      res.status === 'REGISTERED' ? 'You’re in. See you Saturday.' : 'You’re on the waitlist.',
-      res.status === 'REGISTERED' ? 'good' : 'warn'
-    );
+    setPanelMode('confirm');
   }
 
   async function confirmSeat(details) {
@@ -403,9 +369,7 @@ function WorkshopDetail() {
           <Link className="btn quiet full" href="/dashboard" style={{ marginBottom: 6 }}>
             My workshops
           </Link>
-          {user && (
-            <ReleaseControl label="Leave the waitlist" prompt="Come off the waitlist? You’d go to the back of it if you change your mind." />
-          )}
+          <ReleaseControl label="Leave the waitlist" prompt="Come off the waitlist? You’d go to the back of it if you change your mind." />
         </div>
       );
     }
@@ -413,14 +377,8 @@ function WorkshopDetail() {
     /* Back from login — who's coming. Name and email come pre-filled from the
        account; the WhatsApp number is the one thing we can't already know, and
        it's where the reminder and the Meet link go. */
-    const guest = panelMode === 'guest' && !user;
-    if ((panelMode === 'confirm' && me) || guest) {
-      const v =
-        form ||
-        (guest
-          ? { name: '', email: '', whatsapp: '+91 ' }
-          : { name: me.name || '', email: me.email || '', whatsapp: me.phone || '+91 ' });
-      const submit = guest ? confirmGuestSeat : confirmSeat;
+    if (panelMode === 'confirm' && me) {
+      const v = form || { name: me.name || '', email: me.email || '', whatsapp: me.phone || '+91 ' };
       const err = (k) =>
         errors && errors[k] ? (
           <div className="hint err" role="alert">
@@ -430,13 +388,11 @@ function WorkshopDetail() {
 
       return (
         <div className="panel">
-          <span className="kicker">{guest ? 'Take a seat' : 'Step 2 of 2'}</span>
+          <span className="kicker">Step 2 of 2</span>
           <h4>Nearly in</h4>
           <DayBox w={w} />
           <p className="micro" style={{ marginTop: -8 }}>
-            {guest
-              ? 'Been to one before? Use the same email — no password needed. New here? We’ll set up your account next.'
-              : 'Three things and we’ll see you there.'}
+            Three things and we&rsquo;ll see you there.
           </p>
 
           <form
@@ -445,7 +401,7 @@ function WorkshopDetail() {
             onSubmit={(e) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
-              submit({
+              confirmSeat({
                 name: fd.get('name'),
                 email: fd.get('email'),
                 whatsapp: fd.get('whatsapp'),

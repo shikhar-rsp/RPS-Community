@@ -7,13 +7,12 @@ import { recordRegistration } from "@/lib/sheets";
 import { promoteWaitlisted } from "@/lib/seats";
 import { bySlug, isPast } from "@/lib/community/workshops";
 
-// Server Actions for workshop seats. The client can only influence the form
-// fields; who the seat belongs to comes from the verified session, or — when
-// signed out — from the account the typed email belongs to.
+// Server Actions for workshop seats. Registering needs an account and a
+// signed-in session: the client can only influence the form fields, and who
+// the seat belongs to comes from the verified session, never the browser.
 //
-// There is no waitlist and no cap: everyone who registers is in. Both ways in
-// go through takeSeat(), which writes REGISTERED with the service-role
-// client. The old public.enroll_in_workshop() database function, which
+// There is no waitlist and no cap: everyone who registers is in. takeSeat()
+// writes REGISTERED with the service-role client. The old public.enroll_in_workshop() database function, which
 // waitlisted anyone past capacity, is no longer called.
 
 /* Insert the seat row for a workshop the content module knows about and the
@@ -97,7 +96,7 @@ async function takeSeat(admin, { userId, userEmail, slug, name, email, whatsapp 
   return { row, isNew: true };
 }
 
-/* Everything that follows a seat being taken, the same for both ways in.
+/* Everything that follows a seat being taken.
 
    Tell them it worked. Awaited rather than left running, because a serverless
    function stops executing the moment it returns a response — a floating
@@ -151,33 +150,6 @@ async function afterSeat(admin, { slug, row, isNew, typed }) {
   };
 }
 
-/* The account an email belongs to, or null. Profiles first — one indexed
-   read — then the auth list for an account whose profile row never got
-   written. Matched case-insensitively, and exactly: the address is escaped
-   so `_` and `%` in it are not read as wildcards. */
-async function accountIdForEmail(admin, email) {
-  const e = String(email || "").trim().toLowerCase();
-  if (!e) return null;
-
-  const escaped = e.replace(/[\\%_]/g, (c) => "\\" + c);
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("id")
-    .ilike("email", escaped)
-    .limit(1)
-    .maybeSingle();
-  if (profile?.id) return profile.id;
-
-  for (let page = 1; page <= 20; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) return null;
-    const hit = (data?.users || []).find((u) => String(u.email || "").toLowerCase() === e);
-    if (hit) return hit.id;
-    if (!data?.users || data.users.length < 1000) break;
-  }
-  return null;
-}
-
 function adminClient() {
   try {
     return createAdminClient();
@@ -187,50 +159,6 @@ function adminClient() {
 }
 
 const COULD_NOT = "Could not save your seat. Please try again.";
-
-/* Take a seat without signing in — for someone who already has an account.
-
-   The workshop page lets a signed-out visitor fill in the same three fields as
-   everyone else. If the email belongs to an account, the seat goes on that
-   account and they never see a password box. An email with no account behind
-   it gets { needsAccount: true }, and the page sends them to sign up, which
-   brings them back to finish here.
-
-   What this does NOT do is sign anyone in, or hand anything back about the
-   account: the reply is the seat that was just taken. The confirmation goes to
-   the address that was matched, so a seat taken in someone's name always tells
-   them so. */
-export async function enrollWithEmail(input) {
-  const parsed = enrollmentSchema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message || "Invalid input." };
-  }
-  const { slug, name, email, whatsapp } = parsed.data;
-
-  const w = bySlug(slug);
-  if (!w || isPast(w)) return { ok: false, error: "That workshop isn’t taking seats." };
-
-  const admin = adminClient();
-  if (!admin) return { ok: false, error: COULD_NOT };
-
-  const userId = await accountIdForEmail(admin, email);
-  if (!userId) return { ok: false, needsAccount: true };
-
-  const { data: accountUser } = await admin.auth.admin.getUserById(userId);
-  const res = await takeSeat(admin, {
-    userId,
-    userEmail: accountUser?.user?.email,
-    slug,
-    name,
-    email,
-    whatsapp,
-  });
-  if (res.error) {
-    console.error(`[enroll] Signed-out seat for ${slug} failed: ${res.error}`);
-    return { ok: false, error: COULD_NOT };
-  }
-  return afterSeat(admin, { slug, row: res.row, isNew: res.isNew, typed: { name, email, whatsapp } });
-}
 
 /* Take a seat while signed in. Identity is the verified session; the three
    fields are what the person typed on the form. */
