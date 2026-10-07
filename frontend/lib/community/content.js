@@ -83,7 +83,7 @@ export const WORKSHOPS = [
     ],
     bannerUrl: '/assets/workshops/shortlist-ready-portfolio.png',
     bannerArt: 'portfolio',
-    dateTime: '2026-10-10T15:00:00+05:30',
+    dateTime: '2026-10-17T15:00:00+05:30',
     durationMins: 120,
     capacity: 45,
     seededEnrollments: 0,

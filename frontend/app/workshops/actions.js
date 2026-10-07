@@ -1,10 +1,10 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { enrollmentSchema } from "@/lib/validation";
 import { sendEnrollmentEmail } from "@/lib/emails/enrollment";
 import { recordRegistration } from "@/lib/sheets";
-import { bySlug } from "@/lib/community/workshops";
+import { bySlug, isPast } from "@/lib/community/workshops";
 
 // Server Actions for workshop seats. Same shape as app/dashboard/actions.js:
 // the client can only influence the form fields, and identity comes from the
@@ -15,6 +15,32 @@ import { bySlug } from "@/lib/community/workshops";
 // workshop's capacity row for the transaction. That's deliberate: deciding it
 // here would leave a window where two people confirming at the same moment
 // both read the same last seat.
+
+/* Insert the capacity row for a workshop the content module knows about and
+   the database does not. Only for real, still-upcoming workshops, so a made-up
+   slug from the browser can never create a row. `ignoreDuplicates` makes it
+   `on conflict do nothing`: a row someone has since edited by hand is left
+   alone, exactly as supabase/enrollments.sql treats it. Never throws. */
+async function ensureSeatRow(slug) {
+  const w = bySlug(slug);
+  if (!w || isPast(w)) return false;
+  try {
+    const { error } = await createAdminClient()
+      .from("workshop_seats")
+      .upsert(
+        { slug: w.slug, capacity: w.capacity || 45, seeded_enrollments: w.seededEnrollments || 0 },
+        { onConflict: "slug", ignoreDuplicates: true }
+      );
+    if (error) {
+      console.error(`[enroll] Could not add the seat row for ${slug}: ${error.message}`);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error(`[enroll] Could not add the seat row for ${slug}: ${e?.message || e}`);
+    return false;
+  }
+}
 
 export async function enrollInWorkshop(input) {
   const parsed = enrollmentSchema.safeParse(input);
@@ -59,12 +85,22 @@ export async function enrollInWorkshop(input) {
     .eq("workshop_slug", slug)
     .maybeSingle();
 
-  const { data, error } = await supabase.rpc("enroll_in_workshop", {
-    p_slug: slug,
-    p_name: name,
-    p_email: email,
-    p_whatsapp: whatsapp,
-  });
+  const enrol = () =>
+    supabase.rpc("enroll_in_workshop", {
+      p_slug: slug,
+      p_name: name,
+      p_email: email,
+      p_whatsapp: whatsapp,
+    });
+
+  let { data, error } = await enrol();
+
+  // A workshop added to the content file but not yet to workshop_seats: give
+  // it its row from the content's own numbers and try once more, so opening a
+  // new session never also depends on someone running SQL first.
+  if (error && /unknown workshop/i.test(error.message || "") && (await ensureSeatRow(slug))) {
+    ({ data, error } = await enrol());
+  }
 
   if (error) {
     return { ok: false, error: "Could not save your seat. Please try again." };

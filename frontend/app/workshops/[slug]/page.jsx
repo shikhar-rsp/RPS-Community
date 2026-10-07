@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import SiteShell from '@/components/community/SiteShell';
 import Frame, { Avatar } from '@/components/community/Frame';
-import { StatusChip, DayBox, QuoteCard, HostCard } from '@/components/community/Bits';
+import { StatusChip, DayBox, QuoteCard } from '@/components/community/Bits';
 import { CONFIG } from '@/lib/community/content';
 import { useReveal, useSession, identityFrom, useToasts } from '@/lib/community/hooks';
 import { useSeats, useSeatCount, validateDetails } from '@/lib/community/enrollment';
@@ -27,33 +27,6 @@ export default function Page() {
     </Suspense>
   );
 }
-
-const ICON = {
-  date: (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-      <rect x="2" y="3.2" width="12" height="11" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M2 6.6h12M5.4 1.8v2.6M10.6 1.8v2.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  time: (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-      <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 4.6V8l2.4 1.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  place: (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-      <path d="M8 14.2S3 10 3 6.6a5 5 0 0 1 10 0C13 10 8 14.2 8 14.2z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <circle cx="8" cy="6.5" r="1.8" fill="none" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  ),
-  host: (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-      <circle cx="8" cy="5.4" r="2.8" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M2.8 14a5.2 5.2 0 0 1 10.4 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-};
 
 /* One drawn icon per kind of file in the workshop kit. */
 const KIT_ICON = {
@@ -124,18 +97,6 @@ function SectionHead({ id, label, title }) {
   );
 }
 
-function Meta({ icon, label, value }) {
-  return (
-    <div className="m">
-      <span className="ico">{icon}</span>
-      <span>
-        <small>{label}</small>
-        {value}
-      </span>
-    </div>
-  );
-}
-
 function WorkshopDetail() {
   const params = useParams();
   const router = useRouter();
@@ -181,6 +142,13 @@ function WorkshopDetail() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [w?.id, wantsEnroll, user?.id, loading, past]);
+
+  /* The seat form sits in the card grid rather than a sticky sidebar, so
+     arriving with intent brings it into view instead of leaving it below. */
+  useEffect(() => {
+    if (panelMode !== 'confirm' || !wantsEnroll) return;
+    document.getElementById('seat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [panelMode, wantsEnroll]);
 
   /* Arrived back from login with a file in mind — hand it over. */
   useEffect(() => {
@@ -291,46 +259,6 @@ function WorkshopDetail() {
       res.status === 'REGISTERED' ? 'good' : 'warn'
     );
   }
-
-  /* ------------------------------------------------- the upcoming hero
-     (A past workshop builds its own — see the PAST layout below.) */
-  const chips = (
-    <>
-      <span className="eyebrow bare">{w.cohortLabel || 'Cohort'} · Coming up</span>
-      {mine && <StatusChip status={mine.status} />}
-    </>
-  );
-
-  const metaItems = (
-    <>
-      <Meta icon={ICON.date} label="Date" value={dayShort(w.dateTime)} />
-      <Meta icon={ICON.time} label="Starts" value={time(w.dateTime)} />
-      <Meta icon={ICON.place} label="Where" value="Google Meet" />
-      {h && <Meta icon={ICON.host} label="Host" value={h.name} />}
-    </>
-  );
-
-  const hero = (cta) => (
-    <div className="wrap page-top">
-      <Link className="backlink" href="/workshops">
-        ← All workshops
-      </Link>
-      <div className="whero">
-        <div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            {chips}
-          </div>
-          <h1>{w.title}</h1>
-          <p className="summary">{w.summary}</p>
-          <div className="metarow">{metaItems}</div>
-          {cta && <div className="cta-row">{cta}</div>}
-        </div>
-        <div className="whero-media">
-          <Frame kind={w.bannerArt} src={w.bannerUrl} alt={w.title} />
-        </div>
-      </div>
-    </div>
-  );
 
   /* A seat is not given up by a single stray tap. The link swaps for a plain
      yes/no in place — same card, no dialog to dismiss. */
@@ -572,110 +500,6 @@ function WorkshopDetail() {
     toast('Seat released. Someone on the waitlist just got lucky.');
   }
 
-  /* ------------------------------------------------------ UPCOMING layout */
-  if (!past) {
-    const featured = featuredPast();
-    // The last session's own words when it has some; otherwise the featured
-    // quotes from any cohort, labelled as coming from an earlier room.
-    const lastTs = featured ? testimonials(featured.id) : [];
-    const socialProof = (lastTs.length ? lastTs : testimonials()).slice(0, 1);
-
-    return (
-      <SiteShell active="workshops" toasts={toasts}>
-        {hero(null)}
-
-        <div className="wrap" style={{ paddingBottom: 'clamp(64px,8vw,104px)' }}>
-          <div className="detail">
-            <div>
-              <div className="blk">
-                <span className="eyebrow">What we&rsquo;re building</span>
-                {paragraphs(w.description).map((t, k) => (
-                  <p key={k}>{t}</p>
-                ))}
-              </div>
-
-              <div className="blk">
-                <span className="eyebrow">This is for you if</span>
-                <ul className="ticks arrow">
-                  {w.whoItsFor.map((i, k) => (
-                    <li key={k}>{i}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="blk">
-                <span className="eyebrow">What you&rsquo;ll walk out with</span>
-                <ol className="steps">
-                  {w.curriculum.map((i, k) => (
-                    <li key={k}>{i}</li>
-                  ))}
-                </ol>
-              </div>
-
-              <HostCard host={h} />
-
-              {!!socialProof.length && (
-                <div className="blk">
-                  <span className="eyebrow">
-                    {lastTs.length ? 'From the last one' : 'From an earlier cohort'}
-                  </span>
-                  <div style={{ marginTop: 24 }}>
-                    {socialProof.map((t, i) => (
-                      <QuoteCard key={t.id} t={t} i={i} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-                  {featured && featured.id !== w.id && (
-                <div className="callout plain">
-                  <h3>Want to see how one of these actually goes?</h3>
-                  {recordingReady(featured) ? (
-                    <p>
-                      {featured.cohortLabel || 'The last session'} is up in full on YouTube, with
-                      the notes from the room.
-                    </p>
-                  ) : (
-                    <p>The last session is written up in full, with the file we built.</p>
-                  )}
-                  <div className="cta-row">
-                    <Link
-                      className="btn ghost go"
-                      href={
-                        recordingReady(featured)
-                          ? `${workshopUrl(featured)}#recording`
-                          : workshopUrl(featured)
-                      }
-                    >
-                      {recordingReady(featured) ? 'Watch the last one' : 'See the last one'}
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <aside className="side">
-              <div className="sticky">
-                {Panel()}
-              </div>
-            </aside>
-          </div>
-        </div>
-      </SiteShell>
-    );
-  }
-
-
-  /* ----------------------------------------------------------- PAST layout
-     The recording leads. Someone arriving from "Past & recordings" came to
-     watch, so the player is the first thing on the page — the real YouTube
-     player, sitting ready rather than running, with the way on to the
-     channel right under it. Then what the session was, in one strip of facts.
-
-     Below that the page is a single grid of equal cards: two to a row, a lone
-     last card running the full width, and one gap between everything. Cards
-     in a row stretch to the same height, so a short column never leaves dead
-     space beside a long one. On a phone it is one column in reading order. */
   // The quotes marked `featured` carry the section — the first leads, up to
   // three sit beside it. A workshop with none of its own borrows earlier
   // cohorts' and says whose they are, so nobody reads them as this cohort's.
@@ -691,6 +515,201 @@ function WorkshopDetail() {
     : quotedFrom.length === 1
       ? `What ${quotedFrom[0]} said`
       : 'From earlier cohorts';
+
+  /* ------------------------------------------------------ UPCOMING layout
+     The same page a past workshop gets, so every workshop reads the same way:
+     the hero with its strip of facts, then one grid of equal cards, the quotes,
+     and the band at the foot. The seat panel is a card in the first row,
+     beside the brief, where the sidebar used to hold it. */
+  if (!past) {
+    const featured = featuredPast();
+    const upFacts = [
+      ['Date', dayShort(w.dateTime)],
+      ['Starts', time(w.dateTime)],
+      ['Length', durationLabel(w)],
+      ['Where', 'Google Meet'],
+      h ? ['Hosted by', h.name] : null,
+    ].filter(Boolean);
+
+    // Straight to the form when signed in, with the seat card brought into view.
+    const goToSeat = () => {
+      startEnroll();
+      document.getElementById('seat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    return (
+      <SiteShell active="workshops" toasts={toasts}>
+        <div className="wrap page-top">
+          <Link className="backlink" href="/workshops">
+            ← All workshops
+          </Link>
+          <div className="whero past">
+            <div>
+              <div className="whero-chips">
+                <span className="eyebrow bare">{w.cohortLabel || 'Cohort'} · Coming up</span>
+                {mine && <StatusChip status={mine.status} />}
+              </div>
+              <h1>{w.title}</h1>
+              <p className="summary">{w.summary}</p>
+              <dl className="wfacts" style={{ '--n': upFacts.length }}>
+                {upFacts.map(([k, v]) => (
+                  <div key={k}>
+                    <dt>{k}</dt>
+                    <dd>
+                      {k === 'Hosted by' && h?.photoUrl && (
+                        <img className="face" src={h.photoUrl} alt="" loading="lazy" decoding="async" />
+                      )}
+                      {v}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              {!mine && (
+                <div className="cta-row">
+                  <button className="btn go" type="button" onClick={goToSeat}>
+                    Grab a seat
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="whero-media">
+              <Frame kind={w.bannerArt} src={w.bannerUrl} alt={w.title} />
+            </div>
+          </div>
+        </div>
+
+        <div className="wrap wpast-body">
+          <div className="wgrid2">
+            <section className="wcell wstory" aria-labelledby="story-h">
+              <SectionHead id="story-h" label="The session" title="What we’re building" />
+              {paragraphs(w.description).map((t, k) => (
+                <StoryParagraph key={k} text={t} />
+              ))}
+            </section>
+
+            <section className="wseat" id="seat" aria-label="Take a seat">
+              {Panel()}
+            </section>
+
+            {!!(w.curriculum || []).length && (
+              <section className="wcell wcovered" aria-labelledby="covered-h">
+                <SectionHead id="covered-h" label="Inside the session" title="What you’ll walk out with" />
+                <ul className="wlist">
+                  {w.curriculum.map((i, k) => (
+                    <li key={k}>{i}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {!!(w.whoItsFor || []).length && (
+              <section className="wcell wcovered" aria-labelledby="for-h">
+                <SectionHead id="for-h" label="Who it’s for" title="This is for you if" />
+                <ul className="wlist">
+                  {w.whoItsFor.map((i, k) => (
+                    <li key={k}>{i}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {h && (
+              <section className="wcell whost" aria-labelledby="host-h">
+                <div>
+                  <span className="eyebrow">Hosted by</span>
+                  <div className="whost-id">
+                    {h.photoUrl ? (
+                      <img className="face" src={h.photoUrl} alt="" loading="lazy" decoding="async" />
+                    ) : (
+                      <span className="face" aria-hidden="true">{initialsFrom(h.name)}</span>
+                    )}
+                    <div>
+                      <h2 id="host-h">{h.name}</h2>
+                      <small>{h.title}</small>
+                    </div>
+                  </div>
+                </div>
+                {h.bio && <p>{h.bio}</p>}
+              </section>
+            )}
+          </div>
+
+          {leadQuote && (
+            <section className={'wsaid' + (moreQuotes.length ? '' : ' solo')} aria-labelledby="said-h">
+              <figure className="wcell wquote-lead">
+                <h2 id="said-h" className="eyebrow">{saidLabel}</h2>
+                <blockquote>&ldquo;{leadQuote.quote}&rdquo;</blockquote>
+                <figcaption>
+                  <Avatar i={0} />
+                  <span>
+                    <b>{leadQuote.name}</b>
+                    <small>{leadQuote.role}</small>
+                  </span>
+                </figcaption>
+              </figure>
+              {!!moreQuotes.length && (
+                <div className="wquotes">
+                  {moreQuotes.map((t, i) => (
+                    <QuoteCard key={t.id} t={t} i={i + 1} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* The band at the foot, as on a past workshop: one action, then the
+              last session as a single quiet row to see how these go. */}
+          {featured && featured.id !== w.id && (
+            <section className="wnext is-empty" aria-labelledby="last-h">
+              <div className="wnext-empty">
+                <div className="wnext-main">
+                  <div>
+                    <span className="eyebrow">Before you come</span>
+                    <h2 id="last-h">See how one of these actually goes</h2>
+                    <p>Every session is recorded, with the notes from the room.</p>
+                  </div>
+                  <a className="btn go" href={CONFIG.whatsappUrl} target="_blank" rel="noopener noreferrer">
+                    Join the WhatsApp group
+                  </a>
+                </div>
+                <Link
+                  className="wnext-archive"
+                  href={workshopUrl(featured) + (recordingReady(featured) ? '#recording' : '')}
+                >
+                  <span className="thumb" aria-hidden="true">
+                    <Frame flat kind={featured.bannerArt} src={featured.bannerUrl} alt="" />
+                  </span>
+                  <span className="txt">
+                    <small>The last one</small>
+                    <b>{featured.title}</b>
+                    <span className="meta">
+                      {[featured.cohortLabel, `Held ${dateFull(featured.dateTime)}`]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                  </span>
+                  <span className="go" aria-hidden="true">
+                    {recordingReady(featured) ? 'Watch it →' : 'See what happened →'}
+                  </span>
+                </Link>
+              </div>
+            </section>
+          )}
+        </div>
+      </SiteShell>
+    );
+  }
+
+  /* ----------------------------------------------------------- PAST layout
+     The recording leads. Someone arriving from "Past & recordings" came to
+     watch, so the player is the first thing on the page — the real YouTube
+     player, sitting ready rather than running, with the way on to the
+     channel right under it. Then what the session was, in one strip of facts.
+
+     Below that the page is a single grid of equal cards: two to a row, a lone
+     last card running the full width, and one gap between everything. Cards
+     in a row stretch to the same height, so a short column never leaves dead
+     space beside a long one. On a phone it is one column in reading order. */
   const nextUp = upcoming()[0];
   // Nothing on the calendar is no reason to end on a dead stop: the archive
   // is the other thing worth exploring from here.
