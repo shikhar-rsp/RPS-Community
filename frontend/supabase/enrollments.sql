@@ -37,6 +37,7 @@ comment on table public.workshop_seats is
 -- Seed / re-sync from lib/community/content.js. Re-running updates capacity
 -- but never clobbers a slug you have since edited by hand in the dashboard.
 insert into public.workshop_seats (slug, capacity, seeded_enrollments) values
+  ('shortlist-ready-portfolio',  45, 0),
   ('design-products-with-ai',    45, 33),
   ('ai-prototyping-sprint',      45, 45),
   ('portfolio-teardown-live',    45, 44),

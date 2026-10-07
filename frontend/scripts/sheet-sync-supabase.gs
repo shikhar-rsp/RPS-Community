@@ -61,6 +61,7 @@ var HEADERS = [
 /* Slug -> the title a human reading this sheet would recognise. A slug that is
    not listed falls through as itself, so a new workshop still syncs. */
 var WORKSHOP_TITLES = {
+  'shortlist-ready-portfolio': 'Build a portfolio that gets you shortlisted. Not just admired.',
   'design-products-with-ai': 'Designing product journeys with AI. Not just websites.',
   'ship-client-ready-websites': 'Ship client-ready websites in hours, not months.',
 };

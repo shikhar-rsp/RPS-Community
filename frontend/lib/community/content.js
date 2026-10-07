@@ -53,6 +53,53 @@ export const HOSTS = [
 export const WORKSHOPS = [
   /* ---------------- Upcoming ---------------- */
   {
+    id: 'w_portfolio',
+    /* A new slug, not 'portfolio-teardown-live': that one already has a
+       workshop_seats row with 44 of 45 seats seeded, so reusing it would put
+       almost everyone straight on the waitlist. */
+    slug: 'shortlist-ready-portfolio',
+    title: 'Build a portfolio that gets you shortlisted. Not just admired.',
+    summary:
+      'Senior designers show you how to build a shortlist-ready UX/UI portfolio, with AI tools to speed up the work.',
+    description: [
+      'Most portfolios get admired and then closed. The people hiring look at hundreds of them, and the ones that make the shortlist are not the prettiest — they are the ones that make the case for the designer fastest.',
+      'In this session, senior designers who hire for RPS walk through what a shortlist-ready UX/UI portfolio actually looks like: which projects to lead with, how to tell a case study so the decisions show, and what gets a portfolio passed over in the first minute.',
+      'Then we put AI to work on the slow parts — structuring case studies, tightening the writing and building the pages — so the time goes into the thinking, not the formatting.',
+    ],
+    recapHeadline: null,
+    recap: null,
+    whoItsFor: [
+      'You’re a student or fresher putting your first portfolio together and not sure what goes in it',
+      'You’ve been applying and hearing nothing back, and want to know what a reviewer sees',
+      'You’re a working designer whose portfolio is a few years and a few projects out of date',
+      'You want to use AI to speed up the portfolio work without it reading like everyone else’s',
+    ],
+    curriculum: [
+      'What gets a portfolio shortlisted — and what gets it closed in the first minute',
+      'Choosing and ordering your projects so the strongest case comes first',
+      'Writing case studies that show your decisions, not just your screens',
+      'Using AI tools to structure, write and build the portfolio faster',
+      'A review of real portfolios, live',
+    ],
+    bannerUrl: '/assets/workshops/shortlist-ready-portfolio.png',
+    bannerArt: 'portfolio',
+    dateTime: '2026-10-10T15:00:00+05:30',
+    durationMins: 120,
+    capacity: 45,
+    seededEnrollments: 0,
+    /* Set the real room before the session. Until then the page and the
+       confirmation email say the link comes on WhatsApp. If a dial-in is
+       added, replace meetPhone and meetPhoneUrl together with it. */
+    meetLink: null,
+    recordingUrl: null,
+    // No single host named yet: the page, cards and email all leave the host
+    // line out until this is set to 'host_1' or 'host_2'.
+    hostId: null,
+    cohortLabel: 'Cohort 03',
+  },
+
+  /* ---------------- Past ---------------- */
+  {
     id: 'w_ai_product',
     slug: 'design-products-with-ai',
     title: 'Designing product journeys with AI. Not just websites.',
@@ -128,7 +175,6 @@ export const WORKSHOPS = [
     rating: 4.9,
   },
 
-  /* ---------------- Past ---------------- */
   {
     id: 'w_landing',
     slug: 'ship-client-ready-websites',

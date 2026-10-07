@@ -31,6 +31,7 @@ const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DRY = process.argv.includes('--dry-run');
 
 const WORKSHOP_TITLES = {
+  'shortlist-ready-portfolio': 'Build a portfolio that gets you shortlisted. Not just admired.',
   'design-products-with-ai': 'Designing product journeys with AI. Not just websites.',
   'ship-client-ready-websites': 'Ship client-ready websites in hours, not months.',
 };
