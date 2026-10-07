@@ -15,6 +15,8 @@
       has to keep working there.
    ============================================================================= */
 
+import { gmailConfigured, openGmail } from "@/lib/smtp";
+
 const ENDPOINT = "https://api.resend.com/emails";
 
 // Resend won't accept a From on a domain that hasn't been verified in the
@@ -31,7 +33,32 @@ const REPLY_TO = process.env.MAIL_REPLY_TO || "cohorts@rockpaperscissors.studio"
 const TIMEOUT_MS = 8000;
 
 export function mailConfigured() {
-  return !!process.env.RESEND_API_KEY;
+  return !!process.env.RESEND_API_KEY || gmailConfigured();
+}
+
+/* Which way mail leaves: Resend when it has a key, otherwise the Google
+   Workspace mailbox in lib/smtp.js when that is set up. */
+export function mailProvider() {
+  if (process.env.RESEND_API_KEY) return "resend";
+  if (gmailConfigured()) return "gmail";
+  return null;
+}
+
+/* For sending many messages in a row — a whole list. With Gmail it signs in
+   once and sends everything down one connection; with Resend each message is
+   its own request, as before. Always call close(). */
+export async function openMailer() {
+  if (mailProvider() === "gmail") {
+    const g = await openGmail();
+    return {
+      ok: g.ok,
+      error: g.error,
+      provider: "gmail",
+      send: (m) => g.send({ ...m, replyTo: m.replyTo || REPLY_TO }),
+      close: () => g.close(),
+    };
+  }
+  return { ok: true, provider: "resend", send: (m) => sendEmail(m), close: () => {} };
 }
 
 /* Send one email. Resolves to { ok, id } or { ok: false, error, status?,
@@ -42,6 +69,15 @@ export function mailConfigured() {
    again after a timeout or a double click without anyone getting it twice. */
 export async function sendEmail({ to, subject, html, text, replyTo, idempotencyKey }) {
   const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey && gmailConfigured()) {
+    if (!to || !subject || (!html && !text)) {
+      return { ok: false, error: "Missing recipient, subject or body." };
+    }
+    const g = await openGmail();
+    const res = await g.send({ to, subject, html, text, replyTo: replyTo || REPLY_TO });
+    g.close();
+    return res;
+  }
   if (!apiKey) {
     // Loud enough to find in a production log, quiet enough not to be noise in
     // dev, where running without a key is the normal case.

@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import styles from './registrations.module.css';
 import { sendWorkshopEmail, sendConfirmationTest } from './actions';
 import { bySlug } from '@/lib/community/workshops';
@@ -13,7 +13,23 @@ import { templatesFor, PLACEHOLDER } from '@/lib/emails/templates';
 
 const DEFAULT_TEST_TO = 'dheena@rockpaperscissors.studio';
 
-export default function EmailBox({ slug, approved, viewer }) {
+/* Who has had a given message, remembered in this browser — keyed by the
+   workshop and the exact subject and body, so editing a word makes it a new
+   message. The server skips these on the next press. */
+function msgKey(slug, subject, body) {
+  let h = 5381;
+  const str = slug + '\u0000' + subject.trim() + '\u0000' + body.trim();
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return 'rps.sent.' + slug + '.' + (h >>> 0).toString(36);
+}
+function readSent(key) {
+  try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch { return new Set(); }
+}
+function writeSent(key, set) {
+  try { localStorage.setItem(key, JSON.stringify([...set])); } catch { /* private mode */ }
+}
+
+export default function EmailBox({ slug, emails = [], viewer }) {
   const w = useMemo(() => bySlug(slug), [slug]);
   const templates = useMemo(() => templatesFor(w), [w]);
 
@@ -24,6 +40,13 @@ export default function EmailBox({ slug, approved, viewer }) {
   const [confirming, setConfirming] = useState(false);
   const [note, setNote] = useState(null); // { kind: 'ok' | 'warn', text }
   const [busy, startTransition] = useTransition();
+
+  const key = msgKey(slug, subject, body);
+  const [sentSet, setSentSet] = useState(() => new Set());
+  useEffect(() => setSentSet(readSent(key)), [key]);
+  const list = useMemo(() => [...new Set(emails.map((e) => String(e).trim().toLowerCase()))], [emails]);
+  const approved = list.length;
+  const toGo = list.filter((e) => !sentSet.has(e)).length;
 
   if (!w) return null;
 
@@ -42,6 +65,11 @@ export default function EmailBox({ slug, approved, viewer }) {
   function report(res, label) {
     if (!res?.ok) return setNote({ kind: 'warn', text: res?.error || 'Could not send it.' });
     if (res.to) return setNote({ kind: 'ok', text: `Sent the “you’re in” email to ${res.to}.` });
+    if (res.sentTo?.length) {
+      const next = new Set([...sentSet, ...res.sentTo]);
+      writeSent(key, next);
+      setSentSet(next);
+    }
     const bits = [`${label}: sent to ${res.sent} of ${res.total}.`];
     if (res.failed?.length) bits.push(`Didn’t go to ${res.failed.join(', ')}.`);
     if (res.remaining) bits.push(`${res.remaining} still to go — press Send again to finish. Nobody gets it twice.`);
@@ -65,7 +93,7 @@ export default function EmailBox({ slug, approved, viewer }) {
   function sendAll() {
     setNote(null);
     setConfirming(false);
-    startTransition(async () => report(await sendWorkshopEmail({ slug, subject, body }), 'Done'));
+    startTransition(async () => report(await sendWorkshopEmail({ slug, subject, body, skip: [...sentSet] }), 'Done'));
   }
 
   return (
@@ -134,7 +162,7 @@ export default function EmailBox({ slug, approved, viewer }) {
         {confirming ? (
           <span className={styles.confirm}>
             <span className={styles.ask}>
-              Send “{subject}” to {approved} {approved === 1 ? 'person' : 'people'}?
+              Send “{subject}” to {toGo} {toGo === 1 ? 'person' : 'people'}?
             </span>
             <button type="button" className="btn go" disabled={busy} onClick={sendAll}>
               Yes, send it
@@ -147,10 +175,16 @@ export default function EmailBox({ slug, approved, viewer }) {
           <button
             type="button"
             className="btn go"
-            disabled={busy || !!left || !approved || !subject.trim()}
+            disabled={busy || !!left || !toGo || !subject.trim()}
             onClick={() => setConfirming(true)}
           >
-            {busy ? 'Sending…' : `Send to ${approved} ${approved === 1 ? 'person' : 'people'}`}
+            {busy
+              ? 'Sending…'
+              : approved && !toGo
+                ? 'Sent to everyone ✓'
+                : toGo < approved
+                  ? `Send to the ${toGo} who haven’t had it`
+                  : `Send to ${toGo} ${toGo === 1 ? 'person' : 'people'}`}
           </button>
         )}
       </div>

@@ -198,14 +198,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
    Long lists are sent at Resend's pace and stopped before the server's time
    limit; the reply says how many are left, and pressing Send again finishes
    them without repeating anyone. */
-export async function sendWorkshopEmail({ slug, subject, body, test = false, testTo = "" }) {
+export async function sendWorkshopEmail({ slug, subject, body, test = false, testTo = "", skip = [] }) {
   const user = await requireAdmin();
   if (!user) return { ok: false, error: "Not allowed." };
 
   const { bySlug } = await import("@/lib/community/workshops");
   const { PLACEHOLDER } = await import("@/lib/emails/templates");
   const { buildBroadcastEmail } = await import("@/lib/emails/broadcast");
-  const { sendEmail, mailConfigured } = await import("@/lib/mail");
+  const { openMailer, mailConfigured, mailProvider } = await import("@/lib/mail");
   const { createHash } = await import("crypto");
 
   const w = bySlug(String(slug || ""));
@@ -219,7 +219,11 @@ export async function sendWorkshopEmail({ slug, subject, body, test = false, tes
   if (left) return { ok: false, error: `Fill in ${left[0]} before sending.` };
 
   if (!mailConfigured()) {
-    return { ok: false, error: "Email isn’t set up on the server yet (RESEND_API_KEY is missing in Vercel)." };
+    return {
+      ok: false,
+      error:
+        "Email isn’t set up on the server yet: add GMAIL_USER and GMAIL_APP_PASSWORD (or RESEND_API_KEY) in Vercel, then redeploy.",
+    };
   }
 
   let people;
@@ -244,8 +248,23 @@ export async function sendWorkshopEmail({ slug, subject, body, test = false, tes
   }
   if (!people.length) return { ok: false, error: "Nobody approved on this list yet." };
 
+  /* Who has already had this exact message, as remembered by the page that
+     sent it — so a second press, or a press after a timeout, carries on with
+     the rest rather than starting again. (With Resend the idempotency key
+     below guarantees it on the provider's side too; Gmail has no such thing.) */
+  const already = new Set((Array.isArray(skip) ? skip : []).map((e) => String(e).trim().toLowerCase()));
+  const total = people.length;
+  if (!test) people = people.filter((r) => !already.has(String(r.email).trim().toLowerCase()));
+  const hadIt = total - people.length;
+  if (!people.length) return { ok: true, test, total, sent: hadIt, sentTo: [], failed: [], remaining: 0, done: true };
+
+  const mailer = await openMailer();
+  if (!mailer.ok) return { ok: false, error: `Could not sign in to send: ${mailer.error}` };
+  const spacing = mailProvider() === "resend" ? SPACING_MS : 150;
+
   const started = Date.now();
   let sent = 0;
+  const sentTo = [];
   const failed = [];
   let remaining = 0;
 
@@ -266,16 +285,19 @@ export async function sendWorkshopEmail({ slug, subject, body, test = false, tes
 
     let res;
     for (let attempt = 0; attempt < 3; attempt++) {
-      res = await sendEmail({ to: email, ...msg, idempotencyKey: key });
+      res = await mailer.send({ to: email, ...msg, idempotencyKey: key });
       if (res.ok || res.status !== 429) break;
       await sleep(1200 * (attempt + 1));
     }
-    if (res.ok) sent += 1;
-    else failed.push(email);
-    if (i < people.length - 1) await sleep(SPACING_MS);
+    if (res.ok) {
+      sent += 1;
+      sentTo.push(email.toLowerCase());
+    } else failed.push(email);
+    if (i < people.length - 1) await sleep(spacing);
   }
+  mailer.close();
 
-  return { ok: true, test, total: people.length, sent, failed, remaining };
+  return { ok: true, test, total, sent: sent + hadIt, sentTo, failed, remaining };
 }
 
 /* Where a test goes: the address typed in the test box, or the admin's own. */
@@ -294,7 +316,11 @@ export async function sendConfirmationTest({ slug, testTo = "" }) {
   const { mailConfigured } = await import("@/lib/mail");
   const { sendEnrollmentEmail } = await import("@/lib/emails/enrollment");
   if (!mailConfigured()) {
-    return { ok: false, error: "Email isn’t set up on the server yet (RESEND_API_KEY is missing in Vercel)." };
+    return {
+      ok: false,
+      error:
+        "Email isn’t set up on the server yet: add GMAIL_USER and GMAIL_APP_PASSWORD (or RESEND_API_KEY) in Vercel, then redeploy.",
+    };
   }
   const to = testAddress(testTo, user.email);
   if (!to) return { ok: false, error: "That test address doesn’t look right." };

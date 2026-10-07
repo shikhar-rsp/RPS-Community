@@ -286,7 +286,9 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
           <EmailBox
             key={slug}
             slug={slug}
-            approved={counts.REGISTERED + counts.ATTENDED}
+            emails={inWorkshop
+              .filter((r) => r.status === 'REGISTERED' || r.status === 'ATTENDED')
+              .map((r) => r.email)}
             viewer={viewer}
           />
         )}
