@@ -30,7 +30,7 @@ export function buildBroadcastEmail({ name, workshop: w, subject, body }) {
       textToHtml(text),
     footer: p(
       'You’re getting this because you registered for <a href="' + esc(page) + '" style="color:' + MUTED + ';">' +
-        esc(w.title) + '</a> at RPS Cohorts.',
+        esc(w.title.replace(/[.\s]+$/, '')) + '</a> at RPS Cohorts.',
       { size: 12, color: MUTED, margin: '0' }
     ),
   });

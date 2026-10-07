@@ -140,7 +140,7 @@ export function buildEnrollmentEmail({ name, workshop }) {
     '<h1 style="margin:0 0 14px;font-family:' + FONT + ';font-size:27px;line-height:1.25;color:' + INK + ';">' +
     esc(headline) + '</h1>' +
     p('Hi ' + esc(firstName(name)) + ',', { margin: '0 0 6px' }) +
-    p('Your seat at <strong>' + esc(w.title) + '</strong> is confirmed. Here’s everything you need.', {
+    p('Your seat at <strong>' + esc(titleLine) + '</strong> is confirmed. Here’s everything you need.', {
       margin: '0 0 22px',
     }) +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" ' +
@@ -182,7 +182,7 @@ export function buildEnrollmentEmail({ name, workshop }) {
     '',
     'Hi ' + firstName(name) + ',',
     '',
-    'Your seat at "' + w.title + '" is confirmed.',
+    'Your seat at "' + titleLine + '" is confirmed.',
     '',
     'When:  ' + when + ' (' + dateFull(w.dateTime) + ', ' + mins + ')',
     'Where: ' + (meet || 'Google Meet — we’ll email the link the day before, and send it on WhatsApp.'),
