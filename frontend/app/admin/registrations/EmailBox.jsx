@@ -90,6 +90,25 @@ export default function EmailBox({ slug, emails = [], viewer }) {
     startTransition(async () => report(await sendConfirmationTest({ slug, testTo }), 'Confirmation'));
   }
 
+  /* No setup at all: a Gmail compose window in this browser's own account,
+     everyone in BCC (so nobody sees anyone else's address), subject and
+     message filled in. Plain text and one message for all, so {name} reads
+     "there". The admin presses Send in Gmail. */
+  const plain = body.replace(/\{name\}/gi, 'there');
+  function openInGmail() {
+    const params = new URLSearchParams({ view: 'cm', fs: '1', bcc: list.join(','), su: subject, body: plain });
+    window.open('https://mail.google.com/mail/?' + params.toString(), '_blank', 'noopener');
+    setNote({ kind: 'ok', text: `Opened Gmail with ${approved} ${approved === 1 ? 'person' : 'people'} in BCC. Check it, then press Send there.` });
+  }
+  async function copy(what, label) {
+    try {
+      await navigator.clipboard.writeText(what);
+      setNote({ kind: 'ok', text: `${label} copied.` });
+    } catch {
+      setNote({ kind: 'warn', text: 'Could not copy — your browser blocked it.' });
+    }
+  }
+
   function sendAll() {
     setNote(null);
     setConfirming(false);
@@ -155,6 +174,19 @@ export default function EmailBox({ slug, emails = [], viewer }) {
         </button>
         <button type="button" className={styles.act} disabled={busy} onClick={sendConfirmation}>
           Send me the “you’re in” email
+        </button>
+      </div>
+
+      <div className={styles.mailRow}>
+        <span className={styles.mailLabelInline}>No setup:</span>
+        <button type="button" className={styles.act} disabled={!approved || !!left} onClick={openInGmail}>
+          Open in Gmail (everyone in BCC)
+        </button>
+        <button type="button" className={styles.act} disabled={!approved} onClick={() => copy(list.join(', '), `${approved} email addresses`)}>
+          Copy all email addresses
+        </button>
+        <button type="button" className={styles.act} disabled={!!left} onClick={() => copy(plain, 'The message')}>
+          Copy message
         </button>
       </div>
 
